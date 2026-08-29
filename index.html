@@ -1,0 +1,2545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>WELL记账</title>
+
+    <!-- iOS 添加到主屏幕 / 网页分享到桌面图标 -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="WELL记账" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" href="img/apple-touch-icon.png" />
+    <!-- 标准 PWA Web App Manifest -->
+    <link rel="manifest" href="manifest.webmanifest" />
+
+    <link rel="stylesheet" href="webfonts/remixicon.css" />
+    
+    <link rel="stylesheet" href="css/all.min.css" />
+     <link rel="stylesheet" href="css/style.css?v=20" />
+     <link rel="stylesheet" href="css/bills.css" />
+     <link rel="stylesheet" href="css/stats.css" />
+	 <link rel="stylesheet" href="css/pet.css" />
+    <link rel="stylesheet" href="css/cropper.min.css" />
+</head>
+<body>
+
+    <div id="app">
+        
+        
+        <div id="toast">
+            <div class="toast-text" id="toastMessage">提示内容</div>
+        </div>
+
+        
+        <div class="date-overlay" id="dateOverlay"></div>
+        <div class="date-modal" id="dateModal">
+            <div class="date-modal-header">
+                <button class="date-modal-close" id="dateModalClose">
+                    <i class="ri-close-line"></i>
+                </button>
+                <button class="date-modal-confirm" id="dateBtnConfirm">
+                    <i class="ri-check-line"></i>
+                </button>
+            </div>
+            <div class="date-modal-body">
+                <div class="wheel-picker-container">
+                    <div class="wheel-picker-mask-top"></div>
+                    <div class="wheel-picker-mask-bottom"></div>
+                    <div class="wheel-picker-highlight"></div>
+                    <div class="wheel-picker" data-type="year" id="wheelYear"></div>
+                    <div class="wheel-picker" data-type="month" id="wheelMonth"></div>
+                    <div class="wheel-picker" data-type="day" id="wheelDay"></div>
+                    <div class="wheel-picker-label">
+                        <span>年</span><span>月</span><span>日</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="month-overlay" id="monthOverlay"></div>
+        <div class="month-modal" id="monthModal">
+            <div class="month-modal-header">
+                <button class="month-modal-close" id="monthModalClose">
+                    <i class="ri-close-line"></i>
+                </button>
+                <button class="month-modal-confirm" id="monthBtnConfirm">
+                    <i class="ri-check-line"></i>
+                </button>
+            </div>
+            <div class="month-modal-body">
+                <div class="wheel-picker-container">
+                    <div class="wheel-picker-mask-top"></div>
+                    <div class="wheel-picker-mask-bottom"></div>
+                    <div class="wheel-picker-highlight"></div>
+                    <div class="wheel-picker" data-type="year" id="wheelMonthYear"></div>
+                    <div class="wheel-picker" data-type="month" id="wheelMonthMonth"></div>
+                    <div class="wheel-picker-label wheel-picker-label-2col">
+                        <span>年</span><span>月</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="import-overlay" id="importOverlay"></div>
+        <div class="import-progress-modal" id="importProgressModal">
+            <div class="import-progress-ring">
+                <svg viewBox="0 0 100 100" class="import-ring-svg">
+                    <circle class="import-ring-bg" cx="50" cy="50" r="42" />
+                    <circle class="import-ring-fill" cx="50" cy="50" r="42" id="importRingFill" />
+                </svg>
+                <div class="import-ring-text" id="importRingText">0%</div>
+            </div>
+            <div class="import-progress-label" id="importProgressLabel">正在导入...</div>
+        </div>
+        
+        <div class="update-modal-overlay" id="termsModalOverlay">
+            <div class="update-modal-box">
+                <div class="update-modal-header">
+                    <div class="update-modal-icon">
+                        <i class="ri-shield-check-line"></i>
+                    </div>
+                    <div class="update-modal-title">协议更新提示</div>
+                </div>
+                <div class="update-modal-body">
+                    <div class="update-modal-changelog" id="termsModalMessage">
+                        用户协议和隐私政策已更新，请重新阅读并同意。
+                    </div>
+                    <div class="terms-modal-links">
+                        <a href="javascript:void(0)" data-page="terms" class="terms-link">
+                            <i class="ri-file-text-line"></i> 查看用户协议
+                        </a>
+                        <a href="javascript:void(0)" data-page="privacy" class="terms-link">
+                            <i class="ri-lock-line"></i> 查看隐私政策
+                        </a>
+                    </div>
+                </div>
+                <div class="update-modal-footer">
+                    <button class="update-btn-cancel" id="termsModalLater">稍后</button>
+                    <button class="update-btn-confirm" id="termsModalAgree">同意并继续</button>
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="modal-overlay" id="deleteModal">
+            <div class="modal-box">
+                <div class="modal-title">确认删除</div>
+                <div class="modal-desc">确定要删除这笔账单吗？</div>
+                <div class="modal-actions">
+                    <button class="btn-cancel" id="modalCancel">取消</button>
+                    <button class="btn-confirm" id="modalConfirm">删除</button>
+                </div>
+            </div>
+        </div>
+
+        
+
+        <div class="add-modal-overlay" id="addModalOverlay">
+            <div class="add-modal-full">
+                
+                <div class="modal-top-bar">
+                    <button class="modal-back-btn" id="addModalClose">
+                        <i class="ri-arrow-left-s-line"></i>
+                    </button>
+                    <div class="modal-type-toggle" id="modalTypeToggle">
+                        <button type="button" data-type="expense" class="active-expense">支出</button>
+                        <button type="button" data-type="income">收入</button>
+                        <div class="toggle-slider" id="toggleSlider"></div>
+                    </div>
+                    <button class="modal-settings-btn" id="modalSettingsBtn">
+                        <i class="ri-settings-line"></i>
+                    </button>
+                </div>
+
+                
+                <div class="category-grid-wrapper" id="categoryGridWrapper">
+                    <div class="category-scroll" id="categoryScroll">
+                        <div class="category-slide" id="categorySlideExpense"></div>
+                        <div class="category-slide" id="categorySlideIncome"></div>
+                    </div>
+                </div>
+
+                
+                <div class="bottom-fixed" id="bottomFixed">
+                    <div class="input-area">
+                        <div class="input-top-row">
+                            <div class="scroll-wrapper" id="scrollWrapper">
+                                <div class="scroll-content" id="scrollContent">
+                                    <div class="input-group date-group">
+                                        <button class="date-trigger" id="dateTrigger">
+                                            <i class="ri-calendar-2-line"></i>
+                                            <span id="dateTriggerLabel">2026-06-23</span>
+                                        </button>
+                                    </div>
+                                    <div class="input-group we-group" id="belongGroup">
+                                        <button class="belong-btn active" data-belong="自己">自己</button>
+                                        <button class="belong-btn" data-belong="对方">对方</button>
+                                        <button class="belong-btn" data-belong="共同">共同</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="input-group payment-trigger-group">
+                                <button class="payment-trigger" id="paymentTrigger">
+                                    <span id="paymentTriggerLabel"><i class="ri-wechat-fill"></i> 微信</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="input-bottom-row">
+                            <div class="note-display" id="noteDisplay">
+                                <span class="note-placeholder" id="notePlaceholder">点击输入备注0/25</span>
+                                <span class="note-text" id="noteText" style="display:none;"></span>
+                            </div>
+                            <span class="amount-currency">¥</span>
+                            <span class="amount-display" id="amountDisplay">0.00</span>
+                        </div>
+                    </div>
+
+
+<div class="keyboard" id="keyboard">
+    
+    <button class="key-btn" data-value="1">1</button>
+    <button class="key-btn" data-value="2">2</button>
+    <button class="key-btn" data-value="3">3</button>
+    <button class="key-btn key-back" data-value="back"><i class="ri-delete-back-2-line"></i></button>
+    
+    <button class="key-btn" data-value="4">4</button>
+    <button class="key-btn" data-value="5">5</button>
+    <button class="key-btn" data-value="6">6</button>
+    <button class="key-btn key-plus" data-value="plus"><i class="ri-add-line"></i></button>
+    
+    <button class="key-btn" data-value="7">7</button>
+    <button class="key-btn" data-value="8">8</button>
+    <button class="key-btn" data-value="9">9</button>
+    <button class="key-btn key-minus" data-value="minus"><i class="ri-subtract-line"></i></button>
+    
+    <button class="key-btn key-clear" data-value="clear">清空</button>
+    <button class="key-btn" data-value="0">0</button>
+    <button class="key-btn" data-value=".">.</button>
+    <button class="key-btn key-save" data-value="save">保存</button>
+</div>
+                </div>
+            </div>
+
+            
+            <div class="payment-overlay" id="paymentOverlay"></div>
+            <div class="payment-sheet" id="paymentSheet">
+                <div class="payment-sheet-header">
+                    <span class="payment-sheet-title">选择支付方式</span>
+                    <button class="payment-sheet-close" id="paymentSheetClose">
+                        <i class="ri-close-line"></i>
+                    </button>
+                </div>
+                <div class="payment-sheet-options" id="paymentSheetOptions">
+                    <button class="payment-sheet-option active" data-payment="微信">
+                        <i class="ri-wechat-fill"></i> 微信
+                    </button>
+                    <button class="payment-sheet-option" data-payment="支付宝">
+                        <i class="ri-alipay-fill"></i> 支付宝
+                    </button>
+                    <button class="payment-sheet-option" data-payment="现金">
+                        <i class="ri-cash-fill"></i> 现金
+                    </button>
+                    <button class="payment-sheet-option" data-payment="银行卡">
+                        <i class="ri-bank-card-fill"></i> 银行卡
+                    </button>
+                </div>
+            </div>
+
+            
+            <div class="note-overlay" id="noteOverlay"></div>
+            <div class="note-modal" id="noteModal">
+                <div class="note-modal-header"></div>
+                <div class="note-modal-body">
+                    <input type="text" id="noteModalInput" placeholder="点击输入备注0/25" maxlength="25" />
+                    <button class="note-modal-confirm" id="noteModalConfirm">确认</button>
+                </div>
+            </div>
+
+        </div>
+
+
+
+<div id="auth-page" class="page active" style="display:none;">
+    <div class="auth-deco auth-deco-grid"></div>
+    <div class="auth-deco auth-deco-glow"></div>
+
+    <div class="auth-inner">
+        <div class="auth-box">
+            <div class="logo">
+                <div class="logo-text">
+                    <div class="logo-wordmark">WELL</div>
+                    <div class="logo-tagline">每一笔&nbsp;&nbsp;都为更好的生活</div>
+                </div>
+            </div>
+
+            
+            <form id="loginForm" autocomplete="off" novalidate>
+    <div class="form-group">
+        <div class="input-wrap">
+            <i class="ri-user-3-line input-icon"></i>
+            <input type="text" id="loginAccount" placeholder="请输入邮箱或手机号" autocomplete="off" />
+        </div>
+    </div>
+    <div class="form-group">
+        <div class="input-wrap">
+            <i class="ri-lock-line input-icon"></i>
+            <input type="password" id="loginPassword" placeholder="请输入密码" />
+            <button type="button" class="pwd-toggle" data-target="loginPassword" aria-label="显示/隐藏密码">
+                <i class="ri-eye-close-line"></i>
+            </button>
+        </div>
+    </div>
+
+                
+                <div class="auth-actions-row">
+                    <div class="auth-agree" data-target="agreeCheckbox">
+                        <input type="checkbox" id="agreeCheckbox" />
+                        <span class="auth-agree-box"><i class="ri-check-line"></i></span>
+                        <div class="auth-agree-text">
+                            已阅读并同意
+                            <a class="auth-agree-link" href="javascript:void(0)" data-page="terms">用户协议</a>
+                            <span class="auth-agree-divider"></span>
+                            <a class="auth-agree-link" href="javascript:void(0)" data-page="privacy">隐私政策</a>
+                        </div>
+                    </div>
+                    <a class="auth-forgot" id="forgotPasswordLink">忘记密码</a>
+                </div>
+
+                <button type="submit" class="btn-primary no-theme" id="loginBtn">登录</button>
+                <div class="error-msg" id="loginError" style="display:none;"></div>
+            </form>
+
+
+<form id="registerForm" autocomplete="off" style="display:none;" novalidate>
+    <div class="form-group">
+        <div class="input-wrap">
+            <i class="ri-mail-line input-icon"></i>
+            <input type="email" id="regEmail" placeholder="请输入邮箱" />
+        </div>
+    </div>
+    <div class="form-group">
+        <div class="input-wrap input-wrap-with-code">
+            <i class="ri-shield-keyhole-line input-icon"></i>
+            <input type="text" id="regCode" placeholder="请输入验证码" maxlength="6" inputmode="numeric" />
+            <button type="button" id="regSendCodeBtn" class="code-send-btn">获取验证码</button>
+        </div>
+    </div>
+    <div class="form-group">
+        <div class="input-wrap">
+            <i class="ri-user-line input-icon"></i>
+            <input type="text" id="regNickname" placeholder="请输入昵称（1-20字）" maxlength="20" />
+        </div>
+    </div>
+    <div class="form-group">
+        <div class="input-wrap">
+            <i class="ri-lock-line input-icon"></i>
+            <input type="password" id="regPassword" placeholder="请设置密码（至少4位）" />
+            <button type="button" class="pwd-toggle" data-target="regPassword" aria-label="显示/隐藏密码">
+                <i class="ri-eye-close-line"></i>
+            </button>
+        </div>
+    </div>
+    <div class="form-group">
+        <div class="input-wrap">
+            <i class="ri-lock-line input-icon"></i>
+            <input type="password" id="regPassword2" placeholder="再次输入密码" />
+            <button type="button" class="pwd-toggle" data-target="regPassword2" aria-label="显示/隐藏密码">
+                <i class="ri-eye-close-line"></i>
+            </button>
+        </div>
+    </div>
+
+    <button type="submit" class="btn-primary no-theme" id="registerBtn">注册</button>
+    <div class="error-msg" id="registerError" style="display:none;"></div>
+</form>
+
+            <div class="switch-auth" id="authSwitchArea">
+                <span id="authSwitchText">还没有账号？<a id="authSwitchLink">立即注册</a></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div id="page-forgot-password" class="page">
+    <div class="fp-header">
+        <button class="fp-back" id="fpBackBtn">
+            <i class="ri-arrow-left-s-line"></i>
+        </button>
+        <span class="fp-title">找回密码</span>
+        <div style="width:40px;"></div>
+    </div>
+    <div class="fp-scroll">
+        <div class="fp-content">
+            <div class="fp-intro">
+                <div class="fp-intro-icon"><i class="ri-lock-unlock-line"></i></div>
+                <div class="fp-intro-title">重置您的密码</div>
+                <div class="fp-intro-desc">输入注册邮箱获取验证码，即可设置新密码</div>
+            </div>
+
+            
+            <div class="fp-steps">
+                <div class="fp-step active" data-step="1">
+                    <span class="fp-step-num">1</span>
+                    <span class="fp-step-label">邮箱验证</span>
+                </div>
+                <div class="fp-step-line"></div>
+                <div class="fp-step" data-step="2">
+                    <span class="fp-step-num">2</span>
+                    <span class="fp-step-label">设置新密码</span>
+                </div>
+            </div>
+
+            
+            <div class="fp-panel" id="fpPanel1">
+                <div class="fp-form-group">
+                    <label class="fp-label">注册邮箱</label>
+                    <div class="fp-input-wrap">
+                        <i class="ri-mail-line fp-input-icon"></i>
+                        <input type="email" id="fpEmail" placeholder="请输入注册邮箱" />
+                    </div>
+                </div>
+                <div class="fp-form-group">
+                    <label class="fp-label">验证码</label>
+                    <div class="fp-input-wrap fp-input-code-wrap">
+                        <i class="ri-shield-keyhole-line fp-input-icon"></i>
+                        <input type="text" id="fpCode" placeholder="请输入验证码" maxlength="6" inputmode="numeric" />
+                        <button type="button" id="fpSendCodeBtn" class="fp-send-code-btn">获取验证码</button>
+                    </div>
+                </div>
+                <button class="fp-btn" id="fpNext1">下一步</button>
+            </div>
+
+            
+            <div class="fp-panel" id="fpPanel2" style="display:none;">
+                <div class="fp-form-group">
+                    <label class="fp-label">新密码</label>
+                    <div class="fp-input-wrap">
+                        <i class="ri-lock-line fp-input-icon"></i>
+                        <input type="password" id="fpNewPassword" placeholder="请设置新密码（至少4位）" />
+                        <button type="button" class="pwd-toggle pwd-toggle-cpw" data-target="fpNewPassword" aria-label="显示/隐藏密码">
+                            <i class="ri-eye-close-line"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="fp-form-group">
+                    <label class="fp-label">确认新密码</label>
+                    <div class="fp-input-wrap">
+                        <i class="ri-lock-password-line fp-input-icon"></i>
+                        <input type="password" id="fpConfirmPassword" placeholder="请再次输入新密码" />
+                        <button type="button" class="pwd-toggle pwd-toggle-cpw" data-target="fpConfirmPassword" aria-label="显示/隐藏密码">
+                            <i class="ri-eye-close-line"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="fp-btn-row">
+                    <button class="fp-btn-ghost" id="fpBack2">上一步</button>
+                    <button class="fp-btn" id="fpSubmitBtn">完成</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+        
+        <div id="main-app" style="display:none; flex:1; flex-direction:column; min-height:0;">
+            
+
+            <div id="page-home" class="page active">
+
+                
+                <div class="pull-refresh" id="homePullRefresh">
+                    <div class="pull-refresh-icon">
+                        <i class="ri-refresh-line"></i>
+                    </div>
+                    <div class="pull-refresh-text" id="homePullRefreshText">下拉刷新</div>
+                </div>
+
+                <div class="page-header">
+                    <div class="home-header">
+                        <div class="home-header-left">
+                            <button class="wallet-nav-btn" id="walletPrevBtn">
+                                <i class="fas fa-caret-left"></i>
+                            </button>
+                            <div class="wallet-display" id="walletDisplay">
+                                <div class="greeting-avatar" id="homeAvatar">
+                                    <img id="homeAvatarImg" src="" style="display:none;" />
+                                    <i id="homeAvatarIcon" class="ri-wallet-fill"></i>
+                                </div>
+                                <span class="wallet-name" id="walletName">我的钱包</span>
+                            </div>
+                            <button class="wallet-nav-btn" id="walletNextBtn">
+                                <i class="fas fa-caret-right"></i>
+                            </button>
+                        </div>
+                        <div class="home-header-right">
+                            <div class="search-box" id="searchBox">
+                                <span>搜索账单</span>
+                                <i class="ri-search-line"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="summary-cards" id="homeSummary">
+                        <div class="stack-bg-1"></div>
+                        <div class="stack-bg-2"></div>
+                        <div class="stack-bg-3"></div>
+                        <div class="summary-corner-bar"></div>
+                        <div class="summary-card">
+                            <div class="summary-date-nav">
+                                <span class="summary-date-label" id="summaryDateLabel">
+                                    2026年6月
+                                    <i class="ri-arrow-right-s-line"></i>
+                                </span>
+                            </div>
+                            <div class="summary-card-expense">
+                                <div class="s-label">支</div>
+                                <div class="s-value expense" id="homeExpense">0.00</div>
+                            </div>
+                            <div class="summary-card-income-balance">
+                                <div class="summary-item">
+                                    <div class="s-label">收</div>
+                                    <div class="s-value income" id="homeIncome">0.00</div>
+                                </div>
+                                <div class="summary-item">
+                                    <div class="s-label">余</div>
+                                    <div class="s-value balance" id="homeBalance">0.00</div>
+                                </div>
+                            </div>
+                            <div class="summary-card-budget">
+                                <div class="budget-item" id="budgetItem">
+                                    <div class="budget-left">
+                                        <span class="budget-label" id="budgetLabel">我的预算</span>
+                                        <i class="ri-arrow-right-s-line"></i>
+                                    </div>
+                                    <div class="budget-progress-track" id="budgetProgressTrack">
+                                        <div class="budget-progress-fill" id="budgetProgressFill" style="width:0%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div class="section-title with-nav">
+                    <span>本月账单</span>
+                    <div class="home-bill-nav" id="homeBillNav">
+                        <button class="bill-nav-btn active" data-filter="all">全部</button>
+                        <button class="bill-nav-btn" data-filter="自己">自己</button>
+                        <button class="bill-nav-btn" data-filter="对方">对方</button>
+                        <button class="bill-nav-btn" data-filter="共同">共同</button>
+                    </div>
+                </div>
+                <div id="homeRecentBills" class="homebills"></div>
+            </div>
+
+<div id="page-bills" class="page">
+    
+    <div class="page-bg"></div>
+    
+    
+    <div class="header-box">
+        <div class="bills-header">
+            <div class="bills-view-nav" id="billsViewNav">
+                <button class="bills-view-btn active" data-view="week">周</button>
+                <button class="bills-view-btn" data-view="month">月</button>
+                <button class="bills-view-btn" data-view="year">年</button>
+            </div>
+        </div>
+        <div class="bills-date-row">
+            <div class="bills-date-picker">
+                <button class="bills-date-btn" id="billsDateBtn">
+                    <span id="billsDateLabel">2026年6月</span>
+                    <i class="ri-arrow-right-s-line" style="font-size:20px;color:var(--text-light);"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    
+    <div class="bills-scroll-container">
+        
+        <div class="total-card">
+            <div class="bills-summary-nav" id="billsSummaryNav">
+                <button class="bills-summary-btn active" data-type="expense">本月支出</button>
+                <button class="bills-summary-btn" data-type="income">本月收入</button>
+            </div>
+            <div class="bills-belong-nav" id="billsBelongNav">
+                <button class="bills-belong-btn active" data-belong="all">总计</button>
+                <button class="bills-belong-btn" data-belong="自己">自己</button>
+                <button class="bills-belong-btn" data-belong="对方">对方</button>
+                <button class="bills-belong-btn" data-belong="共同">共同</button>
+            </div>
+            <div class="bills-stats-row">
+                <div class="bills-stat-card">
+                    <span class="bills-stat-label">月总支出</span>
+                    <span class="bills-stat-value expense" id="billsTotalExpense">¥0.00</span>
+                </div>
+                <div class="bills-stat-card bills-expense">
+                    <span class="bills-stat-label">日均支出</span>
+                    <span class="bills-stat-value" id="billsDailyExpense">¥0.00</span>
+                </div>
+            </div>
+
+            
+            <div class="bills-view-container" id="billsViewContainer">
+                
+                <div class="view-panel" id="viewWeek">
+                    <div class="bills-calendar">
+                        <div class="bills-calendar-weekdays">
+                            <span>日</span><span>一</span><span>二</span>
+                            <span>三</span><span>四</span><span>五</span><span>六</span>
+                        </div>
+                        <div class="bills-calendar-days" id="weekGrid"></div>
+                    </div>
+                </div>
+                
+                <div class="view-panel active" id="viewMonth">
+                    <div class="bills-calendar">
+                        <div class="bills-calendar-weekdays">
+                            <span>日</span><span>一</span><span>二</span>
+                            <span>三</span><span>四</span><span>五</span><span>六</span>
+                        </div>
+                        <div class="bills-calendar-days" id="calendarDays"></div>
+                    </div>
+                </div>
+                
+                <div class="view-panel" id="viewYear">
+                    <div class="year-view-grid" id="yearGrid"></div>
+                </div>
+            </div>
+        </div>
+
+        
+        <div id="calendarBillsList" class="bills-list-container"></div>
+        <div id="weekBillsList" class="bills-list-container" style="display:none;"></div>
+    </div>
+    
+</div>
+            
+<div id="page-search" class="page">
+    
+    <div class="search-header">
+        <button class="search-back" id="searchBackBtn">
+            <i class="ri-arrow-left-s-line"></i>
+        </button>
+        <div class="search-input-wrapper">
+            <i class="ri-search-line search-icon"></i>
+            <input type="text" id="searchInput" placeholder="搜索" autocomplete="off" />
+            <button class="search-clear-btn" id="searchClearBtn" style="display:none;">
+                <i class="ri-close-line"></i>
+            </button>
+        </div>
+        <button class="search-submit-btn" id="searchSubmitBtn">搜索</button>
+    </div>
+    
+    
+    <div class="search-filters">
+        <div class="filter-left">
+            <button class="filter-date-btn" id="searchDateFilterBtn">
+                <span id="searchDateFilterLabel">全部时间</span>
+                <i class="ri-arrow-down-s-line"></i>
+            </button>
+        </div>
+        <div class="filter-right">
+            <button class="filter-more-btn" id="searchMoreFilterBtn">
+                <span>筛选</span>
+                <i class="ri-filter-line"></i>
+            </button>
+        </div>
+    </div>
+    
+
+<div class="search-summary" id="searchSummary">
+    <div class="summary-item">
+        <span class="summary-label" id="searchExpenseLabel">支出<span class="summary-count" id="searchExpenseCount">0</span>笔</span>
+        <span class="summary-value expense" id="searchExpenseTotal">¥0.00</span>
+    </div>
+    <div class="summary-item">
+        <span class="summary-label" id="searchIncomeLabel">收入<span class="summary-count" id="searchIncomeCount">0</span>笔</span>
+        <span class="summary-value income" id="searchIncomeTotal">¥0.00</span>
+    </div>
+</div>
+    
+    
+    <div class="search-results" id="searchResults">
+        
+    </div>
+    
+    
+    <div class="search-empty" id="searchEmpty" style="display:none;">
+        <div class="empty-icon"><i class="ri-search-line"></i></div>
+        <div class="empty-text">没有找到匹配的账单</div>
+        <div class="empty-hint">试试调整关键词或筛选条件</div>
+    </div>
+</div>
+
+
+<div class="search-date-overlay" id="searchDateOverlay"></div>
+<div class="search-date-modal" id="searchDateModal">
+    <div class="search-date-header">
+        <button class="search-date-close" id="searchDateClose">
+            <i class="ri-close-line"></i>
+        </button>
+        <button class="search-date-confirm-icon" id="searchDateConfirm">
+            <i class="ri-check-line"></i>
+        </button>
+    </div>
+    <div class="search-date-body">
+      <div class="date-presets">账单日期</div>
+        <div class="search-date-presets">
+            <button class="preset-btn active" data-preset="all">全部</button>
+            <button class="preset-btn" data-preset="today">今天</button>
+            <button class="preset-btn" data-preset="week">本周</button>
+            <button class="preset-btn" data-preset="month">本月</button>
+        </div>
+              <div class="date-presets">自定义日期</div>
+        <div class="search-date-custom" id="searchDateCustom" style="display:none;">
+            <div class="date-range-row">
+                <div class="date-range-value" id="searchDateStart" data-field="start">请选择开始日期</div>
+            </div>
+            <div class="date-range-row">
+                <label>-</label>
+                <div class="date-range-value" id="searchDateEnd" data-field="end">请选择结束日期</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="search-more-overlay" id="searchMoreOverlay"></div>
+<div class="search-more-modal" id="searchMoreModal">
+    <div class="search-more-header">
+        <button class="search-more-close" id="searchMoreClose">
+            <i class="ri-close-line"></i>
+        </button>
+        <button class="search-more-confirm-icon" id="searchMoreConfirm">
+            <i class="ri-check-line"></i>
+        </button>
+    </div>
+    <div class="search-more-body">
+        <div class="filter-group">
+            <label class="filter-group-label">类型</label>
+            <div class="filter-options">
+                <button class="filter-option active" data-filter="type" data-value="all">全部</button>
+                <button class="filter-option" data-filter="type" data-value="expense">支出</button>
+                <button class="filter-option" data-filter="type" data-value="income">收入</button>
+            </div>
+        </div>
+        <div class="filter-group">
+            <label class="filter-group-label">归属</label>
+            <div class="filter-options">
+                <button class="filter-option active" data-filter="belong" data-value="all">全部</button>
+                <button class="filter-option" data-filter="belong" data-value="自己">自己</button>
+                <button class="filter-option" data-filter="belong" data-value="对方">对方</button>
+                <button class="filter-option" data-filter="belong" data-value="共同">共同</button>
+            </div>
+        </div>
+        <div class="filter-group">
+            <label class="filter-group-label">支付方式</label>
+            <div class="filter-options">
+                <button class="filter-option active" data-filter="payment" data-value="all">全部</button>
+                <button class="filter-option" data-filter="payment" data-value="微信">微信</button>
+                <button class="filter-option" data-filter="payment" data-value="支付宝">支付宝</button>
+                <button class="filter-option" data-filter="payment" data-value="现金">现金</button>
+                <button class="filter-option" data-filter="payment" data-value="银行卡">银行卡</button>
+            </div>
+        </div>
+        <div class="filter-group">
+            <label class="filter-group-label">金额范围</label>
+            <div class="filter-amount-range">
+                <input type="number" id="filterAmountMin" placeholder="最低" min="0" step="0.01" />
+                <span>~</span>
+                <input type="number" id="filterAmountMax" placeholder="最高" min="0" step="0.01" />
+            </div>
+        </div>
+        <button class="search-more-reset" id="searchMoreReset">重置所有筛选</button>
+    </div>
+</div>
+            
+            <div id="page-stats" class="page">
+              <div class="page-bg"></div>
+                
+                <div class="stats-header-box">
+                    <div class="stats-header">
+                        <div class="stats-type-nav" id="statsTypeNav">
+                            <button class="stats-type-btn active" data-type="expense">支出</button>
+                            <button class="stats-type-btn" data-type="income">收入</button>
+                        </div>
+                    </div>
+                    <div class="stats-date-row">
+                        <div class="stats-date-picker">
+                            <button class="date-nav-btn" id="statsDatePrev">
+                                <i class="ri-arrow-left-s-line"></i>
+                            </button>
+                            <button class="stats-date-btn" id="statsDateBtn">
+                  <span id="statsDateLabel">2026年6月</span>
+                            </button>
+                            <button class="date-nav-btn" id="statsDateNext">
+                                <i class="ri-arrow-right-s-line"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+    <div class="bills-scroll-container">
+                
+                <div class="stats-card">
+                    <div class="stats-card-header">
+                        <span class="stats-title">本月支出详细</span>
+                        <div class="stats-nav" id="statsDetailNav">
+                            <button class="stats-nav-btn active" data-belong="all">总计</button>
+                            <button class="stats-nav-btn" data-belong="自己">自己</button>
+                            <button class="stats-nav-btn" data-belong="对方">对方</button>
+                            <button class="stats-nav-btn" data-belong="共同">共同</button>
+                        </div>
+                    </div>
+                    <div class="stats-grid-2x2">
+                        <div class="stats-grid-item">
+                            <span class="item-label"><span class="label-prefix label-month">月</span>本月总支出</span>
+                            <span class="item-value expense" id="statsMonthTotal">¥0.00</span>
+                            <div class="stats-trend">
+                                <span class="trend-icon" id="statsMonthTrendIcon">↑</span>
+                                <span class="trend-value" id="statsMonthTrend">+0.00%</span>
+                            </div>
+                        </div>
+                        <div class="stats-grid-item">
+                            <span class="item-label"><span class="label-prefix label-day">日</span>今日总支出</span>
+                            <span class="item-value primary" id="statsTodayTotal">¥0.00</span>
+                            <div class="stats-trend">
+                                <span class="trend-icon" id="statsTodayTrendIcon">↑</span>
+                                <span class="trend-value" id="statsTodayTrend">+0.00%</span>
+                            </div>
+                        </div>
+                        <div class="stats-grid-item">
+                            <span class="item-label"><span class="label-prefix label-avg">均</span>本月日均支出</span>
+                            <span class="item-value" id="statsDailyAvg">¥0.00</span>
+                        </div>
+                        <div class="stats-grid-item">
+                            <span class="item-label"><span class="label-prefix label-budget">预</span>本月剩余预算</span>
+                            <span class="item-value primary" id="statsRemaining">¥0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div class="stats-card">
+                    <div class="stats-card-header">
+                        <span class="stats-title">支出类目占比</span>
+                        <div class="stats-nav" id="statsCategoryNav">
+                            <button class="stats-nav-btn active" data-belong="all">总计</button>
+                            <button class="stats-nav-btn" data-belong="自己">自己</button>
+                            <button class="stats-nav-btn" data-belong="对方">对方</button>
+                            <button class="stats-nav-btn" data-belong="共同">共同</button>
+                        </div>
+                    </div>
+                    <div class="stats-pie-container">
+                        <div class="stats-pie-chart">
+                            <div id="statsPieChart" style="width:100%;height:100%;"></div>
+                            <div class="stats-pie-center">
+                                <div class="total-label">总支出</div>
+                                <div class="total-value" id="statsPieTotal">¥0.00</div>
+                            </div>
+                                <div class="stats-pie-empty-text" id="statsPieEmptyText" style="display:none;">暂无数据</div>
+                        </div>
+                    </div>
+                    <div class="stats-category-list" id="statsCategoryList"></div>
+                </div>
+
+                
+                <div class="stats-card">
+                    <div class="stats-card-header">
+                        <span class="stats-title">支出趋势</span>
+                        <div class="stats-trend-checkbox-group" id="statsTrendCheckbox">
+                            <label class="stats-trend-checkbox" data-belong="all">
+                                <input type="checkbox" checked value="all" />
+                                <span class="checkmark"><i class="ri-check-line"></i></span>
+                                <span class="label-text">总计</span>
+                            </label>
+                            <label class="stats-trend-checkbox" data-belong="自己">
+                                <input type="checkbox" checked value="自己" />
+                                <span class="checkmark"><i class="ri-check-line"></i></span>
+                                <span class="label-text">自己</span>
+                            </label>
+                            <label class="stats-trend-checkbox" data-belong="对方">
+                                <input type="checkbox" checked value="对方" />
+                                <span class="checkmark"><i class="ri-check-line"></i></span>
+                                <span class="label-text">对方</span>
+                            </label>
+                            <label class="stats-trend-checkbox" data-belong="共同">
+                                <input type="checkbox" checked value="共同" />
+                                <span class="checkmark"><i class="ri-check-line"></i></span>
+                                <span class="label-text">共同</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="stats-trend-chart">
+                        <div id="statsTrendChart" style="width:100%;height:100%;"></div>
+                    </div>
+                </div>
+
+                
+                <div class="stats-card" style="margin-bottom: 20px;">
+                    <div class="stats-card-header">
+                        <span class="stats-title">支出明细排行</span>
+                        <div class="stats-nav" id="statsRankNav">
+                            <button class="stats-nav-btn active" data-belong="all">总计</button>
+                            <button class="stats-nav-btn" data-belong="自己">自己</button>
+                            <button class="stats-nav-btn" data-belong="对方">对方</button>
+                            <button class="stats-nav-btn" data-belong="共同">共同</button>
+                        </div>
+                    </div>
+                    <div class="stats-rank-list" id="statsRankList"></div>
+                </div>
+            </div>
+            </div>
+            
+            <div id="page-profile" class="page">
+                
+                <div class="profile-card">
+                    <div class="profile-avatar-row">
+                        
+                        <div class="profile-avatar-wrapper" id="profileAvatarWrapper">
+                            <div class="profile-avatar-label">
+                                <div class="profile-avatar" id="profileAvatar">
+                                    <img id="profileAvatarImg" src="" style="display:none;" />
+                                    <i id="profileAvatarIcon" class="ri-user-fill"></i>
+                                </div>
+                            </div>
+                            <input type="file" id="avatarFileInput" accept="image/*" style="display:none;" />
+                        </div>
+                        
+                        <div class="profile-partner-avatar-wrapper" id="partnerEntry">
+<div class="partner-avatar" id="partnerAvatar">
+    <img id="partnerAvatarImg" src="" style="display:none;" />
+    
+    <i id="partnerDefaultIcon" class="ri-user-fill" style="font-size:30px;color:#B0B8C4;"></i>
+    <div class="add-icon" id="partnerAddIcon">
+        <i class="ri-add-line"></i>
+    </div>
+</div>
+                            <div class="invite-bubble" id="inviteBubble">邀请搭子</div>
+                        </div>
+                    </div>
+                </div>
+<div class="pet-entry-card hidden" id="petEntryCard">
+    <div class="pet-avatar">
+        
+        <div class="pet-avatar-slime" id="petAvatarSlime"></div>
+    </div>
+    <div class="pet-info">
+        <div class="pet-name-row">
+            <span class="pet-name" id="petName">等待领养</span>
+            <span class="pet-level" id="petLevel">Lv.1</span>
+        </div>
+        <div class="pet-stats" id="petStats">
+            <div class="stat-row">
+                <div class="stat-track">
+                    <div class="stat-fill hunger" id="petHungerFill" style="width:100%;"></div>
+                </div>
+            </div>
+            <div class="stat-row">
+                <div class="stat-track">
+                    <div class="stat-fill mood" id="petMoodFill" style="width:100%;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="pet-entry-welcome" id="petEntryWelcome" style="display:none;">主人，快把我带回家吧~</div>
+    </div>
+</div>
+                
+<div class="profile-grid-2col">
+    <div class="profile-grid-item" id="profileCategoryManage">
+        <div class="grid-icon">
+            <i class="ri-folder-settings-line"></i>
+        </div>
+        <span class="grid-label">类目管理</span>
+    </div>
+    <div class="profile-grid-item budget-item-grid" id="profileBudgetManage">
+        <div class="grid-top">
+            <div class="grid-icon">
+                <i class="ri-wallet-3-line"></i>
+            </div>
+            <div class="grid-info">
+                <span class="grid-label">预算管理</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+    <div class="profile-list-card">
+        <div class="profile-section-title">常用功能</div>
+        <div class="profile-list-item" id="profileThemeColor">
+            <div class="list-left">
+                <div class="list-icon"><i class="ri-palette-line"></i></div>
+                <span class="list-label">主题色彩</span>
+            </div>
+            <div class="list-right">
+                <span class="list-badge">默认</span>
+                <i class="ri-arrow-right-s-line"></i>
+            </div>
+        </div>
+                <div class="profile-list-item" id="profileYearBill">
+            <div class="list-left">
+                <div class="list-icon"><i class="ri-calendar-2-line"></i></div>
+                <span class="list-label">年度账单</span>
+            </div>
+            <div class="list-right">
+                <i class="ri-arrow-right-s-line"></i>
+            </div>
+        </div>
+        <div class="profile-list-item" id="profileScheduled">
+            <div class="list-left">
+                <div class="list-icon"><i class="ri-time-line"></i></div>
+                <span class="list-label">定时记账</span>
+            </div>
+            <div class="list-right">
+                <i class="ri-arrow-right-s-line"></i>
+            </div>
+        </div>
+        <div class="profile-list-item" id="profileExport">
+            <div class="list-left">
+                <div class="list-icon"><i class="ri-upload-2-line"></i></div>
+                <span class="list-label">账单导出</span>
+            </div>
+            <div class="list-right">
+                <i class="ri-arrow-right-s-line"></i>
+            </div>
+        </div>
+        <div class="profile-list-item" id="profileImport">
+            <div class="list-left">
+                <div class="list-icon"><i class="ri-download-2-line"></i></div>
+                <span class="list-label">账单导入</span>
+            </div>
+            <div class="list-right">
+                <i class="ri-arrow-right-s-line"></i>
+            </div>
+        </div>
+        <div class="profile-list-item" id="profileClear">
+            <div class="list-left">
+                <div class="list-icon"><i class="ri-delete-bin-line"></i></div>
+                <span class="list-label">账单清除</span>
+            </div>
+            <div class="list-right">
+                <i class="ri-arrow-right-s-line"></i>
+            </div>
+        </div>
+        
+    </div>
+
+    
+    <div class="profile-list-card">
+        <div class="profile-section-title">设置与服务</div>
+        
+        <div class="profile-list-item" id="profileAccountManage">
+            <div class="list-left">
+                <div class="list-icon"><i class="ri-user-settings-line"></i></div>
+                <span class="list-label">账号管理</span>
+            </div>
+            <div class="list-right">
+                <i class="ri-arrow-right-s-line"></i>
+            </div>
+        </div>
+        
+        
+        <div class="profile-list-item" id="profileFeedback">
+            <div class="list-left">
+                <div class="list-icon"><i class="ri-feedback-line"></i></div>
+                <span class="list-label">意见反馈</span>
+            </div>
+            <div class="list-right">
+                <i class="ri-arrow-right-s-line"></i>
+            </div>
+        </div>
+		        <div class="profile-list-item" id="profileAboutUs">
+            <div class="list-left">
+                <div class="list-icon"><i class="ri-information-line"></i></div>
+                <span class="list-label">关于WELL</span>
+            </div>
+            <div class="list-right">
+                <i class="ri-arrow-right-s-line"></i>
+            </div>
+        </div>
+    </div>
+            </div>
+            
+            
+            <div id="page-pet" class="page">
+                <div class="pet-topbar" id="petTopbar">
+                    <div class="pet-topbar-left">
+                        <button class="pet-back" id="petBackBtn" aria-label="返回">
+                            <i class="ri-arrow-left-s-line"></i>
+                        </button>
+                        <div class="pet-topbar-score" id="petTopbarScore"><i class="ri-star-fill"></i> 0</div>
+                        <div class="pet-topbar-level" id="petTopbarLevel">
+                            <img src="img/grade.svg" alt="" class="pet-topbar-icon">
+                            <div class="pet-topbar-level-track"><div class="pet-topbar-level-fill" id="petTopbarLevelFill" style="width:0%"></div></div>
+                            <span id="petTopbarLevelText">Lv.0</span>
+                        </div>
+                    </div>
+                    <button class="pet-menu-btn" id="petMenuBtn" aria-label="宠物信息">
+                        <i class="ri-menu-line"></i>
+                    </button>
+                </div>
+                <div class="pet-scroll" id="petScroll">
+                    
+                </div>
+            </div>
+            
+            
+            <div id="page-budget" class="page">
+                <div class="budget-header">
+                    <button class="budget-back-btn" id="budgetBackBtn">
+                        <i class="ri-arrow-left-s-line"></i>
+                    </button>
+                    <button class="budget-date-btn" id="budgetDateBtn">
+                        <span id="budgetDateLabel">2026年6月</span>
+                        <i class="ri-arrow-down-s-line"></i>
+                    </button>
+                    <div style="width:40px;"></div>
+                </div>
+                <div class="budget-total-card">
+                    <span class="budget-total-label">本月总计预算</span>
+                    <span class="budget-total-amount" id="budgetTotalAmount">¥0.00</span>
+                </div>
+                <div class="budget-belong-nav" id="budgetBelongNav">
+                    <button class="budget-belong-btn active" data-belong="my">自己</button>
+                    <button class="budget-belong-btn" data-belong="partner">对方</button>
+                    <button class="budget-belong-btn" data-belong="both">共同</button>
+                    <div class="budget-belong-slider" id="budgetBelongSlider"></div>
+                </div>
+                <div class="budget-main-content">
+                    <div class="budget-circle-card">
+                        <div class="budget-circle-title" id="budgetCircleTitle">
+                            <i class="ri-bill-line"></i> 我的月度预算
+                        </div>
+                        <div class="budget-circle-wrapper">
+                            <svg class="budget-circle-svg" viewBox="0 0 120 60">
+                                <path class="circle-bg" d="M 10 50 A 50 50 0 0 1 110 50" />
+                                <path class="circle-fill" id="budgetCircleFill" d="M 10 50 A 50 50 0 0 1 110 50" />
+                            </svg>
+                            <div class="budget-circle-center">
+                                <div class="budget-circle-label" id="budgetCircleLabel">点击设置月度预算</div>
+                            </div>
+                        </div>
+                        <div class="budget-stats-card">
+                            <div class="budget-stats-left">
+                                <span class="budget-stats-label">剩余预算</span>
+                                <span class="budget-stats-value" id="budgetRemaining">¥0.00</span>
+                            </div>
+                            <div class="budget-stats-right">
+                                <div class="budget-stats-item">
+                                    <span class="budget-stats-sub-label">已支出</span>
+                                    <span class="budget-stats-sub-value" id="budgetSpent">¥0.00</span>
+                                </div>
+                                <div class="budget-stats-item">
+                                    <span class="budget-stats-sub-label">日均预算</span>
+                                    <span class="budget-stats-sub-value" id="budgetDaily">¥0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+
+            <div id="page-detail" class="page">
+                <div class="detail-header">
+                    <button class="detail-back" id="detailBackBtn">
+                        <i class="ri-arrow-left-s-line"></i>
+                    </button>
+                    <span class="detail-title">账单详情</span>
+                    <button class="detail-menu" id="detailMenuBtn">
+                        <i class="ri-more-line"></i>
+                    </button>
+                </div>
+                <div class="page-main">
+                    <div class="detail-info-card" id="detailInfoCard">
+                        <div class="detail-avatars" id="detailAvatars"></div>
+                        <div class="detail-owner-label" id="detailOwnerLabel"></div>
+                        <div class="detail-record-by" id="detailRecordBy"></div>
+                    </div>
+                    <div class="detail-fields" id="detailFields">
+                        <div class="field-row"><span>类别</span><span class="field-value" id="detailCategory"></span></div>
+                        <div class="field-row"><span>金额</span><span class="field-value" id="detailAmount"></span></div>
+                        <div class="field-row"><span>支付方式</span><span class="field-value" id="detailPayment"></span></div>
+                        <div class="field-row"><span>日期</span><span class="field-value" id="detailDate"></span></div>
+                        <div class="field-row"><span>备注</span><span class="field-value" id="detailNote"></span></div>
+                    </div>
+                    <div class="detail-comments">
+                        <div class="comments-title">评论</div>
+                        <div class="comments-list" id="commentsList">
+                            <div class="empty-state"><div class="empty-icon"><i class="ri-chat-3-line"></i></div><div class="empty-text">还没有评论，来说点什么吧</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="detail-comment-input">
+                    <input type="text" id="commentInput" placeholder="说点什么..." maxlength="200" />
+                    <button class="comment-send" id="commentSendBtn">评论</button>
+                </div>
+                
+                <div class="detail-menu-overlay" id="detailMenuOverlay">
+                    <div class="detail-menu-panel">
+                        <button class="detail-menu-item" id="detailMenuEdit"> 编辑</button>
+                        <button class="detail-menu-item danger" id="detailMenuDelete">删除</button>
+                        <button class="detail-menu-item cancel" id="detailMenuCancel">取消</button>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div id="page-category-detail" class="page">
+                <div class="cat-detail-header">
+                    <button class="cat-detail-back" id="catDetailBackBtn">
+                        <i class="ri-arrow-left-s-line"></i>
+                    </button>
+                    <span class="cat-detail-title" id="catDetailTitle">餐饮</span>
+                    <div class="cat-detail-placeholder"></div>
+                </div>
+                <div class="cat-detail-scroll">
+                    <div class="cat-detail-stats-card">
+                        <div class="cat-detail-date-row">
+                            <div class="cat-detail-date-picker">
+                                <button class="date-nav-btn" id="catDetailDatePrev">
+                                    <i class="ri-arrow-left-s-line"></i>
+                                </button>
+                                <button class="cat-detail-date-btn" id="catDetailDateBtn">
+                                    <span id="catDetailDateLabel">2026年6月</span>
+                                </button>
+                                <button class="date-nav-btn" id="catDetailDateNext">
+                                    <i class="ri-arrow-right-s-line"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="cat-detail-summary">
+                            <div class="cat-detail-summary-item">
+                                <span class="cat-detail-summary-label">总支出</span>
+                                <span class="cat-detail-summary-value expense" id="catDetailTotal">¥0.00</span>
+                            </div>
+                            <div class="cat-detail-summary-item">
+                                <span class="cat-detail-summary-label">总笔数</span>
+                                <span class="cat-detail-summary-value" id="catDetailCount">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="cat-detail-list" id="catDetailList"></div>
+                </div>
+            </div>
+
+<div class="gender-overlay" id="genderOverlay"></div>
+<div class="gender-modal" id="genderModal">
+    <div class="gender-modal-header">
+        <button class="gender-modal-close" id="genderModalClose">
+            <i class="ri-close-line"></i>
+        </button>
+        <span class="gender-modal-title">选择性别</span>
+        <button class="gender-modal-confirm" id="genderBtnConfirm">
+            <i class="ri-check-line"></i>
+        </button>
+    </div>
+    <div class="gender-modal-body">
+        <div class="wheel-picker-container">
+            <div class="wheel-picker-mask-top"></div>
+            <div class="wheel-picker-mask-bottom"></div>
+            <div class="wheel-picker-highlight"></div>
+            <div class="wheel-picker" data-type="gender" id="wheelGender"></div>
+            
+            <div class="wheel-picker-label wheel-picker-label-1col">
+                <span></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="page-annual" class="page annual-page">
+    <div class="annual-header">
+        <button class="annual-back-btn" id="annualBackBtn">
+            <i class="ri-arrow-left-s-line"></i>
+        </button>
+        <button class="annual-date-btn" id="annualDateBtn">
+            <span id="annualDateLabel">2026年</span>
+            <i class="ri-arrow-down-s-line"></i>
+        </button>
+        <div style="width:40px;"></div>
+    </div>
+    <div class="annual-scroll" id="annualScroll">
+        
+        <div class="annual-stats-card">
+            
+            <div class="annual-card-top">
+                <div class="annual-card-title">
+                    <span class="annual-title-bar"></span>
+                    <span>年度统计</span>
+                </div>
+                <div class="annual-belong-nav" id="annualBelongNav">
+                    <button class="annual-belong-btn active" data-belong="all">总计</button>
+                    <button class="annual-belong-btn" data-belong="my">自己</button>
+                    <button class="annual-belong-btn" data-belong="partner">对方</button>
+                    <button class="annual-belong-btn" data-belong="both">共同</button>
+                </div>
+            </div>
+            
+            <div class="annual-balance">
+                <div class="annual-balance-label">年结余</div>
+                <div class="annual-balance-amount" id="annualBalanceAmount">¥0.00</div>
+            </div>
+            
+            <div class="annual-summary-row">
+                <div class="annual-summary-item expense">
+                    <div class="annual-summary-label">年支出</div>
+                    <div class="annual-summary-amount" id="annualExpenseAmount">¥0.00</div>
+                </div>
+                <div class="annual-summary-divider"></div>
+                <div class="annual-summary-item income">
+                    <div class="annual-summary-label">年收入</div>
+                    <div class="annual-summary-amount" id="annualIncomeAmount">¥0.00</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="annual-list-card">
+            <div class="annual-list-header">
+                <span class="annual-list-col month">月份</span>
+                <span class="annual-list-col expense">支出</span>
+                <span class="annual-list-col income">收入</span>
+                <span class="annual-list-col balance">结余</span>
+                <span class="annual-list-arrow-placeholder"></span>
+            </div>
+            <div class="annual-list-body" id="annualListBody"></div>
+        </div>
+    </div>
+</div>
+
+
+<div id="page-profile-info" class="page">
+    <div class="profile-info-header">
+        <button class="profile-info-back" id="profileInfoBackBtn">
+            <i class="ri-arrow-left-s-line"></i>
+        </button>
+        <span class="profile-info-title">个人信息</span>
+        <div style="width:40px;"></div>
+    </div>
+    <div class="profile-info-avatar-section">
+        <div class="profile-info-avatar-wrapper" id="profileInfoAvatarWrapper">
+            <label for="profileInfoAvatarInput" class="profile-info-avatar-label">
+                <div class="profile-info-avatar" id="profileInfoAvatar">
+                    <img id="profileInfoAvatarImg" src="" style="display:none;" />
+                    <i id="profileInfoAvatarIcon" class="ri-user-fill"></i>
+                </div>
+                <div class="profile-info-avatar-edit">
+                    <i class="ri-camera-line"></i>
+                </div>
+            </label>
+            <input type="file" id="profileInfoAvatarInput" accept="image/*" style="display:none;" />
+        </div>
+        
+        <div class="profile-info-uid" id="profileInfoUid" style="font-size:13px;color:var(--text-light);font-family:monospace;letter-spacing:0.5px;margin-top:2px;">UID: --------</div>
+    </div>
+    <div class="profile-info-card">
+        <div class="profile-info-item profile-info-item-input" id="profileInfoNickname">
+            <div class="info-item-left">
+                <span class="info-item-label">昵称</span>
+            </div>
+            <div class="info-item-right">
+                <input type="text" id="profileInfoNicknameInput" class="info-item-input" placeholder="请输入昵称" maxlength="20" value="" />
+                <i class="ri-arrow-right-s-line"></i>
+            </div>
+        </div>
+        <div class="profile-info-item" id="profileInfoGender">
+            <div class="info-item-left">
+                <span class="info-item-label">性别</span>
+            </div>
+            <div class="info-item-right">
+                <span class="info-item-value" id="profileInfoGenderValue">未设置</span>
+                <i class="ri-arrow-right-s-line"></i>
+            </div>
+        </div>
+        <div class="profile-info-item" id="profileInfoBirthday">
+            <div class="info-item-left">
+                <span class="info-item-label">生日</span>
+            </div>
+            <div class="info-item-right">
+                <span class="info-item-value" id="profileInfoBirthdayValue">未设置</span>
+                <i class="ri-arrow-right-s-line"></i>
+            </div>
+        </div>
+        <div class="profile-info-item" id="profileInfoPhone">
+            <div class="info-item-left">
+                <span class="info-item-label">绑定手机号</span>
+            </div>
+            <div class="info-item-right">
+                <span class="info-item-value" id="profileInfoPhoneValue">未绑定</span>
+                <i class="ri-arrow-right-s-line"></i>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="page-about" class="page">
+    <div class="about-header">
+        <button class="about-back" id="aboutBackBtn">
+            <i class="ri-arrow-left-s-line"></i>
+        </button>
+        <span class="about-title">关于WELL</span>
+        <button class="about-log-btn" id="aboutLogBtn" aria-label="更新日志">
+            <i class="ri-history-line"></i>
+        </button>
+    </div>
+    <div class="about-scroll">
+        <div class="about-content">
+            <div class="about-card">
+                
+                <div class="about-logo">
+                    <div class="about-logo-wordmark">WELL</div>
+                </div>
+                
+                <div class="about-slogan">MANAGE WELL&nbsp;&nbsp;LIVE WELL<br>
+每一笔&nbsp;&nbsp;都为更好的生活</div>
+
+                <div class="about-version" id="aboutVersion">版本 v1.0.1</div>
+            </div>
+            
+            <div class="about-footer">
+                <a class="about-footer-link" href="javascript:void(0)" data-page="terms">用户协议</a>
+                <span class="about-footer-divider"></span>
+                <a class="about-footer-link" href="javascript:void(0)" data-page="privacy">隐私政策</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="page-changelog" class="page">
+    <div class="changelog-header">
+        <button class="changelog-back" id="changelogBackBtn" aria-label="返回">
+            <i class="ri-arrow-left-s-line"></i>
+        </button>
+        <span class="changelog-title">更新日志</span>
+        <div style="width:40px;"></div>
+    </div>
+    <div class="changelog-layout">
+        
+        <aside class="changelog-toc" id="changelogToc"></aside>
+        
+        <div class="changelog-content" id="changelogContent"></div>
+    </div>
+</div>
+
+<div id="page-feedback" class="page">
+    <div class="feedback-header">
+        <button class="feedback-back" id="feedbackBackBtn">
+            <i class="ri-arrow-left-s-line"></i>
+        </button>
+        <span class="feedback-title">反馈与帮助</span>
+        <div style="width:40px;"></div>
+    </div>
+
+<div class="feedback-scroll">
+    
+    <div class="feedback-card">
+
+<div class="feedback-card-header">
+    <div class="feedback-card-icon">
+        <i class="ri-question-answer-line"></i>
+    </div>
+    <span class="feedback-card-title">猜你想问</span>
+</div>
+        <div class="feedback-card-subtitle">常见问题</div>
+
+
+<div class="feedback-options">
+    <a class="feedback-option" href="javascript:void(0)" data-question="match">
+        <span>关于匹配的常见问题</span>
+        <i class="ri-arrow-right-s-line"></i>
+    </a>
+    <a class="feedback-option" href="javascript:void(0)" data-question="export">
+        <span>关于账单导出路径问题</span>
+        <i class="ri-arrow-right-s-line"></i>
+    </a>
+    <a class="feedback-option" href="javascript:void(0)" data-question="pet">
+        <span>关于宠物相关的问题</span>
+        <i class="ri-arrow-right-s-line"></i>
+    </a>
+</div>
+    </div>
+</div>
+
+<div class="feedback-fab">
+    <button class="feedback-fab-btn" id="feedbackBugBtn">
+        <i class="ri-bug-line"></i> Bug与建议
+    </button>
+</div>
+    
+</div>
+
+<div id="page-bug-feedback" class="page">
+    
+    <div class="bugfb-header">
+        <button class="bugfb-back" id="bugfbBackBtn">
+            <i class="ri-arrow-left-s-line"></i>
+        </button>
+        <span class="bugfb-title">Bug与建议</span>
+        <div class="bugfb-header-right"></div>
+    </div>
+    
+    <div class="bugfb-tabs" id="bugfbTabs">
+        <button class="bugfb-tab active" data-tab="bug">
+            <span>反馈Bug</span>
+        </button>
+        <button class="bugfb-tab" data-tab="suggest">
+            <span>提交建议</span>
+        </button>
+        <i class="bugfb-tab-slider" id="bugfbTabSlider"></i>
+    </div>
+    
+    <div class="bugfb-body">
+        
+        <div class="bugfb-pane active" data-pane="bug">
+            <div class="bugfb-card">
+                <div class="bugfb-field" id="bugfbTimeField">
+                    <div class="bugfb-field-main">
+                        <div class="bugfb-field-label">Bug反馈时间</div>
+                    </div>
+                    <i class="ri-arrow-right-s-line bugfb-field-arrow"></i>
+                </div>
+            </div>
+            <div class="bugfb-card">
+                <div class="bugfb-field" id="bugfbTypeField">
+                    <div class="bugfb-field-main">
+                        <div class="bugfb-field-label">Bug类型</div>
+                    </div>
+                    <i class="ri-arrow-right-s-line bugfb-field-arrow"></i>
+                </div>
+            </div>
+            <div class="bugfb-card">
+                <div class="bugfb-card-label">详情描述</div>
+                <textarea class="bugfb-textarea" id="bugfbDesc" maxlength="200" placeholder="请详细描述遇到的问题，以便我们更快定位…"></textarea>
+                <div class="bugfb-counter"><span id="bugfbDescCount">0</span>/200</div>
+            </div>
+            <div class="bugfb-card">
+                <div class="bugfb-card-label">上传图片 <span class="bugfb-card-tip">最多9张</span></div>
+                <div class="bugfb-img-grid" id="bugfbImgGrid">
+                    <label class="bugfb-img-add" for="bugfbImgInput">
+                        <i class="ri-add-line"></i>
+                    </label>
+                </div>
+                <input type="file" id="bugfbImgInput" accept="image/*" multiple style="display:none;" />
+            </div>
+            <button class="bugfb-submit" id="bugfbSubmitBug">提交反馈</button>
+        </div>
+        
+        <div class="bugfb-pane" data-pane="suggest">
+            <div class="bugfb-card">
+                <div class="bugfb-card-label">遇到的问题和建议</div>
+                <textarea class="bugfb-textarea" id="bugfbSuggest" maxlength="200" placeholder="说说你遇到的问题或想法，我们会认真倾听…"></textarea>
+                <div class="bugfb-counter"><span id="bugfbSuggestCount">0</span>/200</div>
+            </div>
+            <div class="bugfb-card">
+                <div class="bugfb-card-label">上传图片 <span class="bugfb-card-tip">最多9张</span></div>
+                <div class="bugfb-img-grid" id="bugfbSuggestImgGrid">
+                    <label class="bugfb-img-add" for="bugfbSuggestImgInput">
+                        <i class="ri-add-line"></i>
+                    </label>
+                </div>
+                <input type="file" id="bugfbSuggestImgInput" accept="image/*" multiple style="display:none;" />
+            </div>
+            <button class="bugfb-submit" id="bugfbSubmitSuggest">提交建议</button>
+        </div>
+    </div>
+
+    
+    <div class="bugfb-overlay" id="bugfbTimeOverlay"></div>
+    <div class="bugfb-sheet" id="bugfbTimeSheet">
+        <div class="bugfb-sheet-header">
+            <button class="bugfb-sheet-close" id="bugfbTimeClose"><i class="ri-close-line"></i></button>
+            <span class="bugfb-sheet-title">选择时间</span>
+            <button class="bugfb-sheet-confirm" id="bugfbTimeConfirm"><i class="ri-check-line"></i></button>
+        </div>
+        <div class="bugfb-sheet-body">
+            <div class="wheel-picker-container bugfb-wheel-5">
+                <div class="wheel-picker-mask-top"></div>
+                <div class="wheel-picker-mask-bottom"></div>
+                <div class="wheel-picker-highlight"></div>
+                <div class="wheel-picker" data-type="year" id="bugWheelYear"></div>
+                <div class="wheel-picker" data-type="month" id="bugWheelMonth"></div>
+                <div class="wheel-picker" data-type="day" id="bugWheelDay"></div>
+                <div class="wheel-picker" data-type="hour" id="bugWheelHour"></div>
+                <div class="wheel-picker" data-type="minute" id="bugWheelMinute"></div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="bugfb-overlay" id="bugfbTypeOverlay"></div>
+    <div class="bugfb-sheet" id="bugfbTypeSheet">
+        <div class="bugfb-sheet-header">
+            <button class="bugfb-sheet-close" id="bugfbTypeClose"><i class="ri-close-line"></i></button>
+            <span class="bugfb-sheet-title">选择Bug类型</span>
+            <div class="bugfb-sheet-placeholder"></div>
+        </div>
+        <div class="bugfb-sheet-body">
+            <div class="bugfb-type-options" id="bugfbTypeOptions">
+                <button class="bugfb-type-option" data-type="记账Bug">
+                    <div class="bugfb-type-icon bugfb-type-icon-count"><i class="ri-file-list-3-line"></i></div>
+                    <span>记账Bug</span>
+                    <i class="ri-check-line bugfb-type-check"></i>
+                </button>
+                <button class="bugfb-type-option" data-type="宠物Bug">
+                    <div class="bugfb-type-icon bugfb-type-icon-pet"><i class="ri-emotion-happy-line"></i></div>
+                    <span>宠物Bug</span>
+                    <i class="ri-check-line bugfb-type-check"></i>
+                </button>
+                <button class="bugfb-type-option" data-type="功能Bug">
+                    <div class="bugfb-type-icon bugfb-type-icon-func"><i class="ri-settings-3-line"></i></div>
+                    <span>功能Bug</span>
+                    <i class="ri-check-line bugfb-type-check"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="page-partner-profile" class="page">
+    <div class="profile-info-header">
+        <button class="profile-info-back" id="partnerProfileBackBtn">
+            <i class="ri-arrow-left-s-line"></i>
+        </button>
+        <span class="profile-info-title">搭子信息</span>
+        <div style="width:40px;"></div>
+    </div>
+    <div class="profile-info-avatar-section">
+        <div class="profile-info-avatar-wrapper" style="cursor:default;">
+            <div class="profile-info-avatar" id="partnerProfileAvatar">
+                <img id="partnerProfileAvatarImg" src="" style="display:none;" />
+                <i id="partnerProfileAvatarIcon" class="ri-user-fill"></i>
+            </div>
+        </div>
+        
+        <div class="profile-info-uid" id="partnerProfileUid" style="font-size:13px;color:var(--text-light);font-family:monospace;letter-spacing:0.5px;margin-top:2px;">UID: --------</div>
+    </div>
+    <div class="profile-info-card" style="opacity:0.85;">
+        <div class="profile-info-item" style="cursor:default;">
+            <div class="info-item-left">
+                <span class="info-item-label">昵称</span>
+            </div>
+            <div class="info-item-right">
+                <span class="info-item-value" id="partnerProfileNicknameValue">未设置</span>
+            </div>
+        </div>
+        <div class="profile-info-item" style="cursor:default;">
+            <div class="info-item-left">
+                <span class="info-item-label">性别</span>
+            </div>
+            <div class="info-item-right">
+                <span class="info-item-value" id="partnerProfileGenderValue">未设置</span>
+            </div>
+        </div>
+        <div class="profile-info-item" style="cursor:default;">
+            <div class="info-item-left">
+                <span class="info-item-label">生日</span>
+            </div>
+            <div class="info-item-right">
+                <span class="info-item-value" id="partnerProfileBirthdayValue">未设置</span>
+            </div>
+        </div>
+        <div class="profile-info-item" style="cursor:default;">
+            <div class="info-item-left">
+                <span class="info-item-label">绑定手机号</span>
+            </div>
+            <div class="info-item-right">
+                <span class="info-item-value" id="partnerProfilePhoneValue">未绑定</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div id="page-account-security" class="page">
+    <div class="account-security-header">
+        <button class="account-security-back" id="accountSecurityBackBtn">
+            <i class="ri-arrow-left-s-line"></i>
+        </button>
+        <span class="account-security-title">账号安全</span>
+        <div style="width:40px;"></div>
+    </div>
+    <div class="account-security-list">
+        <div class="account-security-item" id="accountUnbindItem">
+            <div class="security-item-left">
+                <span class="security-item-label" id="accountUnbindLabel">匹配搭子记账</span>
+            </div>
+            <div class="security-item-right">
+                <span class="security-item-status" id="accountUnbindStatus">未绑定</span>
+                <i class="ri-arrow-right-s-line"></i>
+            </div>
+        </div>
+        
+        <div class="account-security-item" id="accountChangePasswordItem">
+            <div class="security-item-left">
+                <span class="security-item-label">修改密码</span>
+            </div>
+            <div class="security-item-right">
+                <i class="ri-arrow-right-s-line"></i>
+            </div>
+        </div>
+        <div class="account-security-item" id="accountDeleteItem">
+            <div class="security-item-left">
+                <span class="security-item-label danger">注销账户</span>
+            </div>
+            <div class="security-item-right">
+                <i class="ri-arrow-right-s-line"></i>
+            </div>
+        </div>
+        <div class="account-security-item" id="accountLogoutItem">
+            <div class="security-item-left">
+                <span class="security-item-label warning">退出登录</span>
+            </div>
+            <div class="security-item-right">
+                <i class="ri-arrow-right-s-line"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="page-delete-account" class="page">
+    <div class="delete-account-header">
+        <button class="delete-account-back" id="deleteAccountBackBtn">
+            <i class="ri-arrow-left-s-line"></i>
+        </button>
+        <span class="delete-account-title">注销账号</span>
+        <div style="width:40px;"></div>
+    </div>
+    <div class="delete-account-scroll">
+        <div class="delete-account-content">
+            
+            <div class="delete-account-warning-title">您好，注销账号前，请先阅读以下内容：</div>
+            
+            
+            <div class="delete-account-terms">
+                <div class="delete-account-term">
+                    <span class="term-text">注销账号将清除所有数据，包括本地的记账数据，且无法找回。</span>
+                </div>
+                <div class="delete-account-term">
+                    <span class="term-text">注销账户相当于自愿放弃所有该账户下所有虚拟内容或者权益，且无法找回。</span>
+                </div>
+            </div>
+            
+            
+            <div class="delete-account-input-section">
+                <p class="delete-account-hint">为保障您的权益，请在输入框中输入以下声明：</p>
+                <p class="delete-account-declaration">我已阅读上文并确认注销账号</p>
+                <input type="text" id="deleteAccountInput" placeholder="请输入文字" maxlength="30" />
+                <button class="delete-account-btn" id="deleteAccountConfirmBtn">确认注销账号</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="page-unbind-account" class="page">
+    <div class="delete-account-header">
+        <button class="delete-account-back" id="unbindAccountBackBtn">
+            <i class="ri-arrow-left-s-line"></i>
+        </button>
+        <span class="delete-account-title">解除匹配</span>
+        <div style="width:40px;"></div>
+    </div>
+    <div class="delete-account-scroll">
+        <div class="delete-account-content">
+            
+            <div class="delete-account-warning-title">您好，解除匹配前，请先阅读以下内容：</div>
+
+            
+            <div class="delete-account-terms">
+                <div class="delete-account-term">
+                    <span class="term-text">解除匹配后将清除您与搭子双方的所有记账数据（包括账单、预算、类目），且无法找回。</span>
+                </div>
+                <div class="delete-account-term">
+                    <span class="term-text">解除匹配后，双方均恢复为未匹配状态，账本从零开始。</span>
+                </div>
+                <div class="delete-account-term">
+                    <span class="term-text">如需再次共同记账，需重新生成匹配码并完成匹配。</span>
+                </div>
+            </div>
+
+            
+            <div class="delete-account-input-section">
+                <p class="delete-account-hint">为保障您的权益，请在输入框中输入以下声明：</p>
+                <p class="delete-account-declaration">我已阅读上文并确认解除匹配</p>
+                <input type="text" id="unbindAccountInput" placeholder="请输入文字" maxlength="30" />
+                <button class="delete-account-btn" id="unbindAccountConfirmBtn">确认解除匹配</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="page-change-password" class="page">
+    <div class="cpw-header">
+        <button class="cpw-back" id="cpwBackBtn">
+            <i class="ri-arrow-left-s-line"></i>
+        </button>
+        <span class="cpw-title">修改密码</span>
+        <div style="width:40px;"></div>
+    </div>
+    <div class="cpw-scroll">
+        <div class="cpw-content">
+            
+            <div class="cpw-steps">
+                <div class="cpw-step active" data-step="1">
+                    <span class="cpw-step-num">1</span>
+                    <span class="cpw-step-label">验证原密码</span>
+                </div>
+                <div class="cpw-step-line"></div>
+                <div class="cpw-step" data-step="2">
+                    <span class="cpw-step-num">2</span>
+                    <span class="cpw-step-label">设置新密码</span>
+                </div>
+                <div class="cpw-step-line"></div>
+                <div class="cpw-step" data-step="3">
+                    <span class="cpw-step-num">3</span>
+                    <span class="cpw-step-label">邮箱验证</span>
+                </div>
+            </div>
+
+            
+            <div class="cpw-panel" id="cpwPanel1">
+                <div class="cpw-form-group">
+                    <label class="cpw-label">原密码</label>
+                    <div class="cpw-input-wrap">
+                        <i class="ri-lock-line cpw-input-icon"></i>
+                        <input type="password" id="cpwOldPassword" placeholder="请输入原密码" />
+                    </div>
+                </div>
+                <button class="cpw-btn" id="cpwNext1">下一步</button>
+            </div>
+
+            
+            <div class="cpw-panel" id="cpwPanel2" style="display:none;">
+                <div class="cpw-form-group">
+                    <label class="cpw-label">新密码</label>
+                    <div class="cpw-input-wrap">
+                        <i class="ri-lock-line cpw-input-icon"></i>
+                        <input type="password" id="cpwNewPassword" placeholder="请设置新密码（至少4位）" />
+                    </div>
+                </div>
+                <div class="cpw-form-group">
+                    <label class="cpw-label">确认新密码</label>
+                    <div class="cpw-input-wrap">
+                        <i class="ri-lock-password-line cpw-input-icon"></i>
+                        <input type="password" id="cpwConfirmPassword" placeholder="请再次输入新密码" />
+                    </div>
+                </div>
+                <div class="cpw-btn-row">
+                    <button class="cpw-btn-ghost" id="cpwBack2">上一步</button>
+                    <button class="cpw-btn" id="cpwNext2">下一步</button>
+                </div>
+            </div>
+
+            
+            <div class="cpw-panel" id="cpwPanel3" style="display:none;">
+                <div class="cpw-email-hint">验证码将发送至 <span id="cpwEmailDisplay"></span></div>
+                <div class="cpw-form-group">
+                    <label class="cpw-label">验证码</label>
+                    <div class="cpw-input-wrap cpw-input-code-wrap">
+                        <i class="ri-shield-keyhole-line cpw-input-icon"></i>
+                        <input type="text" id="cpwCode" placeholder="请输入验证码" maxlength="6" inputmode="numeric" />
+                        <button type="button" id="cpwSendCodeBtn" class="cpw-send-code-btn">获取验证码</button>
+                    </div>
+                </div>
+                <div class="cpw-btn-row">
+                    <button class="cpw-btn-ghost" id="cpwBack3">上一步</button>
+                    <button class="cpw-btn" id="cpwSubmitBtn">完成</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+            
+
+            <div id="page-scheduled" class="page">
+                <div class="scheduled-header">
+                    <button class="scheduled-back" id="scheduledBackBtn">
+                        <i class="ri-arrow-left-s-line"></i>
+                    </button>
+                    <span class="scheduled-title">定时记账</span>
+                    <button class="scheduled-add-btn" id="scheduledAddBtn">
+                        <i class="ri-add-line"></i> 添加
+                    </button>
+                </div>
+                <div class="scheduled-section-title">进行中</div>
+                <div class="scheduled-list" id="scheduledList"></div>
+            </div>
+
+            
+            <div id="page-scheduled-edit" class="page">
+                <div class="sched-edit-header">
+                    <button class="sched-edit-back" id="schedEditBackBtn">
+                        <i class="ri-arrow-left-s-line"></i>
+                    </button>
+                    <span class="sched-edit-title" id="schedEditTitle">创建定时记账</span>
+                    <div style="width:40px;"></div>
+                </div>
+                <div class="sched-edit-body">
+                    
+                    <div class="sched-card">
+                        <div class="sched-field" id="schedCategoryField">
+                            <div class="sched-field-left">
+                                <span class="sched-field-label">类别</span>
+                            </div>
+                            <div class="sched-field-right">
+                                <span class="sched-field-value placeholder" id="schedCategoryValue">请选择类别</span>
+                                <i class="ri-arrow-right-s-line sched-field-arrow"></i>
+                            </div>
+                        </div>
+                        <div class="sched-field sched-field-amount-row" id="schedAmountField">
+                            <div class="sched-field-left">
+                                <span class="sched-field-label">金额</span>
+                            </div>
+                            <div class="sched-field-right">
+                                <span class="sched-amount-display placeholder" id="schedAmountInput">请输入金额</span>
+                                <i class="ri-arrow-right-s-line sched-field-arrow"></i>
+                            </div>
+                        </div>
+                        <div class="sched-field" id="schedBelongField">
+                            <div class="sched-field-left">
+                                <span class="sched-field-label">关联方</span>
+                            </div>
+                            <div class="sched-field-right">
+                                <span class="sched-field-value" id="schedBelongValue">自己</span>
+                                <i class="ri-arrow-right-s-line sched-field-arrow"></i>
+                            </div>
+                        </div>
+                        <div class="sched-field sched-field-last" id="schedPaymentField">
+                            <div class="sched-field-left">
+                                <span class="sched-field-label">支付方式</span>
+                            </div>
+                            <div class="sched-field-right">
+                                <span class="sched-field-value" id="schedPaymentValue"><i class="ri-wechat-fill" style="color:#07C160;"></i> 微信</span>
+                                <i class="ri-arrow-right-s-line sched-field-arrow"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="sched-card">
+                        <div class="sched-field" id="schedRepeatField">
+                            <div class="sched-field-left">
+                                <span class="sched-field-label">重复周期</span>
+                            </div>
+                            <div class="sched-field-right">
+                                <span class="sched-field-value" id="schedRepeatValue">每天</span>
+                                <i class="ri-arrow-right-s-line sched-field-arrow"></i>
+                            </div>
+                        </div>
+                        <div class="sched-field sched-field-end">
+                            <div class="sched-field-left">
+                                <span class="sched-field-label">结束方式</span>
+                            </div>
+                            <div class="sched-field-right sched-end-options">
+                                <label class="sched-checkbox" data-end="forever">
+                                    <input type="radio" name="schedEndType" value="forever" checked />
+                                    <span class="sched-checkbox-box"><i class="ri-check-line"></i></span>
+                                    <span class="sched-checkbox-label">长期有效</span>
+                                </label>
+                                <label class="sched-checkbox" data-end="date">
+                                    <input type="radio" name="schedEndType" value="date" />
+                                    <span class="sched-checkbox-box"><i class="ri-check-line"></i></span>
+                                    <span class="sched-checkbox-label">定期结束</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="sched-end-date" id="schedEndDateRow" style="display:none;">
+                            <div class="sched-end-date-label">
+                                <span id="schedEndDateValue">请选择结束日期</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="sched-card">
+                        <div class="sched-note-row">
+                            <div class="sched-field-left">
+                                <span class="sched-field-label">备注</span>
+                            </div>
+                            <div class="sched-field-right">
+                                <input type="text" class="sched-note-input" id="schedNoteInput" placeholder="选填，最多25字" maxlength="25" />
+                                <i class="ri-arrow-right-s-line sched-field-arrow"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="sched-edit-footer">
+                    <button class="sched-save-btn" id="schedSaveBtn" disabled>保存</button>
+                </div>
+            </div>
+
+            
+            <div class="sched-overlay" id="schedCategoryOverlay"></div>
+            <div class="sched-category-sheet" id="schedCategorySheet">
+                <div class="sched-sheet-header">
+                    <button class="sched-sheet-close" id="schedCategoryClose"><i class="ri-close-line"></i></button>
+                    <div class="sched-category-toggle" id="schedCategoryToggle">
+                        <button type="button" data-type="expense" class="active-expense">支出</button>
+                        <button type="button" data-type="income">收入</button>
+                    </div>
+                    <div class="sched-sheet-placeholder"></div>
+                </div>
+                <div class="sched-category-body">
+                    <div class="sched-category-grid" id="schedCategoryGrid"></div>
+                </div>
+            </div>
+
+            
+            <div class="sched-overlay" id="schedAmountKeyboardOverlay"></div>
+            <div class="sched-amount-keyboard-sheet" id="schedAmountKeyboardSheet">
+                <div class="sched-sheet-header sched-sheet-header-center">
+                    <button class="sched-sheet-close" id="schedAmountKeyboardClose"><i class="ri-close-line"></i></button>
+                    <span class="sched-sheet-title">输入金额</span>
+                    <div class="sched-sheet-placeholder"></div>
+                </div>
+                <div class="sched-amount-keyboard" id="schedAmountKeyboardBody">
+                    <button type="button" class="sched-key" data-key="1">1</button>
+                    <button type="button" class="sched-key" data-key="2">2</button>
+                    <button type="button" class="sched-key" data-key="3">3</button>
+                    <button type="button" class="sched-key sched-key-delete" data-key="delete"><i class="ri-delete-back-2-line"></i></button>
+                    <button type="button" class="sched-key" data-key="4">4</button>
+                    <button type="button" class="sched-key" data-key="5">5</button>
+                    <button type="button" class="sched-key" data-key="6">6</button>
+                    <button type="button" class="sched-key sched-key-confirm" data-key="confirm">确认</button>
+                    <button type="button" class="sched-key" data-key="7">7</button>
+                    <button type="button" class="sched-key" data-key="8">8</button>
+                    <button type="button" class="sched-key" data-key="9">9</button>
+                    <button type="button" class="sched-key sched-key-zero" data-key="0">0</button>
+                    <button type="button" class="sched-key sched-key-dot" data-key=".">.</button>
+                </div>
+            </div>
+
+            
+            <div class="sched-overlay" id="schedBelongOverlay"></div>
+            <div class="sched-belong-sheet" id="schedBelongSheet">
+                <div class="sched-sheet-header">
+                    <button class="sched-sheet-close" id="schedBelongClose"><i class="ri-close-line"></i></button>
+                    <span class="sched-sheet-title">选择关联方</span>
+                    <button class="sched-sheet-confirm" id="schedBelongConfirm"><i class="ri-check-line"></i></button>
+                </div>
+                <div class="sched-belong-wheel-wrap">
+                    <div class="wheel-picker-mask-top"></div>
+                    <div class="wheel-picker-mask-bottom"></div>
+                    <div class="wheel-picker-highlight"></div>
+                    <div class="wheel-picker sched-belong-wheel" id="schedBelongWheel"></div>
+                </div>
+            </div>
+
+            
+            <div class="sched-overlay" id="schedRepeatOverlay"></div>
+            <div class="sched-repeat-sheet" id="schedRepeatSheet">
+                <div class="sched-sheet-header">
+                    <button class="sched-sheet-close" id="schedRepeatClose"><i class="ri-close-line"></i></button>
+                    <div class="sched-repeat-tabs" id="schedRepeatTabs">
+                        <button class="sched-repeat-tab active" data-tab="daily">每天</button>
+                        <button class="sched-repeat-tab" data-tab="weekly">每周</button>
+                        <button class="sched-repeat-tab" data-tab="monthly">每月</button>
+                    </div>
+                    <button class="sched-sheet-confirm" id="schedRepeatConfirm"><i class="ri-check-line"></i></button>
+                </div>
+                <div class="sched-repeat-wheel-wrap">
+                    <div class="wheel-picker-mask-top"></div>
+                    <div class="wheel-picker-mask-bottom"></div>
+                    <div class="wheel-picker-highlight"></div>
+                    
+                    <div class="wheel-picker sched-repeat-wheel active" data-pane="daily" id="schedDailyWheel"></div>
+                    <div class="wheel-picker sched-repeat-wheel" data-pane="weekly" id="schedWeeklyWheel"></div>
+                    <div class="wheel-picker sched-repeat-wheel" data-pane="monthly" id="schedMonthlyWheel"></div>
+                </div>
+            </div>
+
+            
+            <div class="sched-payment-overlay" id="schedPaymentOverlay"></div>
+            <div class="sched-payment-sheet" id="schedPaymentSheet">
+                <div class="sched-payment-header">
+                    <span class="sched-payment-title">选择支付方式</span>
+                    <button class="sched-payment-close" id="schedPaymentClose">
+                        <i class="ri-close-line"></i>
+                    </button>
+                </div>
+                <div class="sched-payment-options" id="schedPaymentBody">
+                    <button class="sched-payment-option active" data-payment="微信">
+                        <i class="ri-wechat-fill"></i> 微信
+                    </button>
+                    <button class="sched-payment-option" data-payment="支付宝">
+                        <i class="ri-alipay-fill"></i> 支付宝
+                    </button>
+                    <button class="sched-payment-option" data-payment="现金">
+                        <i class="ri-cash-fill"></i> 现金
+                    </button>
+                    <button class="sched-payment-option" data-payment="银行卡">
+                        <i class="ri-bank-card-fill"></i> 银行卡
+                    </button>
+                </div>
+            </div>
+
+            
+            <div id="page-clear-bills" class="page">
+                
+                <div class="clear-bills-header">
+                    <button class="clear-bills-back" id="clearBillsBackBtn">
+                        <i class="ri-arrow-left-s-line"></i>
+                    </button>
+                    <span class="clear-bills-title">账单清除</span>
+                    <div style="width:40px;"></div>
+                </div>
+                
+                <div class="clear-bills-content">
+                    
+                    <div class="clear-bills-card">
+                        <div class="clear-bills-card-title">选择账单时间范围</div>
+                        <div class="clear-bills-time-row" id="clearBillsStartRow">
+                            <div class="time-row-left">
+                                <span class="time-row-label">开始时间</span>
+                            </div>
+                            <div class="time-row-right">
+                                <span class="time-row-value placeholder" id="clearBillsStartValue">请选择开始时间</span>
+                                <i class="ri-arrow-right-s-line time-row-arrow"></i>
+                            </div>
+                        </div>
+                        <div class="clear-bills-time-row" id="clearBillsEndRow">
+                            <div class="time-row-left">
+                                <span class="time-row-label">结束时间</span>
+                            </div>
+                            <div class="time-row-right">
+                                <span class="time-row-value placeholder" id="clearBillsEndValue">请选择结束时间</span>
+                                <i class="ri-arrow-right-s-line time-row-arrow"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="clear-bills-card">
+                        <div class="clear-bills-card-title">选择账单关联方</div>
+                        <div class="clear-bills-belong-group" id="clearBillsBelongGroup">
+                            <button class="clear-bills-belong-btn" data-belong="自己">自己</button>
+                            <button class="clear-bills-belong-btn" data-belong="对方">对方</button>
+                            <button class="clear-bills-belong-btn" data-belong="共同">共同</button>
+                            <button class="clear-bills-belong-btn active" data-belong="所有">所有</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="clear-bills-footer">
+                    <button class="clear-bills-submit-btn" id="clearBillsSubmitBtn" disabled>开始清除</button>
+                </div>
+            </div>
+
+            
+            <div id="page-export-bills" class="page">
+                
+                <div class="clear-bills-header">
+                    <button class="clear-bills-back" id="exportBillsBackBtn">
+                        <i class="ri-arrow-left-s-line"></i>
+                    </button>
+                    <span class="clear-bills-title">账单导出</span>
+                    <div style="width:40px;"></div>
+                </div>
+                
+                <div class="clear-bills-content">
+                    
+                    <div class="clear-bills-card">
+                        <div class="clear-bills-card-title">选择账单时间范围</div>
+                        <div class="clear-bills-time-row" id="exportBillsStartRow">
+                            <div class="time-row-left">
+                                <span class="time-row-label">开始时间</span>
+                            </div>
+                            <div class="time-row-right">
+                                <span class="time-row-value" id="exportBillsStartValue">请选择开始时间</span>
+                                <i class="ri-arrow-right-s-line time-row-arrow"></i>
+                            </div>
+                        </div>
+                        <div class="clear-bills-time-row" id="exportBillsEndRow">
+                            <div class="time-row-left">
+                                <span class="time-row-label">结束时间</span>
+                            </div>
+                            <div class="time-row-right">
+                                <span class="time-row-value" id="exportBillsEndValue">请选择结束时间</span>
+                                <i class="ri-arrow-right-s-line time-row-arrow"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="clear-bills-footer">
+                    <button class="clear-bills-submit-btn" id="exportBillsSubmitBtn" disabled>导出账单</button>
+                </div>
+            </div>
+
+            
+
+            <div id="page-match" class="page">
+                <div class="match-header">
+                    <button class="match-back" id="matchBackBtn">
+                        <i class="ri-arrow-left-s-line"></i>
+                    </button>
+                    <span class="match-title">匹配搭子</span>
+                    <div style="width:40px;"></div>
+                </div>
+                <div class="match-content">
+                    <div class="match-desc" id="matchDesc">生成你的匹配码，或输入对方的匹配码</div>
+                    <div id="matchLoading" class="match-loading-state" style="display:none;">
+                        <i class="ri-loader-4-line"></i> 加载中...
+                    </div>
+                    
+                    <div id="matchUnbound" class="match-unbound-card">
+                        <div class="match-code-area">
+                            <div class="match-code-row">
+                                <span class="match-code-label">我的匹配码</span>
+                                <div class="match-code-box">
+                                    <span class="match-code-display" id="matchCodeDisplay">------</span>
+                                    <button class="match-copy-btn" id="matchCopyBtn">复制</button>
+                                </div>
+                            </div>
+                            <div class="match-code-hint">有效期10分钟</div>
+                        </div>
+                        <div class="match-divider">或</div>
+                        <div class="match-input-row">
+                            <input type="text" id="matchInput" placeholder="输入对方6位数字匹配码" maxlength="6" inputmode="numeric" pattern="\d*" autocomplete="off" />
+                            <button class="match-bind-btn" id="matchBindBtn">立即匹配</button>
+                        </div>
+                        <div id="matchError" class="match-error-text"></div>
+                        <div id="matchSuccess" class="match-success-text"></div>
+                    </div>
+                    
+<div id="matchBound" class="match-bound-card" style="display:none;">
+    
+    <div class="match-bound-avatar-wrapper">
+        <div class="match-bound-avatar" id="matchBoundAvatar">
+            <img id="matchPartnerAvatarImg" src="" style="display:none;" />
+            <i id="matchPartnerAvatarIcon" class="ri-user-fill"></i>
+        </div>
+    </div>
+    
+    
+    <div class="match-bound-detail">
+        <div class="match-bound-name">已绑定 <span id="matchPartnerName"></span></div>
+        <div class="match-bound-hint">你们可以共同记账了</div>
+    </div>
+    
+    
+    <button class="match-unbind-btn" id="matchUnbindBtn">解除绑定</button>
+    <div id="matchBoundError" class="match-error-text"></div>
+</div>
+                </div>
+            </div>
+
+
+<div class="theme-overlay" id="themeOverlay">
+    <div class="theme-modal" id="themeModal">
+        <div class="theme-modal-header">
+            <button class="theme-btn-reset" id="themeBtnReset">恢复默认</button>
+            <button class="theme-btn-confirm-icon" id="themeBtnConfirm">
+                <i class="ri-check-line"></i>
+            </button>
+        </div>
+        <div class="theme-modal-body">
+            <div class="theme-color-grid" id="themeColorGrid"></div>
+            <div class="theme-preview" id="themePreview">
+                <div class="theme-preview-row">
+                    <span class="theme-preview-label">预览</span>
+                    <div class="theme-preview-bubbles">
+                        <span class="preview-primary"></span>
+                        <span class="preview-light"></span>
+                        <span class="preview-bg"></span>
+                        <span class="preview-shadow"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+            
+            <div class="settings-overlay" id="settingsOverlay">
+                <div class="settings-panel" id="settingsPanel">
+                    <div class="settings-header">
+                        <button class="settings-back-btn" id="settingsBackBtn">
+                            <i class="ri-arrow-left-s-line"></i>
+                        </button>
+                        <span class="settings-title">类目设置</span>
+                        <div style="width:40px;"></div>
+                    </div>
+                    <div class="settings-tabs" id="settingsTabs">
+                        <button class="settings-tab active" data-stype="expense">支出</button>
+                        <button class="settings-tab" data-stype="income">收入</button>
+                        <div class="settings-tab-slider" id="settingsTabSlider"></div>
+                    </div>
+                    <div class="settings-list-wrapper" id="settingsListWrapper">
+                        <div class="settings-list" id="settingsList"></div>
+                    </div>
+                    <div class="settings-footer">
+                        <button class="settings-add-btn" id="settingsAddBtn">
+                            <i class="ri-add-line"></i> 自定义类目
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            
+
+            
+            <div class="cat-modal-overlay" id="catAddOverlay">
+                <div class="cat-modal" id="catAddModal">
+                    <div class="cat-modal-header">
+                        <button class="cat-modal-close" id="catAddClose">
+                            <i class="ri-close-line"></i>
+                        </button>
+                        <span class="cat-modal-title">添加类目</span>
+                        <button class="cat-modal-confirm-icon" id="catAddConfirm">
+                            <i class="ri-check-line"></i>
+                        </button>
+                    </div>
+                    <div class="cat-modal-body">
+                        <div class="cat-form-group">
+                            <label>类目名称</label>
+                            <input type="text" id="catAddName" placeholder="请输入类目名称" maxlength="8" />
+                        </div>
+                        <div class="cat-form-group">
+                            <label>选择图标</label>
+                            <div class="cat-icon-grid" id="catIconGrid"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="cat-modal-overlay" id="catEditOverlay">
+                <div class="cat-modal" id="catEditModal">
+                    <div class="cat-modal-header">
+                        <button class="cat-modal-close" id="catEditClose">
+                            <i class="ri-close-line"></i>
+                        </button>
+                        <span class="cat-modal-title">编辑类目</span>
+                        <button class="cat-modal-confirm-icon" id="catEditConfirm">
+                            <i class="ri-check-line"></i>
+                        </button>
+                    </div>
+                    <div class="cat-modal-body">
+                        <div class="cat-form-group">
+                            <label>类目名称</label>
+                            <input type="text" id="catEditName" placeholder="请输入类目名称" maxlength="8" />
+                        </div>
+                        <div class="cat-form-group">
+                            <label>选择图标</label>
+                            <div class="cat-icon-grid" id="catEditIconGrid"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+
+            <div class="avatar-overlay" id="avatarOverlay">
+                <div class="avatar-modal" id="avatarModal">
+                    <div class="avatar-modal-header">
+                        <span class="avatar-modal-title">裁剪头像</span>
+                    </div>
+                    <div class="avatar-modal-body">
+                        <div class="avatar-crop-container">
+                            <img id="avatarCropImage" src="" alt="裁剪头像" />
+                        </div>
+                        <div class="avatar-modal-actions">
+                            <button class="avatar-btn-cancel" id="avatarBtnCancel">取消</button>
+                            <button class="avatar-btn-confirm" id="avatarBtnConfirm">确认裁剪</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+
+            <div class="week-overlay" id="weekOverlay"></div>
+            <div class="week-modal" id="weekModal">
+                <div class="week-modal-header">
+                    <button class="week-modal-close" id="weekModalClose">
+                        <i class="ri-close-line"></i>
+                    </button>
+                    <button class="week-modal-confirm" id="weekBtnConfirm">
+                        <i class="ri-check-line"></i>
+                    </button>
+                </div>
+                <div class="week-modal-body">
+<div class="week-picker-header">
+    <button class="week-nav-btn" id="weekPrevMonth">
+        <i class="ri-arrow-left-s-line"></i>
+    </button>
+    <span class="week-picker-title" id="weekPickerTitle">2026年6月</span>
+    <button class="week-nav-btn" id="weekNextMonth">
+        <i class="ri-arrow-right-s-line"></i>
+    </button>
+</div>
+                    <div class="week-weekdays">
+                        <span>一</span><span>二</span><span>三</span>
+                        <span>四</span><span>五</span><span>六</span><span>日</span>
+                    </div>
+                    <div class="week-days-grid" id="weekDaysGrid"></div>
+                </div>
+            </div>
+
+            
+
+            <div class="year-overlay" id="yearOverlay"></div>
+            <div class="year-modal" id="yearModal">
+                <div class="year-modal-header">
+                    <button class="year-modal-close" id="yearModalClose">
+                        <i class="ri-close-line"></i>
+                    </button>
+                    <button class="year-modal-confirm" id="yearBtnConfirm">
+                        <i class="ri-check-line"></i>
+                    </button>
+                </div>
+                <div class="year-modal-body">
+                    <div class="wheel-picker-container">
+                        <div class="wheel-picker-mask-top"></div>
+                        <div class="wheel-picker-mask-bottom"></div>
+                        <div class="wheel-picker-highlight"></div>
+                        <div class="wheel-picker" data-type="year" id="wheelYearOnly"></div>
+                        <div class="wheel-picker-label wheel-picker-label-1col">
+                            <span>年</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+
+            <div class="stats-date-overlay" id="statsDateOverlay"></div>
+            <div class="stats-date-modal" id="statsDateModal">
+                <div class="stats-date-modal-header">
+                    <button class="stats-date-modal-close" id="statsDateModalClose">
+                        <i class="ri-close-line"></i>
+                    </button>
+                    <div class="stats-date-view-nav" id="statsDateViewNav">
+                        <button class="stats-date-view-btn" data-view="week">周</button>
+                        <button class="stats-date-view-btn" data-view="month">月</button>
+                        <button class="stats-date-view-btn" data-view="year">年</button>
+                        <div class="stats-date-toggle-slider" id="statsDateToggleSlider"></div>
+                    </div>
+                    <button class="stats-date-modal-confirm" id="statsDateBtnConfirm">
+                        <i class="ri-check-line"></i>
+                    </button>
+                </div>
+                <div class="stats-date-modal-body">
+                    <div class="stats-date-scroll-wrapper" id="statsDateScrollWrapper">
+                        <div class="stats-date-scroll" id="statsDateScroll">
+                            
+                            <div class="stats-date-view-panel" id="statsDateViewWeek">
+                                <div class="stats-date-picker-header">
+                                    <button class="stats-date-nav-btn" id="statsWeekPrevMonth">
+                                        <i class="ri-arrow-left-s-line"></i>
+                                    </button>
+                                    <span class="stats-date-picker-title" id="statsWeekPickerTitle">2026年6月</span>
+                                    <button class="stats-date-nav-btn" id="statsWeekNextMonth">
+                                        <i class="ri-arrow-right-s-line"></i>
+                                    </button>
+                                </div>
+                                <div class="stats-date-weekdays">
+                                    <span>一</span><span>二</span><span>三</span>
+                                    <span>四</span><span>五</span><span>六</span><span>日</span>
+                                </div>
+                                <div class="stats-date-days-grid" id="statsWeekDaysGrid"></div>
+                            </div>
+                            
+                            <div class="stats-date-view-panel" id="statsDateViewMonth">
+                                <div class="stats-date-picker-header">
+                                    <button class="stats-date-nav-btn" id="statsMonthPrevYear">
+                                        <i class="ri-arrow-left-s-line"></i>
+                                    </button>
+                                    <span class="stats-date-picker-title" id="statsMonthPickerTitle">2026年</span>
+                                    <button class="stats-date-nav-btn" id="statsMonthNextYear">
+                                        <i class="ri-arrow-right-s-line"></i>
+                                    </button>
+                                </div>
+                                <div class="stats-date-month-grid" id="statsMonthGrid"></div>
+                            </div>
+                            
+                            <div class="stats-date-view-panel" id="statsDateViewYear">
+                                <div class="wheel-picker-container">
+                                    <div class="wheel-picker-mask-top"></div>
+                                    <div class="wheel-picker-mask-bottom"></div>
+                                    <div class="wheel-picker-highlight"></div>
+                                    <div class="wheel-picker" data-type="year" id="wheelStatsYear"></div>
+                                    <div class="wheel-picker-label wheel-picker-label-1col">
+                                        <span>年</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+
+            <div id="bottom-nav">
+                <button class="nav-item" data-page="home">
+                    <i class="ri-home-4-fill nav-icon"></i>
+                    <span class="nav-label">首页</span>
+                </button>
+                <button class="nav-item" data-page="bills">
+                    <i class="ri-receipt-fill nav-icon"></i>
+                    <span class="nav-label">账单</span>
+                </button>
+                <button class="nav-add" id="navAddBtn">
+                    <i class="ri-add-fill nav-icon"></i>
+                </button>
+                <button class="nav-item" data-page="stats">
+                    <i class="ri-pie-chart-fill nav-icon"></i>
+                    <span class="nav-label">报表</span>
+                </button>
+                <button class="nav-item" data-page="profile">
+                    <i class="ri-user-3-fill nav-icon"></i>
+                    <span class="nav-label">我的</span>
+                </button>
+            </div>
+
+        </div>
+
+
+<div id="page-webview" class="page">
+    <div class="webview-header">
+        <button class="webview-back" id="webviewBackBtn">
+            <i class="ri-arrow-left-s-line"></i>
+        </button>
+        <span class="webview-title" id="webviewTitle">加载中...</span>
+        <button class="webview-refresh" id="webviewRefreshBtn">
+            <i class="ri-refresh-line"></i>
+        </button>
+    </div>
+    <div class="webview-container" id="webviewContainer">
+        <div class="webview-loading" id="webviewLoading">
+            <i class="ri-loader-4-line"></i>
+            <span>加载中...</span>
+        </div>
+        <div class="webview-error" id="webviewError" style="display:none;">
+            <i class="ri-error-warning-line"></i>
+            <span>加载失败，请稍后重试</span>
+            <button class="webview-retry" id="webviewRetryBtn">重试</button>
+        </div>
+        <iframe id="webviewIframe" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+    </div>
+</div>
+
+</div>
+    
+	
+    <script src="js/cropper.min.js"></script>
+    <script src="js/echarts.js"></script>
+    <script src="js/cat-svg.js"></script>
+    <script src="js/pet.js"></script>
+    <script src="js/app.js?v=24"></script>
+
+</body>
+</html>
