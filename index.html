@@ -4,24 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>WELL记账</title>
-
-    <!-- iOS 添加到主屏幕 / 网页分享到桌面图标 -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="WELL记账" />
-    <meta name="format-detection" content="telephone=no" />
-    <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png" />
-    <link rel="icon" type="image/png" href="img/apple-touch-icon.png" />
-    <!-- 标准 PWA Web App Manifest -->
-    <link rel="manifest" href="manifest.webmanifest" />
-
+    
     <link rel="stylesheet" href="webfonts/remixicon.css" />
     
     <link rel="stylesheet" href="css/all.min.css" />
      <link rel="stylesheet" href="css/style.css?v=20" />
      <link rel="stylesheet" href="css/bills.css" />
-     <link rel="stylesheet" href="css/stats.css" />
+     <link rel="stylesheet" href="css/stats.css?v=2" />
 	 <link rel="stylesheet" href="css/pet.css" />
     <link rel="stylesheet" href="css/cropper.min.css" />
 </head>
@@ -97,6 +86,50 @@
             </div>
             <div class="import-progress-label" id="importProgressLabel">正在导入...</div>
         </div>
+
+        
+        <div class="update-modal-overlay" id="updateModalOverlay">
+            <div class="update-modal-box">
+                <div class="update-modal-header">
+                    <div class="update-modal-icon">
+                        <i class="ri-download-cloud-2-line"></i>
+                    </div>
+                    <div class="update-modal-title">发现新版本</div>
+                    <div class="update-modal-version" id="updateModalVersion">v1.0.0</div>
+                </div>
+                <div class="update-modal-body">
+                    <div class="update-modal-section-title">更新内容</div>
+                    <div class="update-modal-changelog" id="updateModalChangelog">
+                        
+                    </div>
+                    <div class="update-modal-info">
+                        <div class="update-info-item">
+                            <span class="update-info-label">文件大小</span>
+                            <span class="update-info-value" id="updateModalSize">--</span>
+                        </div>
+                        <div class="update-info-item">
+                            <span class="update-info-label">当前版本</span>
+                            <span class="update-info-value" id="updateModalCurrentVersion">v1.0.0</span>
+                        </div>
+                    </div>
+                    
+                    <div class="update-download-area" id="updateDownloadArea" style="display:none;">
+                        <div class="update-download-progress">
+                            <div class="update-progress-bar">
+                                <div class="update-progress-fill" id="updateProgressFill"></div>
+                            </div>
+                            <div class="update-progress-text" id="updateProgressText">0%</div>
+                        </div>
+                        <div class="update-download-status" id="updateDownloadStatus">正在下载...</div>
+                    </div>
+                </div>
+                <div class="update-modal-footer">
+                    <button class="update-btn-cancel" id="updateModalCancel">稍后再说</button>
+                    <button class="update-btn-confirm" id="updateModalConfirm">立即更新</button>
+                </div>
+            </div>
+        </div>
+
         
         <div class="update-modal-overlay" id="termsModalOverlay">
             <div class="update-modal-box">
@@ -260,6 +293,7 @@
                     <input type="text" id="noteModalInput" placeholder="点击输入备注0/25" maxlength="25" />
                     <button class="note-modal-confirm" id="noteModalConfirm">确认</button>
                 </div>
+                <div class="note-frequent" id="noteFrequent"></div>
             </div>
 
         </div>
@@ -1404,8 +1438,13 @@
                 
                 <div class="about-slogan">MANAGE WELL&nbsp;&nbsp;LIVE WELL<br>
 每一笔&nbsp;&nbsp;都为更好的生活</div>
-
-                <div class="about-version" id="aboutVersion">版本 v1.0.1</div>
+                
+                <button class="about-update-btn" id="aboutUpdateBtn">
+                    <span id="aboutUpdateText">检查更新</span>
+                    <i class="ri-refresh-line" id="aboutUpdateIcon"></i>
+                </button>
+                
+                <div class="about-version" id="aboutVersion"></div>
             </div>
             
             <div class="about-footer">
@@ -2539,7 +2578,7 @@
     <script src="js/echarts.js"></script>
     <script src="js/cat-svg.js"></script>
     <script src="js/pet.js"></script>
-    <script src="js/app.js?v=24"></script>
+    <script src="js/app.js?v=31"></script>
 
 </body>
 </html>

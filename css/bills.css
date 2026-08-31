@@ -451,9 +451,9 @@
 
 .year-view-grid  {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    padding: 8px 16px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 8px 14px;
 }
 
 .year-month-item  {
@@ -468,7 +468,7 @@
 }
 
 .year-month-item .month-name  {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
     color: var(--text-primary);
 }

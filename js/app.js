@@ -1,4 +1,4 @@
-(function() {
+﻿(function() {
     'use strict';
 
     const API_BASE = 'https://account.solitudenook.top/api';
@@ -454,6 +454,7 @@ const profileAvatarWrapper = $('#profileAvatarWrapper');
     const noteModal = $('#noteModal');
     const noteModalInput = $('#noteModalInput');
     const noteModalConfirm = $('#noteModalConfirm');
+    const noteFrequent = $('#noteFrequent');
 
     const paymentTrigger = $('#paymentTrigger');
     const paymentTriggerLabel = $('#paymentTriggerLabel');
@@ -1270,23 +1271,27 @@ function renderMonthView() {
     });
     
     
-    const totalDays = 35;
+    const totalDays = 42;
     let html = '';
     let dayCounter = 0;
-    
-    
+
+    const prevYear = month === 0 ? year - 1 : year;
+    const prevMonth = month === 0 ? 11 : month - 1;
+    const nextYear = month === 11 ? year + 1 : year;
+    const nextMonth = month === 11 ? 0 : month + 1;
+
     const prevMonthDays = new Date(year, month, 0).getDate();
     const prevMonthStart = firstDay;
     for (let i = prevMonthStart - 1; i >= 0; i--) {
         const day = prevMonthDays - i;
-        const isToday = (year === today.getFullYear() && month - 1 === today.getMonth() && day === today.getDate());
-        
-        const isSelected = (year === billsSelectedDate.getFullYear() && 
-                           month - 1 === billsSelectedDate.getMonth() && 
+        const isToday = (prevYear === today.getFullYear() && prevMonth === today.getMonth() && day === today.getDate());
+
+        const isSelected = (prevYear === billsSelectedDate.getFullYear() &&
+                           prevMonth === billsSelectedDate.getMonth() &&
                            day === billsSelectedDate.getDate());
         html += `
-            <button class="bills-calendar-day other-month ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}" 
-                    data-year="${year}" data-month="${month - 1}" data-day="${day}">
+            <button class="bills-calendar-day other-month ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}"
+                    data-year="${prevYear}" data-month="${prevMonth}" data-day="${day}">
                 <span class="day-number">${isToday ? '今' : day}</span>
             </button>
         `;
@@ -1324,14 +1329,14 @@ function renderMonthView() {
     // 下个月补充（补满35天）
     let nextMonthDay = 1;
     while (dayCounter < totalDays) {
-        const isToday = (year === today.getFullYear() && month + 1 === today.getMonth() && nextMonthDay === today.getDate());
+        const isToday = (nextYear === today.getFullYear() && nextMonth === today.getMonth() && nextMonthDay === today.getDate());
         // ===== 新增：判断非本月日期是否被选中 =====
-        const isSelected = (year === billsSelectedDate.getFullYear() && 
-                           month + 1 === billsSelectedDate.getMonth() && 
+        const isSelected = (nextYear === billsSelectedDate.getFullYear() &&
+                           nextMonth === billsSelectedDate.getMonth() &&
                            nextMonthDay === billsSelectedDate.getDate());
         html += `
-            <button class="bills-calendar-day other-month ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}" 
-                    data-year="${year}" data-month="${month + 1}" data-day="${nextMonthDay}">
+            <button class="bills-calendar-day other-month ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}"
+                    data-year="${nextYear}" data-month="${nextMonth}" data-day="${nextMonthDay}">
                 <span class="day-number">${isToday ? '今' : nextMonthDay}</span>
             </button>
         `;
@@ -3420,9 +3425,8 @@ function renderHomeSummaryOnly() {
         filteredBills = filteredBills.filter(b => getDisplayBelong(b) === '自己');
     } else if (wallet.key === 'partner') {
         filteredBills = filteredBills.filter(b => getDisplayBelong(b) === '对方');
-    } else if (wallet.key === 'both') {
-        filteredBills = filteredBills.filter(b => getDisplayBelong(b) === '共同');
     }
+    // wallet.key === 'both'（我们的）：不按归属筛选，统计全部归属（自己+对方+共同）的合计支收余。
     
     const summary = calcSummary(filteredBills);
     const incomeEl = $('#homeIncome');
@@ -3745,6 +3749,7 @@ function onWrapperClick(e) {
         noteModalInput.value = noteContent;
         noteModal.classList.add('show');
         noteOverlay.classList.add('show');
+        renderNoteFrequent();
         setTimeout(() => noteModalInput.focus());
     }
 
@@ -3781,6 +3786,115 @@ function onWrapperClick(e) {
         noteContent = '';
         updateNoteDisplay();
         noteModalInput.value = '';
+    }
+
+    // ---------- 备注常用记录（按分类，最多 3 条） ----------
+    const FREQ_NOTES_KEY = 'well_frequent_notes_v1';
+    const FREQ_NOTES_LIMIT = 3;
+
+    function loadFrequentStore() {
+        try {
+            return JSON.parse(localStorage.getItem(FREQ_NOTES_KEY)) || {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function saveFrequentStore(store) {
+        try {
+            localStorage.setItem(FREQ_NOTES_KEY, JSON.stringify(store));
+        } catch (e) {
+            // 存储不可用时静默忽略
+        }
+    }
+
+    function recordFrequentNote(category, text) {
+        if (!category) return;
+        text = (text || '').toString().trim();
+        if (!text) return;
+        const store = loadFrequentStore();
+        const list = store[category] || [];
+        const hit = list.find(x => x.text === text);
+        if (hit) {
+            hit.count = (hit.count || 0) + 1;
+        } else {
+            list.push({ text: text, count: 1 });
+        }
+        list.sort((a, b) => (b.count || 0) - (a.count || 0));
+        store[category] = list.slice(0, 20);
+        saveFrequentStore(store);
+    }
+
+    function getFrequentNotes(category, limit) {
+        ensureFrequentNotesSeeded();
+        const store = loadFrequentStore();
+        const list = store[category] || [];
+        return list.slice(0, limit || FREQ_NOTES_LIMIT).map(x => x.text);
+    }
+
+    function ensureFrequentNotesSeeded() {
+        const seedFlag = FREQ_NOTES_KEY + '_seeded';
+        if (localStorage.getItem(seedFlag)) return;
+        try {
+            const counts = {};
+            (allBills || []).forEach(b => {
+                const cat = b.category;
+                const text = b.note && b.note.trim();
+                if (!cat || !text) return;
+                counts[cat] = counts[cat] || {};
+                counts[cat][text] = (counts[cat][text] || 0) + 1;
+            });
+            const store = loadFrequentStore();
+            let changed = false;
+            Object.keys(counts).forEach(cat => {
+                const arr = Object.keys(counts[cat]).map(text => ({ text: text, count: counts[cat][text] }));
+                arr.sort((a, b) => b.count - a.count);
+                const merged = store[cat] || [];
+                arr.forEach(x => {
+                    const hit = merged.find(m => m.text === x.text);
+                    if (hit) hit.count += x.count;
+                    else merged.push(x);
+                });
+                merged.sort((a, b) => b.count - a.count);
+                store[cat] = merged.slice(0, 20);
+                changed = true;
+            });
+            if (changed) saveFrequentStore(store);
+            localStorage.setItem(seedFlag, '1');
+        } catch (e) {
+            // 历史数据不可用时跳过，后续仍会按新输入学习
+        }
+    }
+
+    function renderFrequentChips(container, category, onPick) {
+        if (!container) return;
+        const notes = getFrequentNotes(category, FREQ_NOTES_LIMIT);
+        if (!notes.length) {
+            container.classList.remove('show');
+            container.innerHTML = '';
+            return;
+        }
+        let html = '<span class="note-frequent-label">常用</span>';
+        notes.forEach(t => {
+            const safe = escapeHtml(t);
+            html += '<span class="note-frequent-chip" data-note="' + encodeURIComponent(t) + '">' + safe + '</span>';
+        });
+        container.innerHTML = html;
+        container.classList.add('show');
+        container.querySelectorAll('.note-frequent-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const txt = decodeURIComponent(chip.dataset.note);
+                onPick(txt);
+            });
+        });
+    }
+
+    function renderNoteFrequent() {
+        renderFrequentChips(noteFrequent, currentCategory, (txt) => {
+            const cur = noteModalInput.value.trim();
+            noteModalInput.value = cur ? cur + ' ' + txt : txt;
+            noteModalInput.focus();
+        });
     }
 
     
@@ -3835,6 +3949,7 @@ function buildCategorySlides() {
             slide.querySelectorAll('.cat-item').forEach(el => el.classList.remove('active'));
             item.classList.add('active');
             currentCategory = item.dataset.category;
+            renderNoteFrequent();
         });
         window._categoryListenerAttached = true;
     }
@@ -3959,6 +4074,7 @@ function highlightCategory(slide, category) {
             currentCategory = first.dataset.category ? first.dataset.category.trim() : first.dataset.category;
         }
     }
+    renderNoteFrequent();
 }
 async function deleteCommentApi(commentId) {
     if (!currentBillId) throw new Error('未指定账单');
@@ -4435,6 +4551,10 @@ function initBounceScroll(selector, options = {}) {
             await updateBill(editingBillId, billData);
         } else {
             await addBill(billData);
+        }
+
+        if (billData.note && billData.note.trim()) {
+            recordFrequentNote(billData.category, billData.note);
         }
     }
 
@@ -5556,8 +5676,22 @@ const UPDATE_CONFIG = {
 };
 
 
-let currentAppVersion = '1.0.1';
-let currentAppVersionCode = 100000001;
+let currentAppVersion = '1.0.0';
+let currentAppVersionCode = 100;
+
+
+let updateState = {
+    latestVersion: '',
+    latestVersionCode: 0,
+    downloadUrl: '',
+    fileSize: '',
+    changelog: '',
+    isDownloading: false,
+    downloadTask: null,
+    downloadedSize: 0,
+    totalSize: 0,
+    localPath: ''
+};
 
 
 function initAppVersion() {
@@ -5573,6 +5707,422 @@ function initAppVersion() {
     const vEl = document.getElementById('aboutVersion');
     if (vEl) vEl.textContent = '版本 v' + currentAppVersion;
 }
+
+
+function isNewerVersion(localVer, remoteVer) {
+    if (!remoteVer) return false;
+    
+    const l = localVer.replace(/^v/i, '').split('.').map(Number);
+    const r = remoteVer.replace(/^v/i, '').split('.').map(Number);
+    const len = Math.max(l.length, r.length);
+    for (let i = 0; i < len; i++) {
+        const lv = l[i] || 0;
+        const rv = r[i] || 0;
+        if (rv > lv) return true;
+        if (rv < lv) return false;
+    }
+    return false;
+}
+
+
+function formatFileSize(bytes) {
+    if (!bytes || bytes <= 0) return '--';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+}
+
+
+function checkAppUpdate(silent) {
+    try {
+        const btn = document.getElementById('aboutUpdateBtn');
+        const textEl = document.getElementById('aboutUpdateText');
+
+        if (!silent && btn) {
+            btn.disabled = true;
+            btn.classList.add('spinning');
+            if (textEl) textEl.textContent = '检查中...';
+        }
+
+        
+        if (!UPDATE_CONFIG.githubRepo || UPDATE_CONFIG.githubRepo === 'yourname/well-app') {
+            if (!silent && btn) {
+                btn.disabled = false;
+                btn.classList.remove('spinning');
+                if (textEl) textEl.textContent = '检查更新';
+            }
+            if (!silent) showToast('请先配置 GitHub 仓库地址');
+            console.warn('[Update] 请在 app.js 的 UPDATE_CONFIG.githubRepo 中配置你的 GitHub 仓库地址');
+            return;
+        }
+
+        const apiUrl = 'https://api.github.com/repos/' + UPDATE_CONFIG.githubRepo + '/releases/latest';
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', apiUrl, true);
+        xhr.setRequestHeader('Accept', 'application/vnd.github.v3+json');
+        xhr.timeout = 15000;
+
+        xhr.onload = function() {
+            try {
+                if (!silent && btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('spinning');
+                    if (textEl) textEl.textContent = '检查更新';
+                }
+
+                const status = xhr.status;
+
+                if (status >= 200 && status < 300) {
+                    const data = JSON.parse(xhr.responseText);
+                    const tagName = data.tag_name || '';
+                    const remoteVersion = tagName.replace(/^v/i, '');
+
+                    if (!remoteVersion) {
+                        if (!silent) showToast('版本信息无效');
+                        return;
+                    }
+
+                    
+                    let apkAsset = null;
+                    if (data.assets && data.assets.length > 0) {
+                        apkAsset = data.assets.find(function(a) {
+                            return a.name && a.name.toLowerCase().endsWith('.apk') &&
+                                   a.name.toLowerCase().indexOf(UPDATE_CONFIG.apkPrefix.toLowerCase()) !== -1;
+                        });
+                        
+                        if (!apkAsset) {
+                            apkAsset = data.assets.find(function(a) {
+                                return a.name && a.name.toLowerCase().endsWith('.apk');
+                            });
+                        }
+                    }
+
+                    if (!apkAsset) {
+                        if (!silent) showToast('未找到 APK 安装包');
+                        console.warn('[Update] Release 中未找到 .apk 文件，请检查 Release assets');
+                        return;
+                    }
+
+                    if (isNewerVersion(currentAppVersion, remoteVersion)) {
+                        
+                        updateState.latestVersion = remoteVersion;
+                        updateState.downloadUrl = apkAsset.browser_download_url;
+                        updateState.fileSize = formatFileSize(apkAsset.size);
+                        updateState.changelog = data.body || '暂无更新说明';
+                        updateState.isDownloading = false;
+                        updateState.downloadTask = null;
+                        updateState.downloadedSize = 0;
+                        updateState.totalSize = apkAsset.size || 0;
+                        updateState.localPath = '';
+
+                        showUpdateModal();
+                    } else {
+                        if (!silent) showToast('已是最新版本 v' + currentAppVersion);
+                    }
+                } else if (status === 404) {
+                    if (!silent) showToast('未找到版本信息（404）');
+                    console.warn('[Update] GitHub API 返回 404，请检查仓库地址是否正确: ' + UPDATE_CONFIG.githubRepo);
+                } else if (status === 403) {
+                    if (!silent) showToast('请求过于频繁，请稍后再试');
+                    console.warn('[Update] GitHub API 限流 (403)，未认证用户每小时 60 次请求');
+                } else {
+                    if (!silent) showToast('检查更新失败（' + status + '）');
+                    console.warn('[Update] GitHub API 返回状态码: ' + status);
+                }
+            } catch (e) {
+                if (!silent && btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('spinning');
+                    if (textEl) textEl.textContent = '检查更新';
+                }
+                if (!silent) showToast('检查更新失败');
+                console.error('[Update] 解析响应失败:', e);
+            }
+        };
+
+        xhr.onerror = function() {
+            if (!silent && btn) {
+                btn.disabled = false;
+                btn.classList.remove('spinning');
+                if (textEl) textEl.textContent = '检查更新';
+            }
+            if (!silent) showToast('网络连接失败，请检查网络');
+            console.error('[Update] 网络请求失败');
+        };
+
+        xhr.ontimeout = function() {
+            if (!silent && btn) {
+                btn.disabled = false;
+                btn.classList.remove('spinning');
+                if (textEl) textEl.textContent = '检查更新';
+            }
+            if (!silent) showToast('请求超时，请稍后重试');
+            console.warn('[Update] 请求超时');
+        };
+
+        xhr.send();
+    } catch (e) {
+        console.error('[Update] checkAppUpdate 异常:', e);
+        
+        try {
+            const btn = document.getElementById('aboutUpdateBtn');
+            const textEl = document.getElementById('aboutUpdateText');
+            if (btn) {
+                btn.disabled = false;
+                btn.classList.remove('spinning');
+            }
+            if (textEl) textEl.textContent = '检查更新';
+        } catch (e2) {}
+        if (!silent) {
+            try { showToast('检查更新失败'); } catch (e3) {}
+        }
+    }
+}
+
+
+function showUpdateModal() {
+    try {
+        const overlay = document.getElementById('updateModalOverlay');
+        if (!overlay) {
+            console.error('[Update] 找不到 updateModalOverlay 元素');
+            return;
+        }
+
+        
+        const versionEl = document.getElementById('updateModalVersion');
+        if (versionEl) versionEl.textContent = 'v' + updateState.latestVersion;
+
+        const curVerEl = document.getElementById('updateModalCurrentVersion');
+        if (curVerEl) curVerEl.textContent = 'v' + currentAppVersion;
+
+        const sizeEl = document.getElementById('updateModalSize');
+        if (sizeEl) sizeEl.textContent = updateState.fileSize;
+
+        
+        const changelogEl = document.getElementById('updateModalChangelog');
+        if (changelogEl) {
+            try {
+                let html = (updateState.changelog || '暂无更新说明')
+                    .replace(/\r\n/g, '\n')
+                    .replace(/^###\s*(.+)$/gm, '<strong>$1</strong>')
+                    .replace(/^##\s*(.+)$/gm, '<strong>$1</strong>')
+                    .replace(/^- \s*(.+)$/gm, '<li>$1</li>')
+                    .replace(/^\*\s*(.+)$/gm, '<li>$1</li>');
+                if (html.indexOf('<li>') !== -1) {
+                    html = html.replace(/((?:<li>.*<\/li>\s*)+)/g, '<ul>$1</ul>');
+                }
+                html = html.replace(/\n\n/g, '<br>');
+                changelogEl.innerHTML = html;
+            } catch (e) {
+                changelogEl.textContent = updateState.changelog || '暂无更新说明';
+            }
+        }
+
+        
+        const downloadArea = document.getElementById('updateDownloadArea');
+        if (downloadArea) downloadArea.style.display = 'none';
+
+        const progressFill = document.getElementById('updateProgressFill');
+        if (progressFill) progressFill.style.width = '0%';
+
+        const progressText = document.getElementById('updateProgressText');
+        if (progressText) progressText.textContent = '0%';
+
+        const statusEl = document.getElementById('updateDownloadStatus');
+        if (statusEl) statusEl.textContent = '正在下载...';
+
+        
+        const confirmBtn = document.getElementById('updateModalConfirm');
+        if (confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = '立即更新';
+        }
+
+        const cancelBtn = document.getElementById('updateModalCancel');
+        if (cancelBtn) cancelBtn.textContent = '稍后再说';
+
+        
+        requestAnimationFrame(function() {
+            overlay.classList.add('show');
+        });
+        try { refreshStatusBar(); } catch(e) {}
+    } catch (e) {
+        console.error('[Update] showUpdateModal 异常:', e);
+        showToast('打开更新弹窗失败');
+    }
+}
+
+
+function closeUpdateModal() {
+    try {
+        const overlay = document.getElementById('updateModalOverlay');
+        if (!overlay) return;
+        
+        if (updateState.isDownloading && updateState.downloadTask) {
+            try {
+                if (window.plus && plus.downloader) {
+                    updateState.downloadTask.abort && updateState.downloadTask.abort();
+                    plus.downloader.clear();
+                }
+            } catch (e) {  }
+            updateState.isDownloading = false;
+            updateState.downloadTask = null;
+        }
+        overlay.classList.remove('show');
+        try { refreshStatusBar(); } catch(e) {}
+    } catch (e) {
+        console.error('[Update] closeUpdateModal 异常:', e);
+    }
+}
+
+
+function startUpdateDownload() {
+    const confirmBtn = document.getElementById('updateModalConfirm');
+    const downloadArea = document.getElementById('updateDownloadArea');
+    const cancelBtn = document.getElementById('updateModalCancel');
+
+    if (!updateState.downloadUrl) {
+        showToast('下载地址无效');
+        return;
+    }
+
+    
+    if (!window.plus || !plus.downloader) {
+        
+        window.open(updateState.downloadUrl, '_blank');
+        return;
+    }
+
+    
+    updateState.isDownloading = true;
+    if (downloadArea) downloadArea.style.display = 'block';
+    if (confirmBtn) {
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = '下载中...';
+    }
+    if (cancelBtn) cancelBtn.textContent = '取消下载';
+
+    const filename = '_downloads/WELL_v' + updateState.latestVersion + '.apk';
+
+    try {
+        const task = plus.downloader.createDownload(updateState.downloadUrl, {
+            filename: filename,
+            timeout: 120,
+            retry: 2,
+            retryInterval: 2
+        }, function(d, status) {
+            if (status === 200) {
+                
+                updateState.isDownloading = false;
+                updateState.localPath = d.filename;
+
+                document.getElementById('updateProgressFill').style.width = '100%';
+                document.getElementById('updateProgressText').textContent = '100%';
+                document.getElementById('updateDownloadStatus').textContent = '下载完成，点击安装';
+
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = '立即安装';
+                }
+                if (cancelBtn) cancelBtn.textContent = '稍后再说';
+
+                
+                setTimeout(function() {
+                    installApk(d.filename);
+                }, 500);
+            } else {
+                
+                updateState.isDownloading = false;
+                updateState.downloadTask = null;
+                document.getElementById('updateDownloadStatus').textContent = '下载失败，请重试';
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = '重新下载';
+                }
+                if (cancelBtn) cancelBtn.textContent = '稍后再说';
+                showToast('下载失败');
+            }
+        });
+
+        
+        task.addEventListener('statechanged', function(d, status) {
+            if (d.state === 3 && d.totalSize > 0) {
+                const percent = Math.round((d.downloadedSize / d.totalSize) * 100);
+                document.getElementById('updateProgressFill').style.width = percent + '%';
+                document.getElementById('updateProgressText').textContent = percent + '%';
+                document.getElementById('updateDownloadStatus').textContent =
+                    formatFileSize(d.downloadedSize) + ' / ' + formatFileSize(d.totalSize);
+            }
+        });
+
+        task.start();
+        updateState.downloadTask = task;
+    } catch (e) {
+        updateState.isDownloading = false;
+        showToast('启动下载失败');
+        if (confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = '立即更新';
+        }
+    }
+}
+
+
+function installApk(filePath) {
+    try {
+        if (window.plus && plus.runtime) {
+            plus.runtime.install(
+                filePath,
+                { force: false },
+                function() {
+                    
+                    setTimeout(function() {
+                        plus.runtime.quit();
+                    }, 500);
+                },
+                function(e) {
+                    showToast('安装失败：' + (e.message || '未知错误'));
+                    document.getElementById('updateDownloadStatus').textContent = '安装失败，请手动安装';
+                    const confirmBtn = document.getElementById('updateModalConfirm');
+                    if (confirmBtn) {
+                        confirmBtn.disabled = false;
+                        confirmBtn.textContent = '重新安装';
+                    }
+                }
+            );
+        }
+    } catch (e) {
+        showToast('安装失败');
+    }
+}
+
+
+function onUpdateConfirm() {
+    if (updateState.localPath && !updateState.isDownloading) {
+        
+        installApk(updateState.localPath);
+    } else if (updateState.isDownloading) {
+        
+        return;
+    } else {
+        
+        startUpdateDownload();
+    }
+}
+
+
+function initUpdateModalEvents() {
+    document.getElementById('updateModalCancel')?.addEventListener('click', closeUpdateModal);
+    document.getElementById('updateModalConfirm')?.addEventListener('click', onUpdateConfirm);
+    document.getElementById('updateModalOverlay')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            if (!updateState.isDownloading) closeUpdateModal();
+        }
+    });
+}
+
+
 
 
 const CHANGELOG_CACHE_TTL = 10 * 60 * 1000;
@@ -7306,14 +7856,36 @@ function getMonthExpenseByBelong(filter, date) {
     const targetDate = date || new Date();
     const year = targetDate.getFullYear();
     const month = targetDate.getMonth();
-    const monthStart = new Date(year, month, 1);
-    const monthEnd = new Date(year, month + 1, 0);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const ym = `${year}-${String(month + 1).padStart(2, '0')}`;
+    const startStr = `${ym}-01`;
+    const endStr = `${ym}-${String(daysInMonth).padStart(2, '0')}`;
 
     let total = 0;
     if (allBills && allBills.length > 0) {
         allBills.forEach(b => {
-            const d = new Date(b.date);
-            if (d >= monthStart && d <= monthEnd && b.type === 'expense' && getDisplayBelong(b) === filter) {
+            if (b.date >= startStr && b.date <= endStr && b.type === 'expense' && getDisplayBelong(b) === filter) {
+                total += b.amount;
+            }
+        });
+    }
+    return total;
+}
+
+
+function getMonthExpenseAllBelongs(date) {
+    const targetDate = date || new Date();
+    const year = targetDate.getFullYear();
+    const month = targetDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const ym = `${year}-${String(month + 1).padStart(2, '0')}`;
+    const startStr = `${ym}-01`;
+    const endStr = `${ym}-${String(daysInMonth).padStart(2, '0')}`;
+
+    let total = 0;
+    if (allBills && allBills.length > 0) {
+        allBills.forEach(b => {
+            if (b.date >= startStr && b.date <= endStr && b.type === 'expense') {
                 total += b.amount;
             }
         });
@@ -7334,10 +7906,32 @@ function updateBudgetDisplay() {
 
     budgetItem.dataset.type = wallet.key;
 
-    const limit = getBudgetForMonth(wallet.key, getBudgetMonthKey(selectedMonthDate));
+    const mk = getBudgetMonthKey(selectedMonthDate);
     
-    const spent = getMonthExpenseByBelong(config.filter, selectedMonthDate);
-    const remaining = limit - spent;
+    // 「我们的」（共同）钱包按总预算口径统计：自己+对方+共同 三个预算之和。
+    // 关键：每个钱包各自计算「预算−支出」后【带符号相加】——某方超预算则扣减其超出额（如 300+200−100=400），
+    // 而不是把超预算方记为 0 再相加。结果下限为 0（剩余预算不会显示为负数）。
+    // 自己/对方钱包仍各自独立显示。
+    const isCombined = wallet.key === 'both';
+    let limit, spent, remaining;
+    if (isCombined) {
+        const keys = ['my', 'partner', 'both'];
+        limit = 0;
+        spent = 0;
+        remaining = 0;
+        keys.forEach(function (k) {
+            const b = getBudgetForMonth(k, mk);
+            const s = getMonthExpenseByBelong(BUDGET_CONFIG[k].filter, selectedMonthDate);
+            limit += b;
+            spent += s;
+            remaining += (b - s);
+        });
+        remaining = Math.max(remaining, 0);
+    } else {
+        limit = getBudgetForMonth(wallet.key, mk);
+        spent = getMonthExpenseByBelong(config.filter, selectedMonthDate);
+        remaining = Math.max(limit - spent, 0);
+    }
 
     const nameMap = {
         'my': '我',
@@ -7879,9 +8473,19 @@ function updateBudgetPage() {
         btn.classList.toggle('active', btn.dataset.belong === budgetViewType);
     });
     
-    const limit = getBudgetForMonth(budgetViewType, getBudgetMonthKey(budgetViewDate));
-    const spent = getMonthExpenseByBelong(config.filter, budgetViewDate);
-    const remaining = limit - spent;
+    const mk = getBudgetMonthKey(budgetViewDate);
+    const isCombined = budgetViewType === 'both';
+    let limit, spent, remaining;
+    if (isCombined) {
+        
+        limit = getBudgetForMonth('my', mk) + getBudgetForMonth('partner', mk) + getBudgetForMonth('both', mk);
+        spent = getMonthExpenseAllBelongs(budgetViewDate);
+        remaining = limit - spent;
+    } else {
+        limit = getBudgetForMonth(budgetViewType, mk);
+        spent = getMonthExpenseByBelong(config.filter, budgetViewDate);
+        remaining = limit - spent;
+    }
     const daysInMonth = new Date(year, budgetViewDate.getMonth() + 1, 0).getDate();
     const daily = daysInMonth > 0 ? limit / daysInMonth : 0;
 
@@ -7922,9 +8526,16 @@ function updateBudgetPage() {
 function updateBudgetCircle() {
     const config = BUDGET_CONFIG[budgetViewType];
     if (!config) return;
-    
-    const limit = getBudgetForMonth(budgetViewType, getBudgetMonthKey(budgetViewDate));
-    const spent = getMonthExpenseByBelong(config.filter, budgetViewDate);
+
+    const mk = getBudgetMonthKey(budgetViewDate);
+    let limit, spent;
+    if (budgetViewType === 'both') {
+        limit = getBudgetForMonth('my', mk) + getBudgetForMonth('partner', mk) + getBudgetForMonth('both', mk);
+        spent = getMonthExpenseAllBelongs(budgetViewDate);
+    } else {
+        limit = getBudgetForMonth(budgetViewType, mk);
+        spent = getMonthExpenseByBelong(config.filter, budgetViewDate);
+    }
     
     const circleFill = document.getElementById('budgetCircleFill');
     if (!circleFill) return;
@@ -8697,9 +9308,9 @@ function getStatsTrendData(bills, view, date) {
         }
     } else if (view === 'month') {
         const daysInMonth = new Date(year, month + 1, 0).getDate();
-        for (let i = 1; i <= daysInMonth; i++) {
+        for (let i = 1; i <= 31; i++) {
             days.push(new Date(year, month, i));
-            labels.push(i);
+            labels.push(i <= daysInMonth ? i : (i - daysInMonth));
         }
     } else if (view === 'year') {
         for (let i = 0; i < 12; i++) {
@@ -8743,7 +9354,17 @@ function getStatsTrendData(bills, view, date) {
             }
         }
     });
-    
+
+    if (view === 'month') {
+        const dim = new Date(year, month + 1, 0).getDate();
+        selectedBelongs.forEach(key => {
+            const arr = result[key] && result[key].data;
+            if (arr) {
+                for (let i = dim; i < arr.length; i++) arr[i] = null;
+            }
+        });
+    }
+
     return { labels, datasets: result, days };
 }
 
@@ -8928,27 +9549,27 @@ function renderStatsDetail(bills, date, belong) {
     const dailyAvg = daysInMonth > 0 ? monthTotal / daysInMonth : 0;
     
     
-    const belongMap = {
-        '自己': 'my',
-        '对方': 'partner',
-        '共同': 'both'
+    // 「本月剩余预算」按 statsDetailNav（总计/自己/对方/共同）分别统计：
+    //  - 总计：自己+对方+共同 各自「预算−支出」的【带符号求和】；某方超预算则扣减其超出额（如 300+200−100=400）。
+    //  - 单个归属（自己/对方/共同）：仅该方「预算−支出」；若【该方】超预算则显示 0。
+    const mk = getBudgetMonthKey(date);
+    const walletRemain = {
+        '自己': getBudgetForMonth('my', mk) - getMonthExpenseByBelong('自己', date),
+        '对方': getBudgetForMonth('partner', mk) - getMonthExpenseByBelong('对方', date),
+        '共同': getBudgetForMonth('both', mk) - getMonthExpenseByBelong('共同', date)
     };
-    let budgetLimit;
+    let remaining;
     if (belong === 'all') {
-        
-        const mk = getBudgetMonthKey(date);
-        budgetLimit = getBudgetForMonth('my', mk) + getBudgetForMonth('partner', mk) + getBudgetForMonth('both', mk);
+        remaining = Math.max(walletRemain['自己'] + walletRemain['对方'] + walletRemain['共同'], 0);
     } else {
-        const budgetKey = belongMap[belong] || 'my';
-        budgetLimit = getBudgetForMonth(budgetKey, getBudgetMonthKey(date));
+        remaining = walletRemain[belong] < 0 ? 0 : walletRemain[belong];
     }
-    const remaining = budgetLimit - monthTotal;
-    
-    
+
+
     document.getElementById('statsMonthTotal').textContent = '¥' + monthTotal.toFixed(2);
     document.getElementById('statsTodayTotal').textContent = '¥' + todayTotal.toFixed(2);
     document.getElementById('statsDailyAvg').textContent = '¥' + dailyAvg.toFixed(2);
-    document.getElementById('statsRemaining').textContent = '¥' + Math.max(remaining, 0).toFixed(2);
+    document.getElementById('statsRemaining').textContent = '¥' + remaining.toFixed(2);
     
     
     const prevMonth = month === 0 ? 11 : month - 1;
@@ -9283,7 +9904,8 @@ function renderStatsPieChart(data, total) {
     dom.style.height = '100%';
     
     
-    document.getElementById('statsPieTotal').textContent = '¥' + total.toFixed(2);
+    document.getElementById('statsPieTotal').textContent =
+        total >= 10000 ? ('¥' + (total / 10000).toFixed(2) + 'w') : ('¥' + total.toFixed(2));
     
     var colors = [
         '#5CB8E8',
@@ -9406,31 +10028,6 @@ function renderStatsTrend(bills, date, view) {
     var days = trendData.days;
     
     
-    var hasRealData = false;
-    if (bills && bills.length > 0) {
-        var year = date.getFullYear();
-        var month = date.getMonth();
-        if (view === 'week') {
-            var start = getStatsWeekStart(date);
-            var end = getStatsWeekEnd(date);
-            hasRealData = bills.some(function(b) {
-                var d = new Date(b.date);
-                return d >= start && d <= end;
-            });
-        } else if (view === 'month') {
-            hasRealData = bills.some(function(b) {
-                var d = new Date(b.date);
-                return d.getFullYear() === year && d.getMonth() === month;
-            });
-        } else {
-            hasRealData = bills.some(function(b) {
-                var d = new Date(b.date);
-                return d.getFullYear() === year;
-            });
-        }
-    }
-    
-    
     var placeholder = document.querySelector('.stats-trend-placeholder');
     var container = dom.parentElement;
     
@@ -9444,14 +10041,7 @@ function renderStatsTrend(bills, date, view) {
         container.appendChild(placeholder);
     }
     
-    if (placeholder) {
-        if (!hasRealData) {
-            placeholder.style.display = 'flex';
-        } else {
-            placeholder.style.display = 'none';
-        }
-    }
-    
+
     
     var hasData = labels.length > 0;
     var displayLabels = hasData ? labels : (view === 'week' ? ['一','二','三','四','五','六','日'] : (view === 'month' ? ['1日','15日','30日'] : ['1月','6月','12月']));
@@ -9485,22 +10075,35 @@ function renderStatsTrend(bills, date, view) {
                     symbol: 'none',
                     smooth: 0.3,
                     connectNulls: false,
-                    areaStyle: { color: c, opacity: 0.08 }
+                    areaStyle: { color: c, opacity: 0.08 },
+                    silent: true,
+                    emphasis: { disabled: true }
                 });
             }
         });
     }
     
-    if (series.length === 0) {
+    // 剔除全为 0/null 的系列：无数据的归属（总计/自己/对方/共同）不绘制、不占位
+    series = series.filter(function(ds) {
+        return ds.data.some(function(v) {
+            return v !== null && v !== undefined && v > 0;
+        });
+    });
+    
+    var hasSeriesData = series.length > 0;
+    
+    if (!hasSeriesData) {
         series.push({
             name: '暂无数据',
             type: 'line',
-            data: new Array(displayLabels.length).fill(0),
-            lineStyle: { color: 'transparent', width: 0 },
-            itemStyle: { color: 'transparent' },
-            symbol: 'none',
-            smooth: 0.3
+            data: [],
+            silent: true,
+            emphasis: { disabled: true }
         });
+    }
+    
+    if (placeholder) {
+        placeholder.style.display = hasSeriesData ? 'none' : 'flex';
     }
     
     
@@ -9518,22 +10121,45 @@ function renderStatsTrend(bills, date, view) {
     if (allValues.length > 0) {
         var maxVal = Math.max.apply(null, allValues);
         if (maxVal > 0) {
+            // 竖轴峰值取数据最高值，中间刻度取 1/2
             yMax = maxVal;
-            stepSize = Math.round(maxVal / 2);
+            stepSize = maxVal / 2;
             if (stepSize === 0) stepSize = 50;
         }
     }
     
     
     var xLabelStep = Math.max(0, Math.floor(displayLabels.length / 6) - 1);
-    
+
+    var xAxisLabelCfg;
+    if (view === 'month') {
+        
+        var _fixedIdx = [0, 5, 10, 15, 20, 25, 30];
+        var _fixedIdxSet = {};
+        _fixedIdx.forEach(function (i) { _fixedIdxSet[i] = true; });
+        xAxisLabelCfg = {
+            fontSize: 10,
+            color: 'var(--text-fix, #999)',
+            interval: function (index) { return !!_fixedIdxSet[index]; },
+            formatter: function (value) { return String(value); }
+        };
+    } else {
+        xAxisLabelCfg = {
+            fontSize: 10,
+            color: 'var(--text-fix, #999)',
+            interval: xLabelStep
+        };
+    }
+
     var option = {
         tooltip: { show: false },
         grid: {
             top: 20,
-            right: 20,
-            bottom: 28,
+            right: 12,
+            bottom: 10,
             left: 12,
+            // containLabel: true 把坐标轴刻度标签算进 grid 内部，
+            // 这样「标签 + 绘图区」整体居中，两侧留白对称，右侧不会空出一大截
             containLabel: true
         },
         xAxis: {
@@ -9541,14 +10167,10 @@ function renderStatsTrend(bills, date, view) {
             data: displayLabels,
             boundaryGap: false,
             axisLine: {
-                lineStyle: { color: 'rgba(0,0,0,0.5)', width: 1.5, type: 'dashed' }
+                lineStyle: { color: '#D9D9D9', width: 1, type: 'solid' }
             },
             axisTick: { show: false },
-            axisLabel: {
-                fontSize: 10,
-                color: 'var(--text-fix, #999)',
-                interval: xLabelStep
-            }
+            axisLabel: xAxisLabelCfg
         },
         yAxis: {
             type: 'value',
@@ -9560,13 +10182,18 @@ function renderStatsTrend(bills, date, view) {
                 color: 'var(--text-fix, #999)',
                 formatter: function(value) {
                     if (value >= 10000) {
-                        return '¥' + (value / 10000).toFixed(1) + '万';
+                        return '¥' + (value / 10000).toFixed(1) + 'w';
                     }
-                    return '¥' + value;
+                    return '¥' + Math.round(value);
                 }
             },
             splitLine: {
                 show: true,
+                // 0 值那条不绘制：它与 x 轴轴线位置重合，会盖住底部的淡细实线
+                // （仅隐藏最底部这一条，中间网格线仍保持原本的虚线，min/max/interval 不变）
+                interval: function(index, value) {
+                    return value > 0;
+                },
                 lineStyle: { color: 'rgba(0,0,0,0.12)', type: 'dashed', width: 1 }
             },
             axisLine: { show: false },
@@ -10069,8 +10696,11 @@ document.getElementById('statsCategoryList')?.addEventListener('click', function
         if (view === 'week') {
             date.setDate(date.getDate() - 7);
         } else if (view === 'month') {
+            // 先归一到当月1号，避免 31号 setMonth 回退时溢出到错误月份（如 3月31日-1月=3月3日）
+            date.setDate(1);
             date.setMonth(date.getMonth() - 1);
         } else if (view === 'year') {
+            date.setDate(1);
             date.setFullYear(date.getFullYear() - 1);
         }
         statsState.date = date;
@@ -10083,8 +10713,11 @@ document.getElementById('statsCategoryList')?.addEventListener('click', function
         if (view === 'week') {
             date.setDate(date.getDate() + 7);
         } else if (view === 'month') {
+            // 先归一到当月1号，避免 1月31日 setMonth(+1) 溢出成 3月3日（跳过2月）
+            date.setDate(1);
             date.setMonth(date.getMonth() + 1);
         } else if (view === 'year') {
+            date.setDate(1);
             date.setFullYear(date.getFullYear() + 1);
         }
         statsState.date = date;
@@ -10376,8 +11009,10 @@ function initCategoryDetailEvents() {
         if (view === 'week') {
             date.setDate(date.getDate() - 7);
         } else if (view === 'month') {
+            date.setDate(1);
             date.setMonth(date.getMonth() - 1);
         } else if (view === 'year') {
+            date.setDate(1);
             date.setFullYear(date.getFullYear() - 1);
         }
         catDetailState.date = date;
@@ -10391,8 +11026,10 @@ function initCategoryDetailEvents() {
         if (view === 'week') {
             date.setDate(date.getDate() + 7);
         } else if (view === 'month') {
+            date.setDate(1);
             date.setMonth(date.getMonth() + 1);
         } else if (view === 'year') {
+            date.setDate(1);
             date.setFullYear(date.getFullYear() + 1);
         }
         catDetailState.date = date;
@@ -15762,6 +16399,8 @@ initWebViewEvents();
   initPasswordToggles();
   initAuthLinks();
   
+  initUpdateModalEvents();
+  
   initChangelogPageEvents();
   
   initTermsModalEvents();
@@ -15920,6 +16559,11 @@ function closeAboutPage() {
     restoreFromBack(target);
 }
 document.getElementById('aboutBackBtn').addEventListener('click', closeAboutPage);
+
+
+document.getElementById('aboutUpdateBtn')?.addEventListener('click', function() {
+    checkAppUpdate(false);
+});
 
 
     
@@ -16640,6 +17284,7 @@ function handleHardwareBack() {
     }
 
     
+    if (document.getElementById('updateModalOverlay')?.classList.contains('show')) { closeUpdateModal(); try { refreshStatusBar(); } catch(e) {} return; }
     if (isShown('deleteModal')) { hideDeleteModal(); try { refreshStatusBar(); } catch(e) {} return; }
     if (isShown('noteModal')) { closeNoteModal(); try { refreshStatusBar(); } catch(e) {} return; }
     if (isShown('paymentSheet')) { closePaymentSheet(); try { refreshStatusBar(); } catch(e) {} return; }
