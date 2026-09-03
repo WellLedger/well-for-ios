@@ -581,7 +581,7 @@
 
 
 .week-overlay  {
-    position: fixed;
+    position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.35);
     z-index: 50;
@@ -596,24 +596,27 @@
 }
 
 .week-modal  {
-    position: fixed;
+    position: absolute;
     bottom: 0;
-    left: 50%;
-    right: auto;
+    left: 0;
+    right: 0;
     width: 100%;
     max-width: 480px;
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
-    transform: translate(-50%, 100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.3s;
     z-index: 51;
     padding: 16px 20px 20px;
     will-change: transform;
     max-height: 85vh;
+    visibility: hidden;
 }
 
 .week-modal.show  {
-    transform: translate(-50%, 0);
+    transform: translateY(0);
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    visibility: visible;
 }
 
 .week-modal-header  {
@@ -760,7 +763,7 @@
 
 
 .year-overlay  {
-    position: fixed;
+    position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.35);
     z-index: 50;
@@ -775,24 +778,27 @@
 }
 
 .year-modal  {
-    position: fixed;
+    position: absolute;
     bottom: 0;
-    left: 50%;
-    right: auto;
+    left: 0;
+    right: 0;
     width: 100%;
     max-width: 480px;
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
-    transform: translate(-50%, 100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.3s;
     z-index: 51;
     padding: 16px 20px 20px;
     will-change: transform;
     max-height: 85vh;
+    visibility: hidden;
 }
 
 .year-modal.show  {
-    transform: translate(-50%, 0);
+    transform: translateY(0);
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    visibility: visible;
 }
 
 .year-modal-header  {

@@ -52,18 +52,29 @@
 
 .pet-entry-card  {
     background:
-        radial-gradient(140% 90% at 50% 10%, var(--primary-bg) 0%, rgba(255,255,255,0) 50%),
-        linear-gradient(90deg, #FAFBFD 0%, #FFFFFF 100%);
-
+        radial-gradient(160% 120% at 30% 0%, var(--primary-bg) 0%, rgba(255,255,255,0) 55%),
+        linear-gradient(135deg, #FFFFFF 0%, #FAFAFA 100%);
+    border: 1px solid rgba(0, 0, 0, 0.05);
     border-radius: var(--radius);
     padding: 14px 16px;
     margin: 0 16px 16px 16px;
     display: flex;
     align-items: center;
     gap: 14px;
-    backdrop-filter: blur(2px);
+    position: relative;
+    overflow: hidden;
     cursor: default;
     transition: transform 0.2s ease;
+}
+.pet-entry-card::after  {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--primary), transparent);
+    opacity: 0.35;
 }
 
 .pet-avatar  {
@@ -88,7 +99,7 @@
     width: 100%;
     height: 100%;
     display: block;
-    filter: drop-shadow(0 4px 10px var(--primary-shadow));
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.12));
 }
 
 .pet-cat-avatar-svg .cat-eyes  { display: none; }
@@ -98,12 +109,12 @@
 .pet-cat-avatar-svg .cat-tail  {
     transform-box: view-box;
     transform-origin: 118px 288px;
-    animation: catTailWag 2.8s ease-in-out infinite;
+    animation: none;
 }
 .pet-cat-avatar-svg .cat-head  {
     transform-box: view-box;
     transform-origin: var(--head-origin-x, 340px) var(--head-origin-y, 295px);
-    animation: catHeadSway 5s ease-in-out infinite;
+    animation: none;
 }
 
 .pet-cat-avatar-svg .cat-ear-left,
@@ -112,11 +123,10 @@
     transform-origin: bottom center;
 }
 .pet-cat-avatar-svg .cat-ear-left  {
-    animation: catEarWiggleL 3.8s ease-in-out infinite;
+    animation: none;
 }
 .pet-cat-avatar-svg .cat-ear-right  {
-    animation: catEarWiggleR 3.8s ease-in-out infinite;
-    animation-delay: 0.5s;
+    animation: none;
 }
 .pet-cat-avatar-svg .cat-eye-left,
 .pet-cat-avatar-svg .cat-eye-right  {
@@ -271,23 +281,6 @@
 }
 
 
-@keyframes petBounce  {
-    0%, 100%  { transform: translateY(0) scale(1, 1); animation-timing-function: ease-in; }
-    20%  { transform: translateY(-14px) scale(1, 1); animation-timing-function: ease-out; }
-    35%  { transform: translateY(0) scale(1, 0.94); animation-timing-function: ease-in; }
-    50%  { transform: translateY(-8px) scale(1, 1); animation-timing-function: ease-out; }
-    65%  { transform: translateY(0) scale(1, 0.97); animation-timing-function: ease-in; }
-    80%  { transform: translateY(-4px) scale(1, 1); animation-timing-function: ease-out; }
-    92%  { transform: translateY(0) scale(1, 0.99); animation-timing-function: ease-in; }
-}
-@keyframes petShadowPulse  {
-    0%, 100%  { transform: translateX(-50%) scale(1); opacity: 0.10; }
-    20%  { transform: translateX(-50%) scale(0.55); opacity: 0.04; }
-    50%  { transform: translateX(-50%) scale(0.75); opacity: 0.07; }
-    80%  { transform: translateX(-50%) scale(0.9); opacity: 0.09; }
-}
-
-
 #page-pet  {
     position: fixed;
     top: 0;
@@ -407,6 +400,11 @@
     flex-shrink: 0;
 }
 .pet-menu-btn:active  { transform: scale(0.92); }
+.pet-topbar-right  {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
 
 
 .pet-topbar.no-pet .pet-topbar-score,
@@ -493,34 +491,19 @@
     padding: 16px;
     position: relative;
     min-height: 0;
-	flex:1
+    flex: 1;
 }
 
 
+/* 圆点网格装饰（背景点缀） */
 .pet-showcase::before  {
     content: '';
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background-image: radial-gradient(var(--primary-light) 1px, transparent 1px);
-    background-size: 22px 22px;
-    opacity: 0.10;
-    -webkit-mask-image: radial-gradient(70% 55% at 50% 38%, #000 0%, transparent 75%);
-    mask-image: radial-gradient(70% 55% at 50% 38%, #000 0%, transparent 75%);
-    pointer-events: none;
+    inset: 0;
+    background-image: radial-gradient(rgba(61, 46, 38, 0.06) 1.4px, transparent 1.4px);
+    background-size: 18px 18px;
     z-index: 0;
-}
-
-
-.pet-showcase::after  {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background:
-        radial-gradient(40% 30% at 18% 12%, var(--primary-bg) 0%, transparent 70%),
-        radial-gradient(36% 28% at 86% 88%, var(--primary-bg) 0%, transparent 70%);
-    opacity: 0.9;
     pointer-events: none;
-    z-index: 0;
 }
 
 
@@ -562,19 +545,19 @@
     width: 100%;
     height: 100%;
     display: block;
-    filter: drop-shadow(0 8px 14px var(--primary-shadow));
+    filter: none;
     z-index: 1;
 }
 
 .pet-cat-svg .cat-tail  {
     transform-box: view-box;
     transform-origin: 118px 288px;
-    animation: catTailWag 2.8s ease-in-out infinite;
+    animation: catTailWag 3s ease-in-out infinite;
 }
 .pet-cat-svg .cat-head  {
     transform-box: view-box;
     transform-origin: var(--head-origin-x, 340px) var(--head-origin-y, 295px);
-    animation: catHeadSway 5s ease-in-out infinite;
+    animation: catHeadSway 4s ease-in-out infinite;
 }
 
 .pet-slime.happy .pet-cat-svg .cat-tail  {
@@ -604,14 +587,10 @@
     animation: catHeadNuzzle 2s ease-in-out;
 }
 
-.pet-slime[data-variant="milk"].happy .pet-cat-svg .cat-nose,
-.pet-slime[data-variant="milk"].happy .pet-cat-avatar-svg .cat-nose  {
-    animation: none !important;
-}
-
 .pet-cat-svg .cat-mouth-open,
 .pet-cat-avatar-svg .cat-mouth-open,
-.pet-cat-skin-svg .cat-mouth-open  {
+.pet-cat-skin-svg .cat-mouth-open,
+.pet-adopt-preview-svg .cat-mouth-open  {
     opacity: 0;
     transform-box: fill-box;
     transform-origin: center;
@@ -643,11 +622,10 @@
     transform-origin: bottom center;
 }
 .pet-cat-svg .cat-ear-left  {
-    animation: catEarWiggleL 3.8s ease-in-out infinite;
+    animation: catEarWiggleL 6s ease-in-out infinite;
 }
 .pet-cat-svg .cat-ear-right  {
-    animation: catEarWiggleR 3.8s ease-in-out infinite;
-    animation-delay: 0.5s;
+    animation: catEarWiggleR 6s ease-in-out 0.5s infinite;
 }
 
 .pet-cat-svg .cat-eye-left,
@@ -719,19 +697,6 @@
     92%, 95%  { transform: scaleY(0.1); }
     98%  { transform: scaleY(1); }
 }
-
-[data-variant="milk"] .pet-cat-svg .cat-nose,
-[data-variant="milk"] .pet-cat-avatar-svg .cat-nose  {
-    transform-box: fill-box;
-    transform-origin: center;
-    animation: milkNoseWiggle 5.2s infinite;
-}
-@keyframes milkNoseWiggle  {
-    0%, 88%, 100%  { transform: translateY(0) scale(1); }
-    92%, 95%  { transform: translateY(2px) scale(0.88); }
-    98%  { transform: translateY(0) scale(1); }
-}
-
 
 .pet-slime  {
     --cat-accent: #F3A16E;
@@ -831,13 +796,6 @@
     0%  { opacity: 0; transform: translateY(12px) scale(0.75); }
     100%  { opacity: 1; transform: translateY(0) scale(1); }
 }
-.pet-action-item:hover:not(.disabled)  {
-    transform: translateY(-2px);
-    box-shadow: 0 7px 18px rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(0, 0, 0, 0.04);
-}
-.pet-action-item:hover:not(.disabled) .pet-action-icon  {
-    transform: translateY(-1px) scale(1.05);
-}
 .pet-action-item:active:not(.disabled)  {
     transform: scale(0.95);
 }
@@ -930,6 +888,8 @@
 
 
 .pet-status-cards  {
+    position: relative;
+    z-index: 2;
     display: grid;
     grid-template-columns: 1fr;
     gap: 10px;
@@ -984,6 +944,8 @@
 .pet-info-popup-overlay  {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
+    max-width: 480px;
+    margin: 0 auto;
     background: rgba(0, 0, 0, 0.55);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
@@ -1095,7 +1057,6 @@
     flex: 1;
     min-height: 0;
 }
-
 
 .pet-cat-corner-actions  {
     position: absolute;
@@ -1237,6 +1198,8 @@
 .pet-records-overlay  {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
+    max-width: 480px;
+    margin: 0 auto;
     background: rgba(0, 0, 0, 0.55);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
@@ -1271,6 +1234,8 @@
 .pet-setup-overlay  {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
+    max-width: 480px;
+    margin: 0 auto;
     background: rgba(0, 0, 0, 0.55);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
@@ -1486,6 +1451,8 @@
 .pet-birthday-picker-overlay  {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
+    max-width: 480px;
+    margin: 0 auto;
     background: rgba(0, 0, 0, 0.55);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
@@ -1655,6 +1622,8 @@
 .pet-task-overlay  {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
+    max-width: 480px;
+    margin: 0 auto;
     background: rgba(0, 0, 0, 0.55);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
@@ -1939,6 +1908,8 @@
 .pet-cat-skin-overlay  {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
+    max-width: 480px;
+    margin: 0 auto;
     background: rgba(0, 0, 0, 0.55);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
@@ -1973,6 +1944,8 @@
 .pet-sign-overlay  {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
+    max-width: 480px;
+    margin: 0 auto;
     background: rgba(0, 0, 0, 0.55);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
@@ -2040,7 +2013,7 @@
     justify-content: center;
     transition: all 0.2s;
 }
-.pet-sign-close:active  { transform: scale(0.9) rotate(90deg); }
+.pet-sign-close:active  { transform: scale(0.9); }
 
 .pet-sign-body  { padding: 0; }
 .pet-sign-loading  {
@@ -2081,22 +2054,32 @@
 
 
 .pet-sign-grid  {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 4px 4px;
+    display: flex;
+    gap: 8px;
     margin-bottom: 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 2px 2px 6px;
+    align-items: stretch;
 }
+.pet-sign-grid::-webkit-scrollbar  { display: none; }
 
 .pet-sign-card  {
     background: #FFFFFF;
     border: 1.5px solid rgba(0, 0, 0, 0.06);
     border-radius: 12px;
-    padding: 7px 4px 6px;
+    padding: 8px 6px 7px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 3px;
-    min-height: 110px;
+    gap: 4px;
+    min-height: 120px;
+    flex: 0 0 46%;
+    min-width: 0;
+    scroll-snap-align: center;
     position: relative;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -2313,6 +2296,7 @@
     width: 100%;
     line-height: 1.3;
     letter-spacing: 0.2px;
+    white-space: nowrap;
 }
 .pet-sign-card-btn.primary  {
     background: linear-gradient(135deg, #FF8A3D, #FF6B6B);
@@ -2389,12 +2373,6 @@
     -webkit-tap-highlight-color: transparent;
 }
 .pet-cat-skin-card:active  { transform: scale(0.95); }
-.pet-cat-skin-card.active  {
-    
-}
-.pet-cat-skin-card.selected  {
-    
-}
 .pet-cat-skin-preview  {
     width: 100px;
     height: 100px;
@@ -2522,6 +2500,8 @@
 .pet-confirm-overlay  {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
+    max-width: 480px;
+    margin: 0 auto;
     background: rgba(0, 0, 0, 0.55);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
@@ -2580,6 +2560,8 @@
 .pet-shop-overlay  {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
+    max-width: 480px;
+    margin: 0 auto;
     background: rgba(0, 0, 0, 0.55);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
@@ -2687,6 +2669,8 @@
 .pet-bag-overlay  {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
+    max-width: 480px;
+    margin: 0 auto;
     background: rgba(0, 0, 0, 0.55);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
@@ -2830,6 +2814,254 @@
     font-weight: 700;
     padding: 2px 6px;
     border-radius: 999px;
+}
+
+
+/* ---------- 宠物设置弹窗 ---------- */
+.pet-settings-overlay  {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    max-width: 480px;
+    margin: 0 auto;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1150;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+}
+.pet-settings-overlay.active  { opacity: 1; visibility: visible; }
+.pet-settings-modal  {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    width: 90%;
+    max-width: 360px;
+    padding: 24px 20px 20px;
+    transform: scale(0.92);
+    transition: transform 0.2s ease;
+}
+.pet-settings-overlay.active .pet-settings-modal  { transform: scale(1); }
+.pet-settings-title  {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: center;
+    margin-bottom: 20px;
+}
+.pet-settings-item  {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+.pet-settings-item:last-child  { border-bottom: none; margin-bottom: 8px; }
+.pet-settings-item-info  {
+    flex: 1;
+    min-width: 0;
+}
+.pet-settings-item-label  {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+.pet-settings-item-desc  {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    line-height: 1.4;
+}
+.pet-settings-toggle  {
+    position: relative;
+    width: 46px;
+    height: 26px;
+    border: none;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.25s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+.pet-settings-toggle.on  { background: var(--primary); }
+.pet-settings-toggle::after  {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    transition: transform 0.25s ease;
+}
+.pet-settings-toggle.on::after  { transform: translateX(20px); }
+.pet-settings-close-btn  {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: var(--primary);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 8px;
+    -webkit-tap-highlight-color: transparent;
+}
+.pet-settings-close-btn:active  { opacity: 0.8; }
+
+
+/* ---------- 悬浮宠物 ---------- */
+.pet-floating  {
+    position: fixed;
+    width: 88px;
+    height: 88px;
+    z-index: 45;
+    cursor: pointer;
+    pointer-events: auto;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+    display: none;
+    animation: petFloatIn 0.3s ease-out;
+}
+.pet-floating.show  { display: block; }
+.pet-floating.dragging  {
+    animation: none;
+    transition: none;
+    opacity: 0.85;
+}
+.pet-floating-inner  {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s;
+}
+.pet-floating-inner svg  {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.12));
+}
+.pet-floating-inner.flipped svg  {
+    transform: scaleX(-1);
+}
+}
+.pet-floating .pet-cat-avatar-svg .cat-tail  {
+    transform-box: view-box;
+    transform-origin: 118px 288px;
+    animation: catTailWag 3s ease-in-out infinite;
+}
+.pet-floating .pet-cat-avatar-svg .cat-head  {
+    transform-box: view-box;
+    transform-origin: var(--head-origin-x, 340px) var(--head-origin-y, 295px);
+    animation: catHeadSway 4s ease-in-out infinite;
+}
+.pet-floating .pet-cat-avatar-svg .cat-ear-left,
+.pet-floating .pet-cat-avatar-svg .cat-ear-right  {
+    transform-box: fill-box;
+    transform-origin: bottom center;
+}
+.pet-floating .pet-cat-avatar-svg .cat-ear-left  {
+    animation: catEarWiggleL 6s ease-in-out infinite;
+}
+.pet-floating .pet-cat-avatar-svg .cat-ear-right  {
+    animation: catEarWiggleR 6s ease-in-out 0.5s infinite;
+}
+.pet-floating .pet-cat-avatar-svg .cat-eye-left,
+.pet-floating .pet-cat-avatar-svg .cat-eye-right  {
+    animation: none;
+}
+.pet-floating .pet-cat-avatar-svg .cat-eye-open  {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: milkEyeOpen 5.2s infinite;
+}
+.pet-floating .pet-cat-avatar-svg .cat-eye-closed  {
+    opacity: 0;
+    animation: none;
+}
+.pet-floating .pet-cat-avatar-svg .cat-eye-blink  {
+    opacity: 0;
+    animation: none;
+}
+.pet-floating .pet-cat-avatar-svg .cat-eyes  { display: none; }
+.pet-floating .pet-cat-avatar-svg .cat-mouth-open  {
+    opacity: 0;
+    transform-box: fill-box;
+    transform-origin: center;
+}
+.pet-floating-inner.happy .pet-cat-avatar-svg .cat-tail  {
+    animation: catTailWagFast 0.6s ease-in-out infinite;
+}
+.pet-floating-inner.happy .pet-cat-avatar-svg .cat-eye-left,
+.pet-floating-inner.happy .pet-cat-avatar-svg .cat-eye-right  {
+    animation: none !important;
+}
+.pet-floating-inner.happy .pet-cat-avatar-svg .cat-eye-open  {
+    opacity: 0 !important;
+    transform: scaleY(1) !important;
+    animation: none !important;
+}
+.pet-floating-inner.happy .pet-cat-avatar-svg .cat-eye-closed  {
+    opacity: 1 !important;
+    animation: none !important;
+}
+.pet-floating-inner.happy .pet-cat-avatar-svg .cat-eye-blink  {
+    opacity: 0 !important;
+    animation: none !important;
+}
+.pet-floating-inner.happy .pet-cat-avatar-svg .cat-head  {
+    animation: catHeadNuzzle 2s ease-in-out;
+}
+.pet-floating-inner.happy .pet-cat-avatar-svg .cat-mouth  {
+    opacity: 0 !important;
+}
+.pet-floating-inner.happy .pet-cat-avatar-svg .cat-mouth-open  {
+    opacity: 1 !important;
+    animation: catMouthOpen 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.pet-floating:active .pet-floating-inner  { transform: scale(0.92); transition: transform 0.15s; }
+.pet-floating-bubble  {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    right: 0;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    white-space: nowrap;
+    width: fit-content;
+    line-height: 1.4;
+    text-align: left;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.2s, transform 0.2s;
+    pointer-events: none;
+}
+.pet-floating-bubble.show  { opacity: 1; transform: translateY(0); }
+.pet-floating-bubble::after  {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    right: 16px;
+    width: 8px;
+    height: 8px;
+    background: var(--bg-card);
+    transform: rotate(45deg);
+}
+@keyframes petFloatIn  {
+    from  { opacity: 0; transform: scale(0.5); }
+    to  { opacity: 1; transform: scale(1); }
 }
 .pet-bag-skin-lock  {
     position: absolute;

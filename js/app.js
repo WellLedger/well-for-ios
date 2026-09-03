@@ -514,37 +514,49 @@ const CATEGORY_ICON_MAP = {
         'fa-ice-cream', 'fa-bread-slice', 'fa-cake-candles', 'fa-apple-alt',
         'fa-wine-bottle', 'fa-coffee', 'fa-cookie', 'fa-hamburger',
         'fa-hotdog', 'fa-fish', 'fa-egg', 'fa-cheese',
-        'fa-bowl-food', 'fa-kitchen-set', 'fa-spoon',
-        'fa-bottle-water', 'fa-whiskey-glass', 'fa-martini-glass-citrus',
-        'fa-martini-glass', 'fa-glass-water', 'fa-wheat-awn', 'fa-seedling'
+        'fa-bowl-food', 'fa-kitchen-set', 'fa-spoon', 'fa-bottle-water',
+        'fa-whiskey-glass', 'fa-martini-glass-citrus', 'fa-martini-glass', 'fa-glass-water',
+        'fa-wheat-awn', 'fa-seedling'
     ],
     '购物': [
         'fa-bag-shopping', 'fa-cart-shopping', 'fa-gift', 'fa-tag',
         'fa-store', 'fa-basket-shopping', 'fa-sack-dollar', 'fa-receipt',
         'fa-credit-card', 'fa-shop', 'fa-cart-plus', 'fa-tags',
-        'fa-suitcase', 'fa-cash-register', 'fa-store-alt'
+        'fa-suitcase', 'fa-cash-register', 'fa-store-alt', 'fa-shirt',
+        'fa-shoe-prints', 'fa-hat-cowboy', 'fa-glasses', 'fa-ring',
+        'fa-vest', 'fa-socks', 'fa-crown', 'fa-gem',
+        'fa-hat-cowboy-side', 'fa-scroll', 'fa-ribbon'
     ],
     '数码': [
-        'fa-laptop', 'fa-mobile-screen-button', 'fa-tablet-screen-button',
-        'fa-headphones', 'fa-camera', 'fa-tv', 'fa-gamepad', 'fa-microchip',
-        'fa-computer', 'fa-keyboard', 'fa-mouse', 'fa-hard-drive', 'fa-memory',
-        'fa-server', 'fa-database', 'fa-sd-card', 'fa-sim-card',
-        'fa-robot', 'fa-vr-cardboard', 'fa-charging-station'
-    ],
-    '交通': [
-        'fa-car', 'fa-bus', 'fa-train', 'fa-plane', 'fa-bicycle',
-        'fa-motorcycle', 'fa-ship', 'fa-taxi', 'fa-rocket', 'fa-helicopter',
-        'fa-subway', 'fa-tram', 'fa-truck', 'fa-van-shuttle', 'fa-cable-car',
-        'fa-horse', 'fa-ferry', 'fa-person-walking', 'fa-person-running'
+        'fa-laptop', 'fa-mobile-screen-button', 'fa-tablet-screen-button', 'fa-headphones',
+        'fa-camera', 'fa-tv', 'fa-gamepad', 'fa-microchip',
+        'fa-computer', 'fa-keyboard', 'fa-mouse', 'fa-hard-drive',
+        'fa-memory', 'fa-server', 'fa-database', 'fa-sd-card',
+        'fa-sim-card', 'fa-robot', 'fa-vr-cardboard', 'fa-charging-station'
     ],
     '生活': [
-        'fa-house', 'fa-lightbulb', 'fa-water', 'fa-fire', 'fa-snowflake',
-        'fa-fan', 'fa-wifi', 'fa-phone', 'fa-faucet', 'fa-bolt', 'fa-sun',
-        'fa-cloud-sun', 'fa-snowplow', 'fa-shield-halved',
-        'fa-broom', 'fa-spray-can', 'fa-soap', 'fa-shower',
-        'fa-bath', 'fa-toilet', 'fa-sink',
-        'fa-key', 'fa-lock', 'fa-door-open', 'fa-window-maximize',
-        'fa-plug'
+        'fa-house', 'fa-lightbulb', 'fa-water', 'fa-fire',
+        'fa-snowflake', 'fa-fan', 'fa-wifi', 'fa-phone',
+        'fa-faucet', 'fa-bolt', 'fa-sun', 'fa-cloud-sun',
+        'fa-snowplow', 'fa-shield-halved', 'fa-broom', 'fa-spray-can',
+        'fa-soap', 'fa-shower', 'fa-bath', 'fa-toilet',
+        'fa-sink', 'fa-key', 'fa-lock', 'fa-door-open',
+        'fa-window-maximize', 'fa-plug', 'fa-car', 'fa-bus',
+        'fa-train', 'fa-plane', 'fa-bicycle', 'fa-motorcycle',
+        'fa-ship', 'fa-taxi', 'fa-rocket', 'fa-helicopter',
+        'fa-subway', 'fa-tram', 'fa-truck', 'fa-van-shuttle',
+        'fa-cable-car', 'fa-horse', 'fa-ferry', 'fa-person-walking',
+        'fa-person-running', 'fa-couch', 'fa-chair', 'fa-bed',
+        'fa-tools', 'fa-wrench', 'fa-table', 'fa-paint-roller',
+        'fa-hammer', 'fa-screwdriver', 'fa-bucket', 'fa-paintbrush',
+        'fa-palette', 'fa-clock', 'fa-calendar', 'fa-draw-polygon',
+        'fa-spa', 'fa-scissors', 'fa-mask-face', 'fa-gem',
+        'fa-eye-dropper', 'fa-hand-sparkles', 'fa-suitcase-rolling', 'fa-passport',
+        'fa-camera', 'fa-map', 'fa-compass', 'fa-umbrella-beach',
+        'fa-hiking', 'fa-mountain-sun', 'fa-tent', 'fa-bag-shopping',
+        'fa-binoculars', 'fa-flag', 'fa-flag-usa', 'fa-globe',
+        'fa-road', 'fa-satellite', 'fa-satellite-dish', 'fa-fish',
+        'fa-tree', 'fa-mountain'
     ],
     '健康': [
         'fa-heart-pulse', 'fa-dumbbell', 'fa-bed-pulse', 'fa-capsules',
@@ -553,86 +565,50 @@ const CATEGORY_ICON_MAP = {
         'fa-syringe', 'fa-pills', 'fa-bandage', 'fa-first-aid',
         'fa-ambulance', 'fa-hospital', 'fa-clinic-medical', 'fa-teeth',
         'fa-teeth-open', 'fa-ear-deaf', 'fa-ear-listen', 'fa-hand-holding-heart',
-        'fa-heart-circle-plus', 'fa-heart-circle-exclamation'
+        'fa-heart-circle-plus', 'fa-heart-circle-exclamation', 'fa-futbol', 'fa-basketball',
+        'fa-volleyball', 'fa-running', 'fa-walking', 'fa-swimmer',
+        'fa-bicycle', 'fa-medal', 'fa-skating', 'fa-skiing',
+        'fa-baseball', 'fa-baseball-bat-ball', 'fa-golf-ball-tee', 'fa-table-tennis-paddle-ball',
+        'fa-hockey-puck', 'fa-football', 'fa-mountain'
     ],
     '娱乐': [
-        'fa-film', 'fa-music', 'fa-crown', 'fa-trophy', 'fa-dice',
-        'fa-guitar', 'fa-mask', 'fa-umbrella-beach', 'fa-clapperboard',
-        'fa-theater-masks', 'fa-dragon', 'fa-robot', 'fa-wand-sparkles',
-        'fa-gamepad', 'fa-chess', 'fa-chess-queen', 'fa-chess-king',
-        'fa-chess-bishop', 'fa-chess-knight', 'fa-dice-d6', 'fa-dice-d20',
-        'fa-drum', 'fa-microphone', 'fa-ticket', 'fa-masks-theater'
+        'fa-film', 'fa-music', 'fa-crown', 'fa-trophy',
+        'fa-dice', 'fa-guitar', 'fa-mask', 'fa-umbrella-beach',
+        'fa-clapperboard', 'fa-theater-masks', 'fa-dragon', 'fa-robot',
+        'fa-wand-sparkles', 'fa-gamepad', 'fa-chess', 'fa-chess-queen',
+        'fa-chess-king', 'fa-chess-bishop', 'fa-chess-knight', 'fa-dice-d6',
+        'fa-dice-d20', 'fa-drum', 'fa-microphone', 'fa-ticket',
+        'fa-masks-theater', 'fa-champagne-glasses', 'fa-gift', 'fa-handshake',
+        'fa-people-group', 'fa-star', 'fa-comments', 'fa-user-plus',
+        'fa-people-arrows', 'fa-people-carry-box', 'fa-handshake-simple', 'fa-handshake-angle',
+        'fa-user-group', 'fa-user-minus', 'fa-user-check', 'fa-user-xmark',
+        'fa-address-book', 'fa-address-card', 'fa-contact-book', 'fa-circle-user'
     ],
     '宠物': [
-        'fa-paw', 'fa-cat', 'fa-dog', 'fa-fish', 'fa-bone', 'fa-seedling',
-        'fa-horse', 'fa-crow', 'fa-dove', 'fa-spider', 'fa-bug'
+        'fa-paw', 'fa-cat', 'fa-dog', 'fa-fish',
+        'fa-bone', 'fa-seedling', 'fa-horse', 'fa-crow',
+        'fa-dove', 'fa-spider', 'fa-bug'
     ],
     '学习': [
         'fa-book', 'fa-graduation-cap', 'fa-pen', 'fa-chalkboard-user',
         'fa-scroll', 'fa-school', 'fa-user-graduate', 'fa-atom',
-        'fa-flask', 'fa-microscope', 'fa-book-open',
-        'fa-book-reader', 'fa-bookmark', 'fa-pen-fancy',
-        'fa-pen-nib', 'fa-feather', 'fa-feather-pointed', 'fa-ruler',
-        'fa-ruler-combined', 'fa-compass-drafting', 'fa-globe',
-        'fa-globe-asia', 'fa-globe-americas', 'fa-globe-europe',
-        'fa-map', 'fa-map-location-dot', 'fa-calculator',
-        'fa-puzzle-piece'
+        'fa-flask', 'fa-microscope', 'fa-book-open', 'fa-book-reader',
+        'fa-bookmark', 'fa-pen-fancy', 'fa-pen-nib', 'fa-feather',
+        'fa-feather-pointed', 'fa-ruler', 'fa-ruler-combined', 'fa-compass-drafting',
+        'fa-globe', 'fa-globe-asia', 'fa-globe-americas', 'fa-globe-europe',
+        'fa-map', 'fa-map-location-dot', 'fa-calculator', 'fa-puzzle-piece'
     ],
     '财务': [
-        'fa-money-bill-wave', 'fa-coins', 'fa-chart-line',
-        'fa-piggy-bank', 'fa-sack-dollar', 'fa-hand-holding-dollar',
-        'fa-file-invoice-dollar', 'fa-calculator', 'fa-file-invoice',
-        'fa-percent', 'fa-scale-balanced',
-        'fa-money-bill', 'fa-money-bill-1', 'fa-money-bill-1-wave',
-        'fa-bank', 'fa-building-columns', 'fa-credit-card',
-        'fa-wallet', 'fa-cash-register',
-        'fa-circle-arrow-up', 'fa-circle-arrow-down', 'fa-arrow-trend-up',
-        'fa-arrow-trend-down', 'fa-file-lines', 'fa-file-pdf', 'fa-file-excel'
-    ],
-    '服饰': [
-        'fa-shirt', 'fa-shoe-prints', 'fa-hat-cowboy', 'fa-glasses',
-        'fa-ring', 'fa-bag-shopping', 'fa-vest', 'fa-socks',
-        'fa-crown', 'fa-gem', 'fa-hat-cowboy-side', 'fa-scroll', 'fa-ribbon'
-    ],
-    '家居': [
-        'fa-couch', 'fa-chair', 'fa-bed', 'fa-tools', 'fa-wrench',
-        'fa-plug', 'fa-key', 'fa-door-open', 'fa-window-maximize', 'fa-broom',
-        'fa-table', 'fa-paint-roller', 'fa-hammer', 'fa-screwdriver',
-        'fa-bucket', 'fa-paintbrush', 'fa-palette',
-        'fa-clock', 'fa-calendar', 'fa-draw-polygon'
-    ],
-    '运动': [
-        'fa-futbol', 'fa-basketball', 'fa-volleyball', 'fa-running',
-        'fa-walking', 'fa-swimmer', 'fa-bicycle', 'fa-medal',
-        'fa-skating', 'fa-skiing', 'fa-dumbbell',
-        'fa-baseball', 'fa-baseball-bat-ball', 'fa-golf-ball-tee',
-        'fa-table-tennis-paddle-ball', 'fa-hockey-puck',
-        'fa-football', 'fa-mountain'
-    ],
-    '美容': [
-        'fa-spa', 'fa-paintbrush', 'fa-scissors', 'fa-mask-face',
-        'fa-soap', 'fa-shower', 'fa-gem',
-        'fa-eye-dropper', 'fa-bath', 'fa-hand-sparkles'
-    ],
-    '社交': [
-        'fa-champagne-glasses', 'fa-gift', 'fa-handshake', 'fa-people-group',
-        'fa-star', 'fa-comments', 'fa-user-plus',
-        'fa-people-arrows', 'fa-people-carry-box', 'fa-handshake-simple',
-        'fa-handshake-angle', 'fa-user-group',
-        'fa-user-minus', 'fa-user-check', 'fa-user-xmark',
-        'fa-address-book', 'fa-address-card', 'fa-contact-book', 'fa-circle-user'
-    ],
-    '旅行': [
-        'fa-suitcase-rolling', 'fa-passport', 'fa-camera', 'fa-map',
-        'fa-compass', 'fa-umbrella-beach', 'fa-ship', 'fa-plane',
-        'fa-hiking', 'fa-mountain-sun', 'fa-tent',
-        'fa-bag-shopping', 'fa-binoculars',
-        'fa-flag', 'fa-flag-usa', 'fa-globe', 'fa-road',
-        'fa-satellite', 'fa-satellite-dish', 'fa-fish', 'fa-water',
-        'fa-tree', 'fa-mountain'
+        'fa-money-bill-wave', 'fa-coins', 'fa-chart-line', 'fa-piggy-bank',
+        'fa-sack-dollar', 'fa-hand-holding-dollar', 'fa-file-invoice-dollar', 'fa-calculator',
+        'fa-file-invoice', 'fa-percent', 'fa-scale-balanced', 'fa-money-bill',
+        'fa-money-bill-1', 'fa-money-bill-1-wave', 'fa-bank', 'fa-building-columns',
+        'fa-credit-card', 'fa-wallet', 'fa-cash-register', 'fa-circle-arrow-up',
+        'fa-circle-arrow-down', 'fa-arrow-trend-up', 'fa-arrow-trend-down', 'fa-file-lines',
+        'fa-file-pdf', 'fa-file-excel'
     ]
 };
-const CATEGORY_TITLES = ['餐饮', '购物', '数码', '交通', '生活', '健康', '娱乐', '宠物', '学习', '财务', '服饰', '家居', '运动', '美容', '社交', '旅行'];
+const CATEGORY_TITLES = ['餐饮', '购物', '数码', '生活', '健康', '娱乐', '宠物', '学习', '财务'];
 
     
     const DEFAULT_CATEGORIES = {
@@ -1958,7 +1934,7 @@ function syncMonthPickerValue() {
 function openMonthPicker() {
     
     if (paymentSheet.classList.contains('show')) closePaymentSheet();
-    if (noteModal.classList.contains('show')) closeNoteModal();
+    if (noteOverlay.classList.contains('show')) closeNoteModal();
     if (dateModal.classList.contains('show')) closeDatePicker();
     if (settingsOverlay.classList.contains('show')) closeSettings();
 
@@ -2135,6 +2111,8 @@ function updateMonthLabel() {
 
     
     function showToast(msg, duration = 2000) {
+        // 桌面宠物开启且可见时，提示改为桌面宠物的说话气泡
+        if (typeof window.petFloatingSpeak === 'function' && window.petFloatingSpeak(msg, duration)) return;
         const textEl = $('#toastMessage');
         if (textEl) textEl.textContent = msg;
         toast.classList.add('show');
@@ -2438,7 +2416,7 @@ function formatDateDisplayCN(dateStr) {
 
     function openDatePicker() {
         if (paymentSheet.classList.contains('show')) closePaymentSheet();
-        if (noteModal.classList.contains('show')) closeNoteModal();
+        if (noteOverlay.classList.contains('show')) closeNoteModal();
 
         tempSelectedDate = new Date(selectedDate);
         viewDate = new Date(selectedDate);
@@ -2631,9 +2609,18 @@ async function unbindPartnerApi() {
         currentUser = null;
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        
+
         localStorage.removeItem('categories_data');
-        
+
+        // 退出登录时立即移除桌面宠物：直接移除 DOM 节点确保即时消失，
+        // 不依赖 PetSystem 是否就绪；removeFloating 会同时置空内部引用，重登录后自动重建
+        if (window.PetSystem && typeof window.PetSystem.removeFloating === 'function') {
+            window.PetSystem.removeFloating();
+        } else {
+            const fp = document.getElementById('petFloating');
+            if (fp) fp.remove();
+        }
+
         budgetCache = { [getBudgetMonthKey(new Date())]: { my: 0, partner: 0, both: 0 } };
         showLoginPage();
     }
@@ -2650,6 +2637,8 @@ function checkAuth() {
             showMainApp();
             
             loadAllData(false);
+            // 桌面宠物开启时，自动登录（带有效 token 进入）也显示欢迎语（等待宠物可见后再说）
+            if (window.petFloatingWelcome) window.petFloatingWelcome(true);
             return true;
         }
     }
@@ -3742,15 +3731,17 @@ function onWrapperClick(e) {
 
     
     function openNoteModal() {
-        if (noteModal.classList.contains('show')) return;
+        if (noteOverlay.classList.contains('show')) return;
+        if (dateModal.classList.contains('show')) {
+            closeDatePicker();
+        }
         if (paymentSheet.classList.contains('show')) {
             closePaymentSheet();
         }
         noteModalInput.value = noteContent;
-        noteModal.classList.add('show');
         noteOverlay.classList.add('show');
         renderNoteFrequent();
-        setTimeout(() => noteModalInput.focus());
+        setTimeout(() => noteModalInput.focus(), 350);
     }
 
     function closeNoteModal() {
@@ -3758,7 +3749,6 @@ function onWrapperClick(e) {
             clearTimeout(closeNoteTimer);
             closeNoteTimer = null;
         }
-        noteModal.classList.remove('show');
         noteOverlay.classList.remove('show');
         noteModalInput.blur();
     }
@@ -3766,6 +3756,9 @@ function onWrapperClick(e) {
     function confirmNote() {
         const val = noteModalInput.value.trim();
         noteContent = val;
+        if (val) {
+            recordNoteInput(currentCategory, val);
+        }
         updateNoteDisplay();
         closeNoteModal();
     }
@@ -3788,31 +3781,32 @@ function onWrapperClick(e) {
         noteModalInput.value = '';
     }
 
-    // ---------- 备注常用记录（按分类，最多 3 条） ----------
-    const FREQ_NOTES_KEY = 'well_frequent_notes_v1';
+    // ---------- 备注「常用」：记录用户在备注输入框中确认输入的内容，按分类统计频次 ----------
     const FREQ_NOTES_LIMIT = 3;
+    const NOTE_INPUT_FREQ_KEY = 'well_note_input_freq_v1';
 
-    function loadFrequentStore() {
+    function loadNoteInputFreq() {
         try {
-            return JSON.parse(localStorage.getItem(FREQ_NOTES_KEY)) || {};
+            return JSON.parse(localStorage.getItem(NOTE_INPUT_FREQ_KEY)) || {};
         } catch (e) {
             return {};
         }
     }
 
-    function saveFrequentStore(store) {
+    function saveNoteInputFreq(store) {
         try {
-            localStorage.setItem(FREQ_NOTES_KEY, JSON.stringify(store));
+            localStorage.setItem(NOTE_INPUT_FREQ_KEY, JSON.stringify(store));
         } catch (e) {
             // 存储不可用时静默忽略
         }
     }
 
-    function recordFrequentNote(category, text) {
+    // 记录用户在本备注输入框「确认」时输入的内容（按当前分类累计频次）
+    function recordNoteInput(category, text) {
         if (!category) return;
         text = (text || '').toString().trim();
         if (!text) return;
-        const store = loadFrequentStore();
+        const store = loadNoteInputFreq();
         const list = store[category] || [];
         const hit = list.find(x => x.text === text);
         if (hit) {
@@ -3822,48 +3816,16 @@ function onWrapperClick(e) {
         }
         list.sort((a, b) => (b.count || 0) - (a.count || 0));
         store[category] = list.slice(0, 20);
-        saveFrequentStore(store);
+        saveNoteInputFreq(store);
     }
 
+    // 「常用」直接取自用户在本输入框的输入记录，而非记账备注/账单，避免固定预置值
     function getFrequentNotes(category, limit) {
-        ensureFrequentNotesSeeded();
-        const store = loadFrequentStore();
+        const lim = limit || FREQ_NOTES_LIMIT;
+        if (!category) return [];
+        const store = loadNoteInputFreq();
         const list = store[category] || [];
-        return list.slice(0, limit || FREQ_NOTES_LIMIT).map(x => x.text);
-    }
-
-    function ensureFrequentNotesSeeded() {
-        const seedFlag = FREQ_NOTES_KEY + '_seeded';
-        if (localStorage.getItem(seedFlag)) return;
-        try {
-            const counts = {};
-            (allBills || []).forEach(b => {
-                const cat = b.category;
-                const text = b.note && b.note.trim();
-                if (!cat || !text) return;
-                counts[cat] = counts[cat] || {};
-                counts[cat][text] = (counts[cat][text] || 0) + 1;
-            });
-            const store = loadFrequentStore();
-            let changed = false;
-            Object.keys(counts).forEach(cat => {
-                const arr = Object.keys(counts[cat]).map(text => ({ text: text, count: counts[cat][text] }));
-                arr.sort((a, b) => b.count - a.count);
-                const merged = store[cat] || [];
-                arr.forEach(x => {
-                    const hit = merged.find(m => m.text === x.text);
-                    if (hit) hit.count += x.count;
-                    else merged.push(x);
-                });
-                merged.sort((a, b) => b.count - a.count);
-                store[cat] = merged.slice(0, 20);
-                changed = true;
-            });
-            if (changed) saveFrequentStore(store);
-            localStorage.setItem(seedFlag, '1');
-        } catch (e) {
-            // 历史数据不可用时跳过，后续仍会按新输入学习
-        }
+        return list.slice(0, lim).map(x => x.text);
     }
 
     function renderFrequentChips(container, category, onPick) {
@@ -3874,7 +3836,7 @@ function onWrapperClick(e) {
             container.innerHTML = '';
             return;
         }
-        let html = '<span class="note-frequent-label">常用</span>';
+        let html = '<span class="note-frequent-label"></span>';
         notes.forEach(t => {
             const safe = escapeHtml(t);
             html += '<span class="note-frequent-chip" data-note="' + encodeURIComponent(t) + '">' + safe + '</span>';
@@ -3883,6 +3845,10 @@ function onWrapperClick(e) {
         container.classList.add('show');
         container.querySelectorAll('.note-frequent-chip').forEach(chip => {
             chip.addEventListener('click', () => {
+                // 单选模型：已选中的标签再次点击无效，点其它标签则切换
+                if (chip.classList.contains('selected')) return;
+                container.querySelectorAll('.note-frequent-chip').forEach(c => c.classList.remove('selected'));
+                chip.classList.add('selected');
                 const txt = decodeURIComponent(chip.dataset.note);
                 onPick(txt);
             });
@@ -3891,8 +3857,14 @@ function onWrapperClick(e) {
 
     function renderNoteFrequent() {
         renderFrequentChips(noteFrequent, currentCategory, (txt) => {
-            const cur = noteModalInput.value.trim();
-            noteModalInput.value = cur ? cur + ' ' + txt : txt;
+            // 点击「常用」只应把内容填入输入框，不应关闭弹窗：
+            // 取消 input 失焦时设置的自动关闭计时器，并重新聚焦输入框
+            if (closeNoteTimer) {
+                clearTimeout(closeNoteTimer);
+                closeNoteTimer = null;
+            }
+            // 单选切换：直接替换为所选标签文本
+            noteModalInput.value = txt;
             noteModalInput.focus();
         });
     }
@@ -4551,10 +4523,6 @@ function initBounceScroll(selector, options = {}) {
             await updateBill(editingBillId, billData);
         } else {
             await addBill(billData);
-        }
-
-        if (billData.note && billData.note.trim()) {
-            recordFrequentNote(billData.category, billData.note);
         }
     }
 
@@ -6504,7 +6472,7 @@ function initTermsModalEvents() {
     
 function openSettings() {
     if (paymentSheet.classList.contains('show')) closePaymentSheet();
-    if (noteModal.classList.contains('show')) closeNoteModal();
+    if (noteOverlay.classList.contains('show')) closeNoteModal();
     if (dateModal.classList.contains('show')) closeDatePicker();
     
     settingsCurrentType = currentType || 'expense';
@@ -7035,12 +7003,8 @@ function startDragging(item, touch) {
                 container.querySelectorAll('.cat-icon-option').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 const icon = this.dataset.icon;
-                const label = this.dataset.label;
                 if (container === catIconGrid) {
                     selectedAddIcon = icon;
-                    if (label && !catAddName.value) {
-                        catAddName.value = label;
-                    }
                 } else if (container === catEditIconGrid) {
                     selectedEditIcon = icon;
                 }
@@ -7225,9 +7189,11 @@ $('#loginForm').addEventListener('submit', async (e) => {
         localStorage.setItem('user', JSON.stringify(currentUser));
         localStorage.removeItem('categories_data');
         showMainApp();
-        
+
         await loadAllData(true);
         checkTermsVersion(true);
+        // 桌面宠物开启时，登录完成显示欢迎语（若宠物尚未加载好，petFloatingWelcome 会等待其可见后再说）
+        if (window.petFloatingWelcome) window.petFloatingWelcome(true);
     } catch (err) {
         showToast(err.message || '登录失败');
         hideLoading();
@@ -7299,7 +7265,7 @@ $('#registerForm').addEventListener('submit', async (e) => {
                 closePaymentSheet();
                 return;
             }
-            if (noteModal.classList.contains('show')) {
+            if (noteOverlay.classList.contains('show')) {
                 closeNoteModal();
                 return;
             }
@@ -8016,7 +7982,7 @@ function openBudgetModal(type) {
             </div>
         </div>
     `;
-    document.body.appendChild(overlay);
+    document.getElementById('app').appendChild(overlay);
     requestAnimationFrame(() => {
         overlay.classList.add('show');
     });
@@ -9459,7 +9425,7 @@ function renderStatsPage() {
     
     const pieLabel = document.querySelector('.stats-pie-center .total-label');
     if (pieLabel) {
-        pieLabel.textContent = `总${typeLabel}`;
+        pieLabel.textContent = `本月总${typeLabel}`;
     }
     
     
@@ -17286,7 +17252,7 @@ function handleHardwareBack() {
     
     if (document.getElementById('updateModalOverlay')?.classList.contains('show')) { closeUpdateModal(); try { refreshStatusBar(); } catch(e) {} return; }
     if (isShown('deleteModal')) { hideDeleteModal(); try { refreshStatusBar(); } catch(e) {} return; }
-    if (isShown('noteModal')) { closeNoteModal(); try { refreshStatusBar(); } catch(e) {} return; }
+    if (isShown('noteOverlay')) { closeNoteModal(); try { refreshStatusBar(); } catch(e) {} return; }
     if (isShown('paymentSheet')) { closePaymentSheet(); try { refreshStatusBar(); } catch(e) {} return; }
     if (isShown('dateModal')) { closeDatePicker(); try { refreshStatusBar(); } catch(e) {} return; }
     if (isShown('weekModal')) { closeWeekPicker(); try { refreshStatusBar(); } catch(e) {} return; }

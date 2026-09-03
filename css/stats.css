@@ -664,7 +664,7 @@
 
 
 .stats-date-overlay  {
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     right: 0;
@@ -683,26 +683,28 @@
 
 
 .stats-date-modal  {
-    position: fixed;
+    position: absolute;
     bottom: 0;
-    left: 50%;
-    right: auto;
-    width: 100%;
-    max-width: 480px;
+    left: 0;
+    right: 0;
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     z-index: 51;
-    transform: translate(-50%, 100%);
-    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s 0.35s;
     max-height: 85vh;
     display: flex;
     flex-direction: column;
     min-height: 380px;
     height: auto;
+    padding: 16px 16px calc(20px + var(--safe-bottom, 0px));
+    visibility: hidden;
 }
 
 .stats-date-modal.show  {
-    transform: translate(-50%, 0);
+    transform: translateY(0);
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s;
+    visibility: visible;
 }
 
 
@@ -1679,7 +1681,7 @@
 
 
 .year-overlay  {
-    position: fixed;
+    position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.35);
     z-index: 20;
@@ -1692,15 +1694,15 @@
     opacity: 1;
 }
 .year-modal  {
-    position: fixed;
+    position: absolute;
     bottom: 0;
-    left: 50%;
-    right: auto;
+    left: 0;
+    right: 0;
     width: 100%;
     max-width: 480px;
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
-    transform: translate(-50%, 100%);
+    transform: translateY(100%);
     transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
     z-index: 21;
     padding: 16px;
@@ -1708,7 +1710,7 @@
     max-height: 85vh;
 }
 .year-modal.show  {
-    transform: translate(-50%, 0);
+    transform: translateY(0);
 }
 .year-modal-header  {
     display: flex;

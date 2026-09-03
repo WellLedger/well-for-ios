@@ -82,6 +82,14 @@
                     if (!Array.isArray(petState.pet.unlocked_variants) || petState.pet.unlocked_variants.length === 0) {
                         petState.pet.unlocked_variants = [petState.pet.variant || 'default'];
                     }
+                    // 与本地缓存取并集，确保“已确认解锁但后端未落库”的形象刷新后不丢
+                    const cached = loadUnlockedCache();
+                    if (cached.length) {
+                        const set = {};
+                        petState.pet.unlocked_variants.concat(cached).forEach(function (v) { set[v] = 1; });
+                        petState.pet.unlocked_variants = Object.keys(set);
+                    }
+                    cacheUnlockedVariants();
                 }
                 petState.adopter = data.adopter;
                 petState.myDailyStats = data.myDailyStats || { bill_count: 0, feed_count: 0, comment_count: 0, sign_done: false };
@@ -91,6 +99,8 @@
                     localStorage.setItem('petCatVariant', data.pet.variant);
                 }
                 updateEntryCard();
+                checkAutoFeed();
+                showFloatingPet();
             } else if (data.reason === 'not_adopted') {
                 petState.pet = null;
                 petState.adopter = null;
@@ -332,6 +342,7 @@
         const pagePet = document.getElementById('page-pet');
         if (!pagePet) return;
 
+        hideFloatingPet();
         pagePet.style.transform = 'translateX(100%)';
         pagePet.style.display = 'block';
         
@@ -347,6 +358,12 @@
         });
 
         renderPetPage();
+
+        // 进入游戏界面时实时拉取最新数据，避免展示旧缓存
+        loadPetStatus().then(() => {
+            if (pagePet.classList.contains('active')) renderPetPage();
+            if (typeof refreshStatusBar === 'function') refreshStatusBar();
+        }).catch(() => {});
     }
 
     function closePetPage() {
@@ -354,11 +371,12 @@
         if (!pagePet) return;
 
         pagePet.classList.remove('active');
-        
+
         if (typeof refreshStatusBar === 'function') refreshStatusBar();
         setTimeout(() => {
             pagePet.style.display = 'none';
             pagePet.style.transform = '';
+            showFloatingPet();
         }, 350);
     }
 
@@ -424,6 +442,26 @@
         }
         const def = getCatVariant();
         return [def];
+    }
+
+    // 已解锁形象清单的本地缓存：后端若未落库（或 worker 未重新部署），
+    // 刷新后仍可取并集保留已确认解锁的形象，避免“解锁后刷新又变回锁定”。
+    function cacheUnlockedVariants() {
+        try {
+            if (petState.pet && Array.isArray(petState.pet.unlocked_variants)) {
+                const list = petState.pet.unlocked_variants.filter(v => PET_VARIANTS.indexOf(v) >= 0);
+                localStorage.setItem('petUnlockedVariants', JSON.stringify(list));
+            }
+        } catch (e) { /* ignore */ }
+    }
+    function loadUnlockedCache() {
+        try {
+            const raw = localStorage.getItem('petUnlockedVariants');
+            if (!raw) return [];
+            const arr = JSON.parse(raw);
+            if (!Array.isArray(arr)) return [];
+            return arr.filter(v => PET_VARIANTS.indexOf(v) >= 0);
+        } catch (e) { return []; }
     }
 
     function getCatAccent(variant) {
@@ -493,6 +531,9 @@
                         </button>
                         <button class="pet-corner-btn records" id="recordsBtn" aria-label="活动记录">
                             <img src="img/recently.svg" alt="活动记录">
+                        </button>
+                        <button class="pet-corner-btn info" id="petInfoBtn" aria-label="宠物信息">
+                            <img src="img/info.svg" alt="宠物信息">
                         </button>
                     </div>
 
@@ -767,7 +808,7 @@
                     let effectAnim = 'feedFloat 0.8s ease-out forwards';
                     if (action === 'play') {
                         
-                        effectHtml = '<img src="img/play.svg" alt="玩具球" style="width:36px;height:36px;display:block;">';
+                        effectHtml = '<img src="img/football.svg" alt="足球" style="width:36px;height:36px;display:block;">';
                         effectAnim = 'ballRollIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards';
                     } else if (action === 'bathe') {
                         effectHtml = '<i class="ri-drop-line" style="color:#4FC3F7;font-size:28px;"></i>';
@@ -778,9 +819,10 @@
                     }
                     effect.innerHTML = effectHtml;
                     if (action === 'play') {
-                        
+
                         effect.style.cssText = 'position:absolute;left:50%;top:60%;z-index:100;pointer-events:none;animation:' + effectAnim + ';';
                         container.appendChild(effect);
+                        setTimeout(() => effect.remove(), 10900);
                     } else {
                         effect.style.cssText = 'position:absolute;left:50%;top:20%;transform:translateX(-50%);z-index:100;pointer-events:none;animation:' + effectAnim + ';';
                         container.appendChild(effect);
@@ -808,6 +850,9 @@
 
         const recordsBtn = document.getElementById('recordsBtn');
         if (recordsBtn) recordsBtn.addEventListener('click', showRecordsModal);
+
+        const infoBtn = document.getElementById('petInfoBtn');
+        if (infoBtn) infoBtn.addEventListener('click', showPetInfoPopup);
 
         const signBtn = document.getElementById('signBtn');
         if (signBtn) signBtn.addEventListener('click', () => {
@@ -1006,17 +1051,30 @@
             if (!ok) return;
             try {
                 const res = await petApi('/pet/skin/exchange', 'POST', { variant });
-                showGameTip('兑换成功，已解锁新形象！');
+                showGameTip(res.alreadyUnlocked ? '该形象已解锁' : '兑换成功，已解锁新形象！');
                 if (petState.pet) {
                     petState.pet.unlocked_variants = res.unlocked_variants || unlocked.concat([variant]);
                     petState.pet.points = res.points != null ? res.points : (Math.max(0, curPoints - PET_SKIN_COST));
                 }
                 updateTopbar();
                 updateEntryCard();
-                await switchCatVariantWithBackend(variant);
                 refreshSkinCardStates();
+                cacheUnlockedVariants();
+                try { await switchCatVariantWithBackend(variant); } catch (e) { console.warn('切换形象失败', e); }
                 closeShopModal();
             } catch (err) {
+                if (err && err.message && err.message.indexOf('已解锁') >= 0) {
+                    const ul = getUnlockedVariants();
+                    if (petState.pet && ul.indexOf(variant) < 0) {
+                        petState.pet.unlocked_variants = ul.concat([variant]);
+                    }
+                    updateTopbar();
+                    updateEntryCard();
+                    refreshSkinCardStates();
+                    cacheUnlockedVariants();
+                    showGameTip('该形象已解锁', 'info');
+                    return;
+                }
                 showGameTip(err.message || '兑换失败', 'warn');
             }
         });
@@ -1115,7 +1173,8 @@
                     if (variant === getCatVariant()) return;
                     try {
                         await switchCatVariantWithBackend(variant);
-                        loadBagTab();
+                        showGameTip('已切换为' + (PET_VARIANT_NAMES[variant] || '新形象') + '~');
+                        closeBagModal();
                     } catch (err) {
                         showGameTip(err.message || '切换失败', 'warn');
                     }
@@ -1231,17 +1290,29 @@
             if (!ok) return;
             try {
                 const res = await petApi('/pet/skin/exchange', 'POST', { variant });
-                showGameTip('兑换成功，已解锁新形象！');
+                showGameTip(res.alreadyUnlocked ? '该形象已解锁' : '兑换成功，已解锁新形象！');
                 if (petState.pet) {
                     petState.pet.unlocked_variants = res.unlocked_variants || unlocked.concat([variant]);
                     petState.pet.points = res.points != null ? res.points : (Math.max(0, curPoints - PET_SKIN_COST));
                 }
                 updateTopbar();
                 updateEntryCard();
-                await switchCatVariantWithBackend(variant);
                 refreshSkinCardStates();
+                try { await switchCatVariantWithBackend(variant); } catch (e) { console.warn('切换形象失败', e); }
                 overlay.classList.remove('active');
             } catch (err) {
+                if (err && err.message && err.message.indexOf('已解锁') >= 0) {
+                    const ul = getUnlockedVariants();
+                    if (petState.pet && ul.indexOf(variant) < 0) {
+                        petState.pet.unlocked_variants = ul.concat([variant]);
+                    }
+                    updateTopbar();
+                    updateEntryCard();
+                    refreshSkinCardStates();
+                    cacheUnlockedVariants();
+                    showGameTip('该形象已解锁', 'info');
+                    return;
+                }
                 showGameTip(err.message || '兑换失败', 'warn');
             }
         });
@@ -1330,18 +1401,18 @@
 
     
     async function switchCatVariantWithBackend(variant) {
+        // 乐观更新：先切换本地与界面，确保点击即生效；避免后端不可用时整段失败、切换毫无反应
+        if (petState.pet) petState.pet.variant = variant;
+        localStorage.setItem('petCatVariant', variant);
+        updateActiveSkinCard(variant);
+        switchCatVariant(variant);
         try {
             const res = await petApi('/pet/skin/switch', 'POST', { variant });
-            if (petState.pet) {
-                petState.pet.variant = variant;
-                if (res && res.unlocked_variants) petState.pet.unlocked_variants = res.unlocked_variants;
-            }
-            localStorage.setItem('petCatVariant', variant);
-            updateActiveSkinCard(variant);
-            switchCatVariant(variant);
+            if (petState.pet && res && res.unlocked_variants) petState.pet.unlocked_variants = res.unlocked_variants;
             return res;
         } catch (e) {
-            throw e;
+            console.warn('切换形象后端同步失败，已保留本地切换', e);
+            return null;
         }
     }
 
@@ -1377,6 +1448,9 @@
                 if (newA) oldA.replaceWith(newA);
             }
         }
+
+        // 桌面悬浮宠物同步切换形象
+        updateFloatingPetVariant();
     }
 
     
@@ -1952,6 +2026,20 @@
                 ${bonusText}
             </div>
         `;
+
+        // 自动将“今天”卡片滚动到可视区域中心，作为左右滑动切换的起点
+        try {
+            const grid = body.querySelector('.pet-sign-grid');
+            const todayCard = body.querySelector('.pet-sign-card.today');
+            if (grid && todayCard) {
+                requestAnimationFrame(() => {
+                    const gridRect = grid.getBoundingClientRect();
+                    const cardRect = todayCard.getBoundingClientRect();
+                    const left = grid.scrollLeft + (cardRect.left - gridRect.left) - (gridRect.width - cardRect.width) / 2;
+                    grid.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
+                });
+            }
+        } catch (e) {}
 
         
         body.querySelectorAll('.pet-sign-card-btn[data-action="sign"]').forEach(btn => {
@@ -2646,6 +2734,363 @@
         setTimeout(() => effect.remove(), 800);
     }
 
+    // ===== 宠物设置 =====
+    function getPetSettings() {
+        try {
+            return JSON.parse(localStorage.getItem('petSettings')) || { autoFeed: false, floatingPet: false };
+        } catch (e) {
+            return { autoFeed: false, floatingPet: false };
+        }
+    }
+
+    function savePetSettings(settings) {
+        localStorage.setItem('petSettings', JSON.stringify(settings));
+    }
+
+    function showPetSettings() {
+        const existing = document.querySelector('.pet-settings-overlay');
+        if (existing) existing.remove();
+
+        const settings = getPetSettings();
+        const overlay = document.createElement('div');
+        overlay.className = 'pet-settings-overlay';
+        overlay.innerHTML = `
+            <div class="pet-settings-modal">
+                <div class="pet-settings-title">宠物设置</div>
+                <div class="pet-settings-item">
+                    <div class="pet-settings-item-info">
+                        <div class="pet-settings-item-label">自动喂食</div>
+                        <div class="pet-settings-item-desc">饥饿值低于30%时自动投喂（需有可用次数）</div>
+                    </div>
+                    <button class="pet-settings-toggle ${settings.autoFeed ? 'on' : ''}" id="autoFeedToggle" aria-label="自动喂食开关"></button>
+                </div>
+                <div class="pet-settings-item">
+                    <div class="pet-settings-item-info">
+                        <div class="pet-settings-item-label">桌面陪伴</div>
+                        <div class="pet-settings-item-desc">开启后宠物在记账页面陪伴你</div>
+                    </div>
+                    <button class="pet-settings-toggle ${settings.floatingPet ? 'on' : ''}" id="floatingPetToggle" aria-label="桌面陪伴开关"></button>
+                </div>
+                <button class="pet-settings-close-btn" id="petSettingsClose">完成</button>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        requestAnimationFrame(() => overlay.classList.add('active'));
+
+        const autoFeedToggle = overlay.querySelector('#autoFeedToggle');
+        const floatingPetToggle = overlay.querySelector('#floatingPetToggle');
+
+        autoFeedToggle.addEventListener('click', () => {
+            settings.autoFeed = !settings.autoFeed;
+            autoFeedToggle.classList.toggle('on', settings.autoFeed);
+            savePetSettings(settings);
+            if (settings.autoFeed) checkAutoFeed();
+        });
+
+        floatingPetToggle.addEventListener('click', () => {
+            settings.floatingPet = !settings.floatingPet;
+            floatingPetToggle.classList.toggle('on', settings.floatingPet);
+            savePetSettings(settings);
+            if (settings.floatingPet) {
+                showFloatingPet();
+            } else {
+                hideFloatingPet();
+            }
+        });
+
+        overlay.querySelector('#petSettingsClose').addEventListener('click', closePetSettings);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closePetSettings();
+        });
+    }
+
+    function closePetSettings() {
+        const overlay = document.querySelector('.pet-settings-overlay');
+        if (!overlay) return;
+        overlay.classList.remove('active');
+        setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 200);
+    }
+
+    function checkAutoFeed() {
+        if (!petState.hasPet || !petState.pet) return;
+        const settings = getPetSettings();
+        if (!settings.autoFeed) return;
+        const hunger = petState.pet.hunger || 0;
+        const feedCount = petState.myDailyStats.feed_count || 0;
+        const feedVouchers = petState.pet.feed_vouchers || 0;
+        if (hunger < 30 && (feedCount < 3 || feedVouchers > 0)) {
+            handleFeed();
+        }
+    }
+
+    // ===== 悬浮宠物 =====
+    let floatingPetEl = null;
+    let floatingPetBubbleTimer = null;
+    let floatingPetPos = { x: null, y: null };
+    let floatingFacingFlipped = true; // 桌面宠物朝向：true=镜像（朝左）/ false=原始（朝右），点击切换
+    let dragState = { active: false, dragging: false, startX: 0, startY: 0, offsetX: 0, offsetY: 0, moved: false, longPressFired: false, longPressTimer: null };
+    const FLOATING_PET_MESSAGES = ['喵~', '陪你记账~', '加油！', '想吃东西...', '主人好~', '呼噜噜~'];
+
+    function saveFloatingPos() {
+        try {
+            localStorage.setItem('petFloatingPos', JSON.stringify(floatingPetPos));
+        } catch (e) {}
+    }
+
+    function loadFloatingPos() {
+        try {
+            const saved = JSON.parse(localStorage.getItem('petFloatingPos'));
+            if (saved && typeof saved.x === 'number' && typeof saved.y === 'number') {
+                floatingPetPos = saved;
+                return true;
+            }
+        } catch (e) {}
+        return false;
+    }
+
+    function applyFloatingPos() {
+        if (!floatingPetEl) return;
+        if (floatingPetPos.x !== null && floatingPetPos.y !== null) {
+            floatingPetEl.style.left = floatingPetPos.x + 'px';
+            floatingPetEl.style.top = floatingPetPos.y + 'px';
+            floatingPetEl.style.right = 'auto';
+            floatingPetEl.style.bottom = 'auto';
+        } else {
+            const bounds = { left: (window.innerWidth - Math.min(window.innerWidth, 480)) / 2, right: (window.innerWidth - Math.min(window.innerWidth, 480)) / 2 + Math.min(window.innerWidth, 480) };
+            const pw = floatingPetEl.offsetWidth || 88;
+            const ph = floatingPetEl.offsetHeight || 88;
+            floatingPetEl.style.left = (bounds.right - pw - 16) + 'px';
+            floatingPetEl.style.top = (window.innerHeight - 80 - ph) + 'px';
+            floatingPetEl.style.right = 'auto';
+            floatingPetEl.style.bottom = 'auto';
+        }
+    }
+
+    function createFloatingPet() {
+        if (floatingPetEl && document.body.contains(floatingPetEl)) return;
+        if (!petState.hasPet || !petState.pet) return;
+        if (!window.CatSVG) return;
+
+        floatingPetEl = document.createElement('div');
+        floatingPetEl.className = 'pet-floating';
+        floatingPetEl.id = 'petFloating';
+        const variant = getCatVariant();
+        floatingPetEl.innerHTML = `
+            <div class="pet-floating-inner${floatingFacingFlipped ? ' flipped' : ''}">
+                ${window.CatSVG('pet-cat-avatar-svg', variant)}
+            </div>
+            <div class="pet-floating-bubble" id="petFloatingBubble"></div>
+        `;
+        document.body.appendChild(floatingPetEl);
+
+        loadFloatingPos();
+        applyFloatingPos();
+
+        bindFloatingDrag();
+    }
+
+    function bindFloatingDrag() {
+        if (!floatingPetEl) return;
+
+        function getAppBounds() {
+            const maxW = Math.min(window.innerWidth, 480);
+            const left = (window.innerWidth - maxW) / 2;
+            return { left: left, right: left + maxW, top: 0, bottom: window.innerHeight, width: maxW };
+        }
+
+        function onStart(e) {
+            // 仅响应鼠标左键，避免右键/中键误触发
+            if (e.button !== undefined && e.button !== 0) return;
+            const touch = e.touches ? e.touches[0] : e;
+            dragState.active = true;
+            dragState.dragging = false;
+            dragState.moved = false;
+            dragState.startX = touch.clientX;
+            dragState.startY = touch.clientY;
+        }
+
+        function onMove(e) {
+            if (!dragState.active) return;
+            const touch = e.touches ? e.touches[0] : e;
+            const dx = touch.clientX - dragState.startX;
+            const dy = touch.clientY - dragState.startY;
+            // 移动超过阈值（8px）才判定为拖动，容忍手指/鼠标轻微抖动，避免吞掉点击
+            if (!dragState.moved && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+                dragState.moved = true;
+            }
+            if (dragState.moved && !dragState.dragging) {
+                dragState.dragging = true;
+                floatingPetEl.classList.add('dragging');
+            }
+            if (!dragState.dragging) return;
+            if (e.cancelable) e.preventDefault();
+            const bounds = getAppBounds();
+            const w = floatingPetEl.offsetWidth;
+            const h = floatingPetEl.offsetHeight;
+            let nx = touch.clientX - w / 2;
+            let ny = touch.clientY - h / 2;
+            nx = Math.max(bounds.left, Math.min(bounds.right - w, nx));
+            ny = Math.max(bounds.top, Math.min(bounds.bottom - h, ny));
+            floatingPetEl.style.left = nx + 'px';
+            floatingPetEl.style.top = ny + 'px';
+            floatingPetEl.style.right = 'auto';
+            floatingPetEl.style.bottom = 'auto';
+        }
+
+        function onEnd() {
+            if (!dragState.active) return;
+            dragState.active = false;
+            floatingPetEl.classList.remove('dragging');
+            if (dragState.moved) {
+                // 真实拖动：保存位置，不触发交互
+                dragState.dragging = false;
+                const rect = floatingPetEl.getBoundingClientRect();
+                floatingPetPos = { x: rect.left, y: rect.top };
+                saveFloatingPos();
+            } else {
+                // 未发生拖动 = 一次点击：触发开心表情 + 说话（与游戏页内一致）
+                dragState.dragging = false;
+                triggerFloatingPetInteraction();
+            }
+        }
+
+        // 触摸：事件锁定在元素上；touchmove 需可取消以阻止页面滚动
+        floatingPetEl.addEventListener('touchstart', onStart, { passive: true });
+        floatingPetEl.addEventListener('touchmove', onMove, { passive: false });
+        floatingPetEl.addEventListener('touchend', onEnd);
+        floatingPetEl.addEventListener('touchcancel', onEnd);
+        // 鼠标：move/up 绑在 document，移出元素也不丢失
+        floatingPetEl.addEventListener('mousedown', onStart);
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onEnd);
+    }
+
+    function triggerFloatingPetInteraction() {
+        if (!floatingPetEl) return;
+        // 开心表情 + 说话（happy 在 petFloatingSpeak 内统一处理；朝向由 .flipped 决定，不在此切换方向）
+        showFloatingBubble();
+    }
+
+    // 让桌面宠物做出“开心表情”（眯眼/张嘴/摇尾），不改变朝向
+    function triggerFloatingHappy() {
+        if (!floatingPetEl) return;
+        const inner = floatingPetEl.querySelector('.pet-floating-inner');
+        if (!inner) return;
+        inner.classList.remove('happy');
+        void inner.offsetWidth;
+        inner.classList.add('happy');
+        setTimeout(() => inner.classList.remove('happy'), 2000);
+    }
+
+    // 让桌面宠物“说话”：传入 message 则显示指定文字，否则随机闲聊。
+    // 仅当桌面宠物已开启且当前可见时生效，返回 true 表示已由宠物气泡接管该提示。
+    // 同时触发开心表情（记账 toast / 点击互动均走这里）。
+    function petFloatingSpeak(message, duration) {
+        if (!floatingPetEl || !floatingPetEl.classList.contains('show')) return false;
+        const bubble = floatingPetEl.querySelector('#petFloatingBubble');
+        if (!bubble) return false;
+        if (floatingPetBubbleTimer) clearTimeout(floatingPetBubbleTimer);
+        const text = (message && String(message).trim())
+            ? message
+            : FLOATING_PET_MESSAGES[Math.floor(Math.random() * FLOATING_PET_MESSAGES.length)];
+        bubble.textContent = text;
+        bubble.classList.add('show');
+        floatingPetBubbleTimer = setTimeout(() => bubble.classList.remove('show'), duration || 2500);
+        triggerFloatingHappy();
+        return true;
+    }
+    window.petFloatingSpeak = petFloatingSpeak;
+
+    // 登录 / 进入主页时的宠物欢迎语（带开心表情）
+    // 若桌面宠物此刻尚未加载可见，则登记“待播”，轮询等待其出现后再说，
+    // 避免登录/进 app 时宠物没加载完导致欢迎语丢失。
+    let pendingWelcomeTimer = null;
+    let pendingWelcomeIsLogin = false;
+
+    function clearPendingWelcome() {
+        if (pendingWelcomeTimer) {
+            clearInterval(pendingWelcomeTimer);
+            pendingWelcomeTimer = null;
+        }
+    }
+
+    function petFloatingWelcome(isLogin) {
+        if (floatingPetEl && floatingPetEl.classList.contains('show')) {
+            clearPendingWelcome();
+            triggerFloatingHappy();
+            let name = '';
+            try {
+                const u = JSON.parse(localStorage.getItem('user') || '{}');
+                name = u.nickname || u.username || '';
+            } catch (e) {}
+            const msg = isLogin
+                ? (name ? ('欢迎回来，' + name + '~') : '欢迎回来~')
+                : '回到主页啦~';
+            petFloatingSpeak(msg, 3500);
+            return true;
+        }
+        // 宠物尚未可见：登记待播，待其显示后再触发（最多等待约 6s，未开启则自动放弃）
+        pendingWelcomeIsLogin = !!isLogin;
+        if (!pendingWelcomeTimer) {
+            let tries = 0;
+            pendingWelcomeTimer = setInterval(() => {
+                tries++;
+                if (floatingPetEl && floatingPetEl.classList.contains('show')) {
+                    const login = pendingWelcomeIsLogin;
+                    clearInterval(pendingWelcomeTimer);
+                    pendingWelcomeTimer = null;
+                    petFloatingWelcome(login);
+                } else if (tries > 30) {
+                    clearInterval(pendingWelcomeTimer);
+                    pendingWelcomeTimer = null;
+                }
+            }, 200);
+        }
+        return false;
+    }
+    window.petFloatingWelcome = petFloatingWelcome;
+
+    // 点击桌面宠物时的随机闲聊气泡（无 message 时随机）
+    function showFloatingBubble() {
+        petFloatingSpeak();
+    }
+
+    function showFloatingPet() {
+        const settings = getPetSettings();
+        if (!settings.floatingPet) return;
+        if (!petState.hasPet || !petState.pet) return;
+        // 进入宠物游戏页（#page-pet）时不显示桌面宠物，避免叠在游戏上
+        const pagePet = document.getElementById('page-pet');
+        if (pagePet && pagePet.classList.contains('active')) return;
+        if (!floatingPetEl || !document.body.contains(floatingPetEl)) createFloatingPet();
+        if (floatingPetEl) {
+            floatingPetEl.classList.add('show');
+        }
+    }
+
+    function hideFloatingPet() {
+        if (floatingPetEl) floatingPetEl.classList.remove('show');
+        clearPendingWelcome();
+    }
+
+    function removeFloatingPet() {
+        if (floatingPetEl) {
+            floatingPetEl.remove();
+            floatingPetEl = null;
+        }
+    }
+
+    function updateFloatingPetVariant() {
+        if (!floatingPetEl) return;
+        const variant = getCatVariant();
+        const inner = floatingPetEl.querySelector('.pet-floating-inner');
+        if (inner && window.CatSVG) {
+            inner.setAttribute('data-variant', variant);
+            inner.style.setProperty('--cat-accent', getCatAccent(variant));
+            inner.innerHTML = window.CatSVG('pet-cat-avatar-svg', variant);
+        }
+    }
+
     // ===== 初始化 =====
     function injectEntryCardCat() {
         const slime = document.getElementById('petAvatarSlime') || document.querySelector('.pet-avatar-slime');
@@ -2678,7 +3123,8 @@
         const backBtn = document.getElementById('petBackBtn');
         if (backBtn) backBtn.onclick = closePetPage;
 
-        if (petMenuBtn) petMenuBtn.onclick = showPetInfoPopup;
+        const settingsBtn = document.getElementById('petSettingsBtn');
+        if (settingsBtn) settingsBtn.onclick = showPetSettings;
 
         if (petEntryCard) {
             petEntryCard.addEventListener('click', () => {
@@ -2690,6 +3136,12 @@
 
     // 系统返回键：逐层关闭游戏内弹窗/覆盖层（返回 true 表示已处理）
     function handlePetBack() {
+        // 0) 宠物设置
+        var settingsOverlay = document.querySelector('.pet-settings-overlay.active');
+        if (settingsOverlay) {
+            closePetSettings();
+            return true;
+        }
         // 1) 生日选择器
         var birthdayPicker = document.querySelector('.pet-birthday-picker-overlay.active');
         if (birthdayPicker) {
@@ -2767,6 +3219,10 @@
         openPage: openPetPage,
         closePage: closePetPage,
         handleBack: handlePetBack,
+        showFloating: showFloatingPet,
+        hideFloating: hideFloatingPet,
+        removeFloating: removeFloatingPet,
+        updateFloatingVariant: updateFloatingPetVariant,
         getState: () => petState,
         async addBillScore(billId) {
             try {

@@ -494,7 +494,7 @@ input, textarea  {
     z-index: 2;
     justify-content: space-evenly;
     align-items: center;
-    border: 1px solid rgba(255, 255, 255, 0.3);  
+    border: none;  
 }
 #bottom-nav.show  {
     display: flex;
@@ -1281,7 +1281,7 @@ input, textarea  {
 
 
 .modal-overlay  {
-    position: fixed;
+    position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.3);
     display: none;
@@ -1349,7 +1349,7 @@ input, textarea  {
 
 
 .update-modal-overlay  {
-    position: fixed;
+    position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.5);
     display: flex;
@@ -1801,13 +1801,13 @@ input, textarea  {
 
 
 .add-modal-overlay  {
-    position: fixed;
+    position: absolute;
     inset: 0;
     display: flex;
     justify-content: center;
     z-index: 8;
-    background: rgba(0, 0, 0, 0); 
-    pointer-events: none; 
+    background: none;
+    pointer-events: none;
     transition: background 0.3s ease;
 }
 
@@ -2166,7 +2166,7 @@ input, textarea  {
     grid-template-columns: repeat(4, 1fr);
     gap: 6px;
     padding: 20px 16px;
-    background: var(--bg-card);
+    background: none;
     border-top: none;
     flex-shrink: 0;
     position: relative;
@@ -2236,13 +2236,16 @@ input, textarea  {
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.3s;
     z-index: 101;
     padding: 16px;
     will-change: transform;
+    visibility: hidden;
 }
 .payment-sheet.show  {
     transform: translateY(0);
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    visibility: visible;
 }
 .payment-sheet-header  {
     display: flex;
@@ -2328,14 +2331,19 @@ input, textarea  {
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.35);
-    z-index: 5; 
-    display: none;
-    transition: opacity 0.3s ease;
+    z-index: 5;
+    display: flex;
+    justify-content: center;
     opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0s 0.3s;
 }
 .note-overlay.show  {
-    display: block;
     opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 0.3s ease, visibility 0s;
 }
 .note-modal  {
     position: absolute;
@@ -2352,7 +2360,7 @@ input, textarea  {
     padding: 16px 20px 20px;
     will-change: transform;
 }
-.note-modal.show  {
+.note-overlay.show .note-modal  {
     transform: translateY(0);
 }
 .note-modal-header  {
@@ -2411,8 +2419,7 @@ input, textarea  {
     display: none;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
-    padding: 12px 2px 2px;
+    padding: 12px 0;
 }
 .note-frequent.show  {
     display: flex;
@@ -2423,6 +2430,7 @@ input, textarea  {
     margin-right: 2px;
 }
 .note-frequent-chip  {
+	margin-right: 6px;
     display: inline-flex;
     align-items: center;
     max-width: 160px;
@@ -2445,6 +2453,12 @@ input, textarea  {
     background: var(--primary);
     color: #fff;
     transform: scale(0.96);
+}
+
+.note-frequent-chip.selected  {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
 }
 
 
@@ -2554,14 +2568,17 @@ input, textarea  {
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.3s;
     z-index: 10;
     padding: 16px 20px 20px;
     will-change: transform;
     max-height: 85vh;
+    visibility: hidden;
 }
 .date-modal.show  {
     transform: translateY(0);
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    visibility: visible;
 }
 
 
@@ -3174,7 +3191,7 @@ position: relative;
 
 .cat-icon-picker  {
     display: flex;
-    height: 280px;
+    height: 420px;
 }
 
 
@@ -3296,14 +3313,17 @@ position: relative;
     width: 100%;
     max-width: 480px;
     transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.3s;
     padding: 16px 20px 20px;
     max-height: 95vh;
     display: flex;
     flex-direction: column;
+    visibility: hidden;
 }
 .cat-modal-overlay.show .cat-modal  {
     transform: translateY(0);
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    visibility: visible;
 }
 
 .cat-modal-header  {
@@ -3837,7 +3857,7 @@ margin-bottom: 24px;
 
   
 .avatar-overlay  {
-    position: fixed;
+    position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.6);
     z-index: 6;
@@ -4254,7 +4274,7 @@ margin-bottom: 24px;
 }
 
 .detail-menu-overlay  {
-    position: fixed;
+    position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.3);
     z-index: 5;
@@ -4277,10 +4297,13 @@ margin-bottom: 24px;
     max-width: 480px;
     padding: 12px 16px 20px;
     transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.3s;
+    visibility: hidden;
 }
 .detail-menu-overlay.show .detail-menu-panel  {
     transform: translateY(0);
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    visibility: visible;
 }
 
 .detail-menu-item  {
@@ -4326,7 +4349,7 @@ margin-bottom: 24px;
 
 
 .month-overlay  {
-    position: fixed;
+    position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.35);
     z-index: 5;
@@ -4340,23 +4363,26 @@ margin-bottom: 24px;
 }
 
 .month-modal  {
-    position: fixed;
+    position: absolute;
     bottom: 0;
-    left: 50%;
-    right: auto;
+    left: 0;
+    right: 0;
     width: 100%;
     max-width: 480px;
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
-    transform: translate(-50%, 100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.3s;
     z-index: 6;
     padding: 16px;
     will-change: transform;
     max-height: 85vh;
+    visibility: hidden;
 }
 .month-modal.show  {
-    transform: translate(-50%, 0);
+    transform: translateY(0);
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    visibility: visible;
 }
 
 .month-modal-header  {
@@ -4506,7 +4532,7 @@ margin-bottom: 24px;
 }
 
 .budget-modal-overlay  {
-    position: fixed;
+    position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.35);
     z-index: 998;
@@ -4537,7 +4563,15 @@ margin-bottom: 24px;
 
 
 .budget-keyboard-overlay  {
+    position: absolute;
+    inset: 0;
     display: block;
+    pointer-events: none;
+    z-index: 998;
+}
+.budget-keyboard-overlay.show  {
+    pointer-events: auto;
+    background: rgba(0, 0, 0, 0.4);
 }
 .budget-keyboard-overlay .budget-modal-with-keyboard  {
     position: absolute;
@@ -4549,15 +4583,18 @@ margin-bottom: 24px;
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     transform: translateY(100%);
-    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s 0.35s;
     z-index: 999;
     width: 100%;
     padding: 16px;
     padding-bottom: calc(16px + var(--safe-bottom));
     will-change: transform;
+    visibility: hidden;
 }
 .budget-keyboard-overlay.show .budget-modal-with-keyboard  {
     transform: translateY(0);
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s;
+    visibility: visible;
 }
 
 .budget-modal-header  {
@@ -5689,8 +5726,10 @@ position: relative;
 
 
 .profile-edit-overlay  {
-    position: fixed;
+    position: absolute;
     inset: 0;
+    max-width: 480px;
+    margin: 0 auto;
     background: rgba(0, 0, 0, 0.4);
     z-index: 1000;
     display: flex;
@@ -6647,7 +6686,7 @@ position: relative;
 
 
 .theme-overlay  {
-    position: fixed;
+    position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.4);
     z-index: 5;
@@ -7574,7 +7613,7 @@ position: relative;
 
 
 .sched-overlay  {
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     right: 0;
@@ -7640,14 +7679,17 @@ position: relative;
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     transform: translateY(100%);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
     height: 62vh;
     max-height: 62vh;
     display: flex;
     flex-direction: column;
+    visibility: hidden;
 }
 .sched-category-sheet.show  {
     transform: translateY(0);
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    visibility: visible;
 }
 
 .sched-category-toggle  {
@@ -7758,13 +7800,16 @@ position: relative;
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     transform: translateY(100%);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
     display: flex;
     flex-direction: column;
     padding-bottom: var(--safe-bottom);
+    visibility: hidden;
 }
 .sched-amount-keyboard-sheet.show  {
     transform: translateY(0);
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    visibility: visible;
 }
 
 .sched-amount-keyboard  {
@@ -7831,13 +7876,16 @@ position: relative;
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     transform: translateY(100%);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
     max-height: 60vh;
     display: flex;
     flex-direction: column;
+    visibility: hidden;
 }
 .sched-belong-sheet.show  {
     transform: translateY(0);
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    visibility: visible;
 }
 .sched-belong-wheel-wrap  {
     flex: 1;
@@ -7938,14 +7986,17 @@ position: relative;
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     transform: translateY(100%);
-    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s 0.35s;
     max-height: 75vh;
     display: flex;
     flex-direction: column;
     will-change: transform;
+    visibility: hidden;
 }
 .sched-repeat-sheet.show  {
     transform: translateY(0);
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s;
+    visibility: visible;
 }
 
 .sched-repeat-tabs  {
@@ -8100,7 +8151,7 @@ position: relative;
 
 
 .sched-payment-overlay  {
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     right: 0;
@@ -8125,14 +8176,17 @@ position: relative;
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.3s;
     z-index: 999;
     padding: 16px;
     padding-bottom: calc(16px + var(--safe-bottom));
     will-change: transform;
+    visibility: hidden;
 }
 .sched-payment-sheet.show  {
     transform: translateY(0);
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    visibility: visible;
 }
 .sched-payment-header  {
     display: flex;
@@ -8606,7 +8660,7 @@ position: relative;
 
 
 .search-date-overlay  {
-    position: fixed;
+    position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.35);
     z-index: 4;
@@ -8620,24 +8674,27 @@ position: relative;
 }
 
 .search-date-modal  {
-    position: fixed;
+    position: absolute;
     bottom: 0;
-    left: 50%;
-    right: auto;
+    left: 0;
+    right: 0;
     width: 100%;
     max-width: 480px;
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
-    transform: translate(-50%, 100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.3s;
     z-index: 4;
     padding: 16px 20px 20px;
     max-height: 75vh;
     display: flex;
     flex-direction: column;
+    visibility: hidden;
 }
 .search-date-modal.show  {
-    transform: translate(-50%, 0);
+    transform: translateY(0);
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    visibility: visible;
 }
 
 .search-date-header  {
@@ -8751,7 +8808,7 @@ position: relative;
 
 
 .search-more-overlay  {
-    position: fixed;
+    position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.35);
     z-index: 4;
@@ -8765,24 +8822,27 @@ position: relative;
 }
 
 .search-more-modal  {
-    position: fixed;
+    position: absolute;
     bottom: 0;
-    left: 50%;
-    right: auto;
+    left: 0;
+    right: 0;
     width: 100%;
     max-width: 480px;
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
-    transform: translate(-50%, 100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.3s;
     z-index: 4;
     padding: 16px 20px 16px;
     max-height: 80vh;
     display: flex;
     flex-direction: column;
+    visibility: hidden;
 }
 .search-more-modal.show  {
-    transform: translate(-50%, 0);
+    transform: translateY(0);
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    visibility: visible;
 }
 
 .search-more-header  {
@@ -8995,7 +9055,7 @@ position: relative;
 }
 
 .gender-overlay  {
-    position: fixed;
+    position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.35);
     z-index: 1000;
@@ -9999,13 +10059,14 @@ position: relative;
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.3s;
     z-index: 201;
     padding: 16px 20px 20px;
     will-change: transform;
     max-height: 85vh;
+    visibility: hidden;
 }
-.bugfb-sheet.show  { transform: translateY(0); }
+.bugfb-sheet.show  { transform: translateY(0); transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s; visibility: visible; }
 .bugfb-sheet-header  {
     display: flex;
     justify-content: space-between;
@@ -10299,4 +10360,46 @@ position: relative;
     font-weight: 500;
     transition: all 0.2s;
     touch-action: manipulation;
+}
+.stats-date-modal-header  {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.stats-date-view-nav  {
+    display: flex;
+    align-items: center;
+    position: relative;
+    background: var(--bg-input);
+    border-radius: 999px;
+    padding: 3px;
+}
+.stats-date-view-btn  {
+    border: none;
+    background: transparent;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+.stats-date-view-btn.active  {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+.stats-date-modal-close,
+.stats-date-modal-confirm  {
+    border: none;
+    background: transparent;
+    font-size: 18px;
+    color: var(--text-primary);
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
