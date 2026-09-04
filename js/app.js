@@ -5644,8 +5644,8 @@ const UPDATE_CONFIG = {
 };
 
 
-let currentAppVersion = '1.0.3';
-let currentAppVersionCode = 100000003;
+let currentAppVersion = '1.0.0';
+let currentAppVersionCode = 100;
 
 
 let updateState = {

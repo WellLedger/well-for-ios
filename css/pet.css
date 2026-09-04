@@ -894,7 +894,7 @@
     grid-template-columns: 1fr;
     gap: 10px;
     width: 100%;
-    max-width: 320px;
+    max-width: 220px;
     margin: 6px auto 0;
 }
 .pet-status-card  {

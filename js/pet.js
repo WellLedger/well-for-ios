@@ -2827,7 +2827,7 @@
     let floatingPetEl = null;
     let floatingPetBubbleTimer = null;
     let floatingPetPos = { x: null, y: null };
-    let floatingFacingFlipped = true; // 桌面宠物朝向：true=镜像（朝左）/ false=原始（朝右），点击切换
+    let floatingFacingFlipped = true; // 桌面宠物朝向：true=镜像（朝左）/ false=原始（朝右）；由所在屏幕半区决定，非点击切换
     let dragState = { active: false, dragging: false, startX: 0, startY: 0, offsetX: 0, offsetY: 0, moved: false, longPressFired: false, longPressTimer: null };
     const FLOATING_PET_MESSAGES = ['喵~', '陪你记账~', '加油！', '想吃东西...', '主人好~', '呼噜噜~'];
 
@@ -2864,6 +2864,23 @@
             floatingPetEl.style.right = 'auto';
             floatingPetEl.style.bottom = 'auto';
         }
+        updateFloatingFacing();
+    }
+
+    // 根据宠物中心点落在屏幕左/右半区（观者视角），决定朝向：
+    // 右半区 → 镜像翻转；左半区 → 原始方向（“右侧保持、左侧换方向”，按观者左右）。
+    // 翻转作用在内层 .pet-floating-inner 上，点击时的开心表情也会同步翻转。
+    function updateFloatingFacing() {
+        if (!floatingPetEl) return;
+        const inner = floatingPetEl.querySelector('.pet-floating-inner');
+        if (!inner) return;
+        const rect = floatingPetEl.getBoundingClientRect();
+        // 元素尚未布局（如创建瞬间仍为 display:none）时 rect 为 0，跳过以免误判朝向
+        if (!rect || rect.width === 0 || rect.height === 0) return;
+        const centerX = rect.left + rect.width / 2;
+        const isLeft = centerX < window.innerWidth / 2;
+        floatingFacingFlipped = !isLeft; // 右半区翻转，左半区不翻转
+        inner.classList.toggle('flipped', floatingFacingFlipped);
     }
 
     function createFloatingPet() {
@@ -2935,6 +2952,7 @@
             floatingPetEl.style.top = ny + 'px';
             floatingPetEl.style.right = 'auto';
             floatingPetEl.style.bottom = 'auto';
+            updateFloatingFacing();
         }
 
         function onEnd() {
@@ -2947,6 +2965,7 @@
                 const rect = floatingPetEl.getBoundingClientRect();
                 floatingPetPos = { x: rect.left, y: rect.top };
                 saveFloatingPos();
+                updateFloatingFacing();
             } else {
                 // 未发生拖动 = 一次点击：触发开心表情 + 说话（与游戏页内一致）
                 dragState.dragging = false;
@@ -3065,6 +3084,9 @@
         if (!floatingPetEl || !document.body.contains(floatingPetEl)) createFloatingPet();
         if (floatingPetEl) {
             floatingPetEl.classList.add('show');
+            // 显示后再按真实位置重算朝向：create 时元素为 display:none，
+            // getBoundingClientRect 为 0 会误判，导致刷新后朝向错乱。
+            requestAnimationFrame(() => updateFloatingFacing());
         }
     }
 
