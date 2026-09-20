@@ -159,7 +159,7 @@
 
 .stats-card-header .stats-title  {
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--text-primary);
     display: flex;
     align-items: center;
@@ -670,15 +670,17 @@
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
-    z-index: 50;
+    z-index: 1150;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
 }
 
 .stats-date-overlay.show  {
     opacity: 1;
     visibility: visible;
+    /* 显示时 visibility 要即时（不能沿用 base 的 0s 0.35s 延迟），否则遮罩会晚于主体 0.35s 才出现 */
+    transition: opacity 0.35s ease, visibility 0s 0s;
 }
 
 
@@ -689,9 +691,9 @@
     right: 0;
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
-    z-index: 51;
+    z-index: 1151;
     transform: translateY(100%);
-    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s 0.35s;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
     max-height: 85vh;
     display: flex;
     flex-direction: column;
@@ -703,7 +705,7 @@
 
 .stats-date-modal.show  {
     transform: translateY(0);
-    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
     visibility: visible;
 }
 
@@ -1684,14 +1686,18 @@
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.35);
-    z-index: 20;
-    display: none;
+    z-index: 1150;
+    display: block;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
 }
 .year-overlay.show  {
-    display: block;
     opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 0.3s ease, visibility 0s;
 }
 .year-modal  {
     position: absolute;
@@ -1703,14 +1709,19 @@
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
-    z-index: 21;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
+    z-index: 1151;
     padding: 16px;
     will-change: transform;
     max-height: 85vh;
+    visibility: hidden;
+    pointer-events: none;
 }
 .year-modal.show  {
     transform: translateY(0);
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    visibility: visible;
+    pointer-events: auto;
 }
 .year-modal-header  {
     display: flex;

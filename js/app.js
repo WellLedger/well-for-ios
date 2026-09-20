@@ -1,4 +1,4 @@
-﻿(function() {
+(function() {
     'use strict';
 
     const API_BASE = 'https://account.solitudenook.top/api';
@@ -26,7 +26,7 @@
     let cropper = null; 
     let currentPartner = null;
     let matchCode = null;
-    let previousPage = 'home';
+    let prevStack = [];
 let pageBackStack = [];
 let currentBillId = null;
 let currentBill = null;
@@ -45,7 +45,9 @@ let weekPickerDate = new Date();
 let tempWeekDate = new Date();
 let selectedWeekStart = null; 
 let settingsFromProfile = false;
+let settingsPushedSource = null; // 记录被推走的底层元素（一级页 或 新增记账弹层），关闭时还原
 let partnerProfileInfo = null;
+let partnerProfileFetched = false; // 本次会话是否已从接口拿过搭子资料（缓存态不算）
 let searchPage = 1;
 let searchHasMore = false;
 let searchLoading = false;
@@ -61,6 +63,12 @@ const WALLET_TYPES = [
     { key: 'both', label: '我们的荷包', filter: '共同' },
 ];
 let currentWalletIndex = 2;
+// 当前归属荷包的 key，作为跨绑定状态变化的稳定依据。
+// 只存下标的话，搭子列表从 2 项变 3 项时下标含义会漂移（1 从「我们的」变成「对方的」）。
+let currentWalletKey = 'both';
+// 绑定状态是否已拉取完成。未完成时不要渲染「邀请搭子」气泡，
+// 否则首页初始化会先按「无搭子」渲染出气泡，接口返回后又移除，出现一闪。
+let partnerStatusLoaded = false;
 function getAvailableWallets() {
     if (currentPartner) {
         
@@ -71,9 +79,32 @@ function getAvailableWallets() {
     }
 }
 
+// 按 currentWalletKey 把 currentWalletIndex 解析到当前可选荷包列表上。
+// 默认下标 2（我们的荷包）在无搭子时列表只有 2 项会越界，
+// 越界后回退成下标 0（我的小荷包），导致归属名称先闪一下再变。
+function normalizeWalletIndex() {
+    const available = getAvailableWallets();
+    if (!available.length) return available;
+    let idx = available.findIndex(w => w.key === currentWalletKey);
+    if (idx < 0) {
+        
+        const bothIdx = available.findIndex(w => w.key === 'both');
+        idx = bothIdx >= 0 ? bothIdx : 0;
+    }
+    currentWalletIndex = idx;
+    return available;
+}
+
+// 切换归属时同步记录 key，供上面的解析使用
+function setCurrentWalletByIndex(available, index) {
+    currentWalletIndex = index;
+    const w = available && available[index];
+    if (w) currentWalletKey = w.key;
+}
+
 
 function getCurrentWallet() {
-    const available = getAvailableWallets();
+    const available = normalizeWalletIndex();
     return available[currentWalletIndex] || available[0];
 }
 
@@ -107,7 +138,8 @@ const WEBVIEW_PAGES = {
 let webviewState = {
     currentUrl: '',
     currentTitle: '',
-    isLoading: false
+    isLoading: false,
+    pushedSource: null
 };
 
 
@@ -146,20 +178,52 @@ function openWebViewPage(pageKey) {
     
     
     nav.classList.remove('show');
-    
-    
+
+    /* 与 push.html 一致的 iOS push 转场：先锁定起始位移（屏幕外右侧），强制 reflow 后再切到
+       终点，否则 display:none→flex 与 class 切换被同帧合并、跳过起始帧，看不到滑入动画。
+       #page-webview 的 CSS 已定义 translateX(100%)→0 的 0.44s 过渡，这里只负责正确触发。 */
     pageEl.style.display = 'flex';
-    
-    
+    pageEl.style.transition = 'transform 0.44s cubic-bezier(.32,.72,0,1)';
+    pageEl.style.transform = 'translateX(100%)';
+    void pageEl.offsetWidth; // 强制 reflow，锁定起始位移
+    _markAnimating(pageEl);
+    webviewState.pushedSource = null;
     if (isOnAuthPage) {
+        // 参照 openForgotPasswordPage 的 auth 分支动画逻辑：
+        // 登录页作为底层被推走（左推 28%），webview 从右侧滑入覆盖其上，形成 iOS push 转场；
+        // 关闭时登录页同步滑回 0（见 closeWebViewPage 的 auth 分支）。
+        // #page-webview 不是 #main-app 子元素，无需显示 mainApp；登录页作底层背景即可（不会露出首页）。
+        const baseHome = document.querySelector('#main-app .page.active');
+        if (baseHome) baseHome.classList.remove('active');
+        // 登录页 absolute 覆盖在 #app 内（与 relative 基类同尺寸），z-index 压在 webview(z-index:1000) 之下。
+        pageAuth.style.position = 'absolute';
+        pageAuth.style.top = '0';
+        pageAuth.style.left = '0';
+        pageAuth.style.right = '0';
+        pageAuth.style.bottom = '0';
+        pageAuth.style.zIndex = '1';
+        pageAuth.style.transition = 'transform 0.44s cubic-bezier(.32,.72,0,1)';
+        pageAuth.style.transform = 'translateX(0)';
+        void pageAuth.offsetWidth; // 锁定起始帧，避免与显示同帧合并跳过动画
+        pageAuth.style.transform = 'translateX(-28%)';
+        _markAnimating(pageAuth);
+        setBottomNavVisible(false); // auth 路径无底部导航，全程保持隐藏
         pageEl.classList.add('active');
-        pageAuth.style.display = 'none';
-        pageAuth.classList.remove('active');
-        mainApp.style.display = 'flex';
+        pageEl.style.transform = 'translateX(0)';
         try { refreshStatusBar(); } catch(e) {}
     } else {
+        // 与统一 push 转场一致：把当前底层页（一级页或二级页）向左推 28%，形成 iOS push 视差
+        const wvSource = _pageStack.length
+            ? _pageStack[_pageStack.length - 1]
+            : document.querySelector('#page-home.active, #page-bills.active, #page-stats.active, #page-profile.active');
+        if (wvSource && wvSource !== pageEl && !wvSource.classList.contains('page--pushed')) {
+            wvSource.style.transition = 'transform 0.44s cubic-bezier(.32,.72,0,1)';
+            wvSource.classList.add('page--pushed');
+            webviewState.pushedSource = wvSource;
+        }
+        pageEl.classList.add('active');
+        pageEl.style.transform = 'translateX(0)';
         requestAnimationFrame(() => {
-            pageEl.classList.add('active');
             try { refreshStatusBar(); } catch(e) {}
         });
     }
@@ -238,22 +302,74 @@ function closeWebViewPage() {
     
     iframe.src = '';
     webviewState.isLoading = false;
-    
-    pageEl.classList.remove('active');
-    setTimeout(() => { pageEl.style.display = 'none'; }, 350);
+
+    /* 滑出到右侧屏幕外（与 push.html 的 pop 转场一致）。注意：打开时已设内联
+       transform:translateX(0)，仅靠移除 .active 盖不掉内联样式，必须显式把 transform
+       设回 translateX(100%) 才能触发滑出动画；is-animating 防止子层残影。 */
+    pageEl.style.transition = 'transform 0.44s cubic-bezier(.32,.72,0,1)';
+    pageEl.style.transform = 'translateX(100%)';
+    _markAnimating(pageEl);
+    // 与统一 pop 转场一致：把被推走的底层页带回原位（视差消除），与新页滑出同步进行
+    if (webviewState.pushedSource) {
+        webviewState.pushedSource.classList.remove('page--pushed');
+        webviewState.pushedSource = null;
+    }
+    setTimeout(() => {
+        pageEl.classList.remove('active');
+        pageEl.style.display = 'none';
+        pageEl.style.transform = '';
+        pageEl.style.zIndex = '';
+    }, 480);
     
     
     if (target === 'auth') {
-        mainApp.style.display = 'none';
-        pageAuth.style.display = 'flex';
-        pageAuth.classList.add('active');
-        nav.classList.remove('show');
-        currentPage = 'home'; 
-        try { refreshStatusBar(); } catch(e) {}
+        // 参照 closeForgotPasswordPage 的 auth 分支：
+        // webview 向右滑出（顶部已设 translateX(100%)），登录页从 -28% 同步滑回 0，
+        // 形成"推回登录页"的标准 pop 效果；480ms 后仅复位 transform/过渡/临时层级与 absolute 定位。
+        setBottomNavVisible(false); // popKeepSource 在栈空时会显示导航，auth 路径须保持隐藏
+        pageAuth.style.transition = 'transform 0.44s cubic-bezier(.32,.72,0,1)';
+        pageAuth.style.transform = 'translateX(0)';
+        _markAnimating(pageAuth);
+        setTimeout(() => {
+            mainApp.style.display = 'none';
+            pageAuth.style.display = 'flex';
+            pageAuth.classList.add('active');
+            // 还原 position/inset/层级/transform/过渡（与 open 配对，避免回退跳动）
+            pageAuth.style.position = '';
+            pageAuth.style.top = '';
+            pageAuth.style.left = '';
+            pageAuth.style.right = '';
+            pageAuth.style.bottom = '';
+            pageAuth.style.zIndex = '';
+            pageAuth.style.transform = '';
+            pageAuth.style.transition = '';
+            pageAuth.classList.remove('is-animating');
+            currentPage = 'home';
+            requestAnimationFrame(() => syncAuthWrapperHeight(false));
+            try { refreshStatusBar(); } catch(e) {}
+        }, 480);
         return;
     }
-    
-    restoreFromBack(target);
+
+    /* webview 是覆盖层，底层页面（一级页或二级页）并未被隐藏，关闭时只需隐藏 webview
+       即可还原底层页。之前用 restoreFromBack(target) 会按 _pageStack 把底层二级页（如关于页）
+       先滑出再显示，480ms 后 transform 复位又"弹回"，表现为"先回我的页、再自动回关于页"的
+       双跳残影。这里直接还原底层页状态，不碰 _pageStack（保持与 about 等二级页的栈一致）。 */
+    currentPage = target;
+    const tEl = document.getElementById('page-' + target);
+    const isTab = ['home', 'bills', 'stats', 'profile'].indexOf(target) !== -1;
+    if (isTab) {
+        nav.classList.add('show');
+        if (tEl) { tEl.style.display = ''; tEl.classList.add('active'); }
+        if (target === 'home') renderHome();
+        else if (target === 'bills') renderBills();
+        else if (target === 'stats') enterStatsPage();
+        else if (target === 'profile') renderProfile();
+    } else {
+        nav.classList.remove('show');
+        if (tEl) { tEl.style.display = ''; tEl.classList.add('active'); }
+    }
+    try { refreshStatusBar(); } catch(e) {}
 }
 
 
@@ -353,8 +469,8 @@ async function sendVerificationCode(email, type) {
 }
 
 
-async function registerWithCode(email, code, password, nickname) {
-    const data = await apiCall('/auth/register', 'POST', { email, code, password, nickname });
+async function registerWithCode(email, password, nickname) {
+    const data = await apiCall('/auth/register', 'POST', { email, password, nickname });
     return data;
 }
 
@@ -421,8 +537,13 @@ const summaryDateLabel = document.getElementById('summaryDateLabel');
     const pageAuth = $('#auth-page');
     const loginForm = $('#loginForm');
     const registerForm = $('#registerForm');
-    const authSwitchLink = $('#authSwitchLink');
-    const authSwitchText = $('#authSwitchText');
+    const authFormWrapper = $('#authFormWrapper');
+    const authPageTitle = $('#authPageTitle');
+    const authPageDesc = $('#authPageDesc');
+    const tabLogin = $('#tabLogin');
+    const tabRegister = $('#tabRegister');
+    const authTabLine = $('#authTabLine');
+    let authIsRegister = false;
     const avatarFileInput = $('#avatarFileInput');
 const avatarOverlay = $('#avatarOverlay');
 const avatarModal = $('#avatarModal');
@@ -665,11 +786,12 @@ function updateBillsSummaryLabels() {
  
 
 let tempSelectedYear = new Date().getFullYear();
+let datePickerIsBirthday = false;
 
 function renderYearPicker() {
     const wheelYearOnly = document.getElementById('wheelYearOnly');
     if (!wheelYearOnly) return;
-    const yearValues = generateWheelItems(YEAR_MIN, YEAR_MAX, false);
+    const yearValues = buildYearWheel(false);
     renderWheel(wheelYearOnly, yearValues, tempSelectedYear, (newYear) => {
         tempSelectedYear = parseInt(newYear, 10);
     });
@@ -1171,11 +1293,11 @@ function updateBillsStats() {
     
     
     if (totalValueEl) {
-        totalValueEl.textContent = `¥${total.toFixed(2)}`;
+        totalValueEl.textContent = `${moneySym()}${total.toFixed(2)}`;
         totalValueEl.className = 'bills-stat-value ' + (isExpense ? 'expense' : 'income');
     }
     if (dailyValueEl) {
-        dailyValueEl.textContent = `¥${daily.toFixed(2)}`;
+        dailyValueEl.textContent = `${moneySym()}${daily.toFixed(2)}`;
         dailyValueEl.className = 'bills-stat-value ' + (isExpense ? 'expense' : 'income');
     }
     
@@ -1189,6 +1311,7 @@ function renderBillItemSimple(b) {
 
     const typeClass = b.type === 'income' ? 'income' : 'expense';
     const sign = b.type === 'income' ? '+' : '-';
+    const typeLabel = b.type === 'income' ? '收入' : '支出';
 
     const displayText = b.note && b.note.trim() ? b.note.trim() : b.category;
 
@@ -1207,11 +1330,10 @@ function renderBillItemSimple(b) {
                         <div class="bill-category">${escapeHtml(displayText)}</div>
                         <div class="bill-note">
                             <span></span>
-                            <span class="belong-tag">${belongDisplay}</span>${isHelp ? '<span class="belong-tag help-tag">帮记</span>' : ''}
-                        </div>
+                            <span class="belong-tag">${belongDisplay}</span><span class="type-tag ${typeClass}">${typeLabel}</span>${isHelp ? '<span class="amount-help-tag">(帮)</span>' : ''}                        </div>
                     </div>
                 </div>
-                <div class="bill-amount ${typeClass}">${sign}¥${b.amount.toFixed(2)}</div>
+                <div class="bill-amount ${typeClass}">${sign}${moneySym()}${b.amount.toFixed(2)}</div>
             </div>
         </div>
     `;
@@ -1575,13 +1697,13 @@ function renderMonthBillsList(year, month) {
         
         let summaryHtml = '';
         if (dayIncome > 0) {
-            summaryHtml += `<span class="income">¥${dayIncome.toFixed(2)}</span>`;
+            summaryHtml += `<span class="income">${moneySym()}${dayIncome.toFixed(2)}</span>`;
         }
         if (dayExpense > 0) {
-            summaryHtml += `<span class="expense">¥${dayExpense.toFixed(2)}</span>`;
+            summaryHtml += `<span class="expense">${moneySym()}${dayExpense.toFixed(2)}</span>`;
         }
         if (dayIncome === 0 && dayExpense === 0) {
-            summaryHtml += `<span class="zero">¥0.00</span>`;
+            summaryHtml += `<span class="zero">${moneySym()}0.00</span>`;
         }
         
         
@@ -1786,38 +1908,11 @@ function initBillsEvents() {
                 renderMonthPicker();
 
                 
-                const monthConfirmBtn = document.getElementById('monthBtnConfirm');
-                const monthTodayBtn = document.getElementById('monthBtnToday');
-
-                
-                const originalMonthConfirm = monthConfirmBtn.onclick;
-                const originalMonthToday = monthTodayBtn ? monthTodayBtn.onclick : null;
-
-                monthConfirmBtn.onclick = function() {
-                    syncMonthPickerValue();
-                    billsViewDate = new Date(tempMonthDate);
-                    billsSelectedDate = new Date(tempMonthDate);
+                beginMonthPickerOverride(function (date) {
+                    billsViewDate = new Date(date);
+                    billsSelectedDate = new Date(date);
                     renderBills();
-                    closeMonthPicker();
-                    
-                    monthConfirmBtn.onclick = originalMonthConfirm;
-                    if (monthTodayBtn) monthTodayBtn.onclick = originalMonthToday;
-                };
-
-                if (monthTodayBtn) {
-                    monthTodayBtn.onclick = function() {
-                        const today = new Date();
-                        tempMonthDate = new Date(today.getFullYear(), today.getMonth(), 1);
-                        renderMonthPicker();
-                        billsViewDate = new Date(tempMonthDate);
-                        billsSelectedDate = new Date(tempMonthDate);
-                        renderBills();
-                        closeMonthPicker();
-                        
-                        monthTodayBtn.onclick = originalMonthToday;
-                        monthConfirmBtn.onclick = originalMonthConfirm;
-                    };
-                }
+                });
 
                 openMonthPicker();
                 
@@ -1898,7 +1993,7 @@ function renderMonthPicker() {
     const y = tempMonthDate.getFullYear();
     const m = tempMonthDate.getMonth() + 1;
 
-    const yearValues = generateWheelItems(YEAR_MIN, YEAR_MAX, false);
+    const yearValues = buildYearWheel(false);
     const monthValues = generateWheelItems(1, 12, true);
 
     const wheelMonthYear = document.getElementById('wheelMonthYear');
@@ -1951,6 +2046,7 @@ function openMonthPicker() {
 function closeMonthPicker() {
     monthModal.classList.remove('show');
     monthOverlay.classList.remove('show');
+    clearMonthPickerOverride();
 }
 
 function confirmMonth() {
@@ -1962,11 +2058,60 @@ function confirmMonth() {
     renderHome();
 }
 
+
+function jumpToMonth(date) {
+    
+    tempMonthDate = new Date(date.getFullYear(), date.getMonth(), 1);
+    selectedMonthDate = new Date(tempMonthDate);
+    updateMonthLabel();
+    closeMonthPicker();
+
+    
+    pendingMonthPickerCommit = null;
+    renderHome();
+    try { if (typeof renderBills === 'function' && currentPage === 'bills') renderBills(); } catch (e) {}
+}
+
+
 function goToCurrentMonth() {
     const today = new Date();
     tempMonthDate = new Date(today.getFullYear(), today.getMonth(), 1);
     renderMonthPicker();
+
+    
+    if (pendingMonthPickerCommit) {
+        const commit = pendingMonthPickerCommit;
+        clearMonthPickerOverride();
+        commit(tempMonthDate);
+        closeMonthPicker();
+        return;
+    }
     confirmMonth();
+}
+
+
+let pendingMonthPickerCommit = null;
+
+function beginMonthPickerOverride(onCommit) {
+    pendingMonthPickerCommit = onCommit;
+}
+
+function endMonthPickerOverride() {
+    const commit = pendingMonthPickerCommit;
+    pendingMonthPickerCommit = null;
+    return commit;
+}
+
+function clearMonthPickerOverride() {
+    pendingMonthPickerCommit = null;
+    finalizeMonthButtons();
+}
+
+
+function finalizeMonthButtons() {
+    if (!window.__monthBaseConfirm) return;
+    if (monthBtnConfirm) monthBtnConfirm.onclick = window.__monthBaseConfirm;
+    if (monthBtnToday) monthBtnToday.onclick = window.__monthBaseToday || goToCurrentMonth;
 }
 
 function updateMonthLabel() {
@@ -1984,20 +2129,21 @@ function updateMonthLabel() {
 
     function loadCategories() {
         try {
-            const raw = localStorage.getItem('categories_data');
-            if (raw) {
-                const data = JSON.parse(raw);
+            // 统一走缓存层（老 key categories_data 会在首次读取时自动迁移过来）
+            const data = WBCache.read('categories');
+            if (data) {
                 if (!data.expense) data.expense = [];
                 if (!data.income) data.income = [];
                 return data;
             }
         } catch (e) { console.warn('加载类目数据失败，使用默认', e); }
-        localStorage.setItem('categories_data', JSON.stringify(DEFAULT_CATEGORIES));
+        WBCache.write('categories', DEFAULT_CATEGORIES);
         return JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
     }
 
     function saveCategories(data) {
-        localStorage.setItem('categories_data', JSON.stringify(data));
+        // 改本地 + 写缓存 + 同步后端，三件事绑在一起，不留下不一致的窗口
+        WBCache.write('categories', data);
         syncCategoriesToBackend();
     }
 
@@ -2025,7 +2171,7 @@ function updateMonthLabel() {
                 const cats = data.categories;
                 if (!cats.expense) cats.expense = [];
                 if (!cats.income) cats.income = [];
-                localStorage.setItem('categories_data', JSON.stringify(cats));
+                WBCache.write('categories', cats);
                 return cats;
             }
         } catch (err) {
@@ -2295,6 +2441,17 @@ function formatDateDisplayCN(dateStr) {
     const YEAR_MIN = 1970;
     const YEAR_MAX = 2100;
 
+    // 年份滚轮：非生日以本年为最新、向前只显示 8 年，并额外显示"下一年"选项（本年~本年-7，再加本年+1）；生日用宽范围。
+    // 升序生成：最早年份在上、本年最新在底部、下一年在最底。
+    function buildYearWheel(isBirthday) {
+        const y = new Date().getFullYear();
+        const max = isBirthday ? YEAR_MAX : y + 1;
+        const min = isBirthday ? YEAR_MIN : y - 7;
+        const arr = [];
+        for (let i = min; i <= max; i++) arr.push(String(i));
+        return arr;
+    }
+
     
     function generateWheelItems(start, end, pad = false) {
         const items = [];
@@ -2362,7 +2519,7 @@ function formatDateDisplayCN(dateStr) {
         const m = tempSelectedDate.getMonth() + 1;
         const d = tempSelectedDate.getDate();
 
-        const yearValues = generateWheelItems(YEAR_MIN, YEAR_MAX, false);
+        const yearValues = buildYearWheel(datePickerIsBirthday);
         const monthValues = generateWheelItems(1, 12, true);
         let daysInMonth = getDaysInMonth(y, m - 1);
         let dayValues = generateWheelItems(1, daysInMonth, true);
@@ -2415,6 +2572,7 @@ function formatDateDisplayCN(dateStr) {
     }
 
     function openDatePicker() {
+        datePickerIsBirthday = false;
         if (paymentSheet.classList.contains('show')) closePaymentSheet();
         if (noteOverlay.classList.contains('show')) closeNoteModal();
 
@@ -2431,6 +2589,8 @@ function formatDateDisplayCN(dateStr) {
     const modal = document.getElementById('dateModal');
     if (overlay) overlay.classList.remove('show');
     if (modal) modal.classList.remove('show');
+    datePickerIsBirthday = false;
+    window.__skipConfirmDateUpdate = false;
 }
 
     function confirmDate() {
@@ -2461,6 +2621,9 @@ function formatDateDisplayCN(dateStr) {
     }
 
     
+    // token 过期/失效后所有接口都会 401，这里统一兜底一次，避免界面卡在加载态
+    let _sessionExpiredHandled = false;
+
     async function apiCall(endpoint, method = 'GET', body = null) {
         const url = API_BASE + endpoint;
         const headers = { 'Content-Type': 'application/json' };
@@ -2471,7 +2634,14 @@ function formatDateDisplayCN(dateStr) {
         const data = await resp.json();
         if (!resp.ok) {
             const err = new Error(data.error || '请求失败');
-            
+
+            // 登录接口自身的 401（邮箱或密码错误）不算失效，只认鉴权类文案
+            if (resp.status === 401 && token && !_sessionExpiredHandled &&
+                (data.error === '登录已过期' || data.error === '未登录')) {
+                _sessionExpiredHandled = true;
+                if (typeof logout === 'function') logout();
+            }
+
             Object.keys(data).forEach(k => {
                 if (k !== 'error' && !err.hasOwnProperty(k)) err[k] = data[k];
             });
@@ -2481,13 +2651,168 @@ function formatDateDisplayCN(dateStr) {
     }
 
     
+/* ===== 搭子信息本地缓存 =====
+   /match/status 要等一次网络往返才拿得到 partner（头像是 base64，还压在响应体里），
+   冷启动 / 从后台切回时头像区域要空一段时间。
+   这里把上次的 partner 摘要交给统一缓存层 WBCache（见 js/cache.js）：
+   初始化先用缓存渲染，接口回来后再用最新数据覆盖 —— 对方换了头像，
+   下一次拉取就会替换显示。缓存按账号隔离，换账号不会串到上一个账号的搭子。 */
+function readPartnerCache() {
+    const data = WBCache.read('partner');
+    if (!data || !data.uid || !data.avatar) return null;
+    return data;
+}
+
+function writePartnerCache(partner) {
+    // 无搭子（解绑）时直接清掉，避免下次冷启动又乐观渲染出已解绑的搭子
+    if (!partner || !partner.uid || !partner.avatar) {
+        WBCache.remove('partner');
+        return;
+    }
+    WBCache.write('partner', {
+        id: partner.id,
+        uid: partner.uid,
+        nickname: partner.nickname || '',
+        avatar: partner.avatar,
+    });
+}
+
+function clearPartnerCache() {
+    WBCache.remove('partner');
+}
+
+/* ============================================================
+ * 统一数据层
+ * ------------------------------------------------------------
+ * 规则：内存状态只允许通过下面的 setXxx 入口修改，
+ *       每个入口负责「改内存 + 写缓存」，保证
+ *       内存状态 === 界面 === 本地缓存 三者同步。
+ *       初始化时反过来：先用缓存铺一遍界面（hydrateFromCache），
+ *       再等接口返回覆盖。
+ * ============================================================ */
+
+/* 账单：/bills 系列接口（增删改查 / 清空 / 导入 / 解绑）的统一回写口 */
+function setAllBills(list, persist = true) {
+    allBills = Array.isArray(list) ? list : [];
+    if (persist !== false) WBCache.write('bills', { bills: allBills });
+    return allBills;
+}
+
+/* 预算：本地改动先写缓存并标记 dirty，补传成功后清掉标记 */
+function setBudgetCache(data, opts = {}) {
+    budgetCache = data || {};
+    if (opts.persist !== false) {
+        WBCache.write('budgets', { budgets: budgetCache }, { dirty: !!opts.dirty });
+    }
+    return budgetCache;
+}
+
+/* 个人信息：成功保存后写缓存；只有请求失败（本地已改、待补传）才标 dirty */
+function persistProfileInfo(dirty = false) {
+    WBCache.write('profile', profileInfoState, { dirty: !!dirty });
+}
+
+/* 冷启动：先用本地缓存把界面画出来，避免等接口期间大片空白。
+   属于乐观渲染 —— 服务端数据回来后会整体覆盖，所以宁快不宁准。 */
+function hydrateFromCache() {
+    const bills = WBCache.read('bills');
+    if (bills && Array.isArray(bills.bills)) {
+        setAllBills(bills.bills, false);
+    }
+
+    const budgets = WBCache.read('budgets');
+    if (budgets && budgets.budgets) {
+        setBudgetCache(normalizeBudgetData(budgets.budgets), { persist: false });
+    }
+
+    const profile = WBCache.read('profile');
+    if (profile && typeof profile === 'object') {
+        profileInfoState = {
+            nickname: profile.nickname || '',
+            gender: profile.gender || '',
+            birthday: profile.birthday || '',
+            phone: profile.phone || '',
+        };
+    }
+
+    const partnerProfile = WBCache.read('partnerProfile');
+    if (partnerProfile) partnerProfileInfo = partnerProfile;
+}
+
+/* 上次没同步成功的本地改动（断网时改的预算 / 资料）：先补传再拉取，
+   否则服务端的旧数据会把本地改动直接盖掉。
+   只在缓存里存在 dirty 标记时才走接口，正常情况零开销。 */
+async function flushPendingWrites() {
+    if (!token) return;
+
+    if (WBCache.isDirty('budgets')) {
+        try {
+            const res = await apiCall('/budgets', 'PUT', { budgets: budgetCache });
+            setBudgetCache(res.budgets ? normalizeBudgetData(res.budgets) : budgetCache);
+            console.info('[缓存] 补传上次未同步的预算成功');
+        } catch (e) {
+            console.warn('[缓存] 补传预算失败，保留本地改动待下次重试', e);
+        }
+    }
+
+    if (WBCache.isDirty('profile')) {
+        /* 只补传有值的字段，避免用空串覆盖服务端已有的资料 */
+        const payload = {};
+        ['nickname', 'gender', 'birthday', 'phone'].forEach(k => {
+            if (profileInfoState[k]) payload[k] = profileInfoState[k];
+        });
+        if (!Object.keys(payload).length) {
+            persistProfileInfo(false);
+            return;
+        }
+        try {
+            const res = await apiCall('/user/profile', 'PUT', payload);
+            const p = (res && res.profile) || {};
+            profileInfoState = {
+                nickname: p.nickname || profileInfoState.nickname || '',
+                gender: p.gender || '',
+                birthday: p.birthday || '',
+                phone: p.phone || '',
+            };
+            persistProfileInfo(false);
+            console.info('[缓存] 补传上次未同步的个人信息成功');
+        } catch (e) {
+            console.warn('[缓存] 补传个人信息失败，保留本地改动待下次重试', e);
+        }
+    }
+}
+
+/* 冷启动时先用缓存渲染，避免等接口期间头像空白。
+   属于「乐观渲染」：若实际已解绑（且是在别的设备上解的），接口回来后会收起。
+   本机解绑走 unbindPartnerApi，会同步清掉缓存。 */
+function applyPartnerCache() {
+    if (currentPartner) return; // 本次会话已有实时数据，别用旧缓存盖掉
+    const cached = readPartnerCache();
+    if (!cached) return;
+    currentPartner = {
+        id: cached.id,
+        uid: cached.uid,
+        nickname: cached.nickname,
+        avatar: cached.avatar,
+    };
+    partnerStatusLoaded = true; // 放行 updatePartnerUI 的守卫，让头像立刻出来
+}
+
 async function fetchPartnerStatus() {
     try {
         const data = await apiCall('/match/status', 'GET');
         currentPartner = data.partner || null;
+        partnerStatusLoaded = true;
+        // 服务端是唯一真相：有搭子就刷新缓存（含对方最新头像），没搭子就清掉
+        writePartnerCache(currentPartner);
         updatePartnerUI();
         if (currentPage === 'profile') {
             renderProfile();
+        }
+        // 同理：用户在绑定状态回来之前就切到了报表页时，showPage('stats') 里的
+        // 预算同步 / 预算数据加载会被 currentPartner 判空挡掉，这里补一次
+        if (currentPage === 'stats' && currentPartner) {
+            enterStatsPage();
         }
         
         updateWalletDisplay();
@@ -2498,15 +2823,20 @@ async function fetchPartnerStatus() {
         return currentPartner;
     } catch (err) {
         console.warn('获取绑定状态失败', err);
-        currentPartner = null;
-        updatePartnerUI();
-        
-        updateWalletDisplay();
+        // 失败时不要无条件清空 currentPartner：一次网络抖动就会把已匹配用户的
+        // 头像 / 邀请搭子气泡瞬间变成「未绑定」，下次请求成功再切回来，同样是一闪。
+        // 只有「从未成功加载过」时才按未绑定处理，否则保留上一次的有效状态。
+        if (!partnerStatusLoaded) {
+            currentPartner = null;
+            partnerStatusLoaded = true;
+            updatePartnerUI();
+            updateWalletDisplay();
+        }
         
         if (window.PetSystem) {
             window.PetSystem.loadStatus().catch(() => {});
         }
-        return null;
+        return currentPartner;
     }
 }
     async function generateMatchCodeApi() {
@@ -2526,6 +2856,10 @@ async function bindPartnerApi(code) {
         await fetchPartnerStatus();
         
         localStorage.removeItem('categories_data');
+        // 换了搭子：搭子资料缓存作废，否则打开资料页还是上一位的
+        partnerProfileInfo = null;
+        partnerProfileFetched = false;
+        WBCache.remove('partnerProfile');
         await refreshCategoriesFromBackend();
         
         await loadAllData();
@@ -2559,11 +2893,20 @@ async function unbindPartnerApi() {
     try {
         const data = await apiCall('/match/unbind', 'DELETE');
         currentPartner = null;
+        // 本机已确认解绑，同步清掉搭子缓存，否则下次冷启动会先乐观渲染出旧搭子
+        clearPartnerCache();
         stopBudgetRealtimeSync();
 
-        allBills = [];
-        budgetCache = { [getBudgetMonthKey(new Date())]: { my: 0, partner: 0, both: 0 } };
         localStorage.removeItem('categories_data');
+
+        // 解绑后共享账单不再可见：内存态与缓存一起归零（随后 loadAllData 会拉最新）
+        setAllBills([]);
+        setBudgetCache({ [getBudgetMonthKey(new Date())]: { my: 0, partner: 0, both: 0 } });
+
+        // 搭子资料页缓存跟着解绑一起清掉，避免下次打开还是上一位搭子的资料
+        partnerProfileInfo = null;
+        partnerProfileFetched = false;
+        WBCache.remove('partnerProfile');
 
         await refreshCategoriesFromBackend();
         updatePartnerUI();
@@ -2605,6 +2948,10 @@ async function unbindPartnerApi() {
     }
 
     function logout() {
+        // 退出前先记住本账号 uid：缓存按账号隔离，这里要保住"自己"那份，
+        // 只清掉别的账号残留（同一台设备换账号登录时不会再串数据）
+        const prevUid = WBCache.getUid();
+
         token = null;
         currentUser = null;
         localStorage.removeItem('token');
@@ -2612,16 +2959,33 @@ async function unbindPartnerApi() {
 
         localStorage.removeItem('categories_data');
 
-        // 退出登录时立即移除桌面宠物：直接移除 DOM 节点确保即时消失，
-        // 不依赖 PetSystem 是否就绪；removeFloating 会同时置空内部引用，重登录后自动重建
-        if (window.PetSystem && typeof window.PetSystem.removeFloating === 'function') {
-            window.PetSystem.removeFloating();
+        // 搭子状态属于上一个账号，必须一起清掉：否则退出后再登录，
+        // showMainApp 里 fetchPartnerStatus 返回之前，界面会先用上一个账号的
+        // 搭子头像 / 绑定状态渲染一次。置 false 让下一次进入主应用重新拉取。
+        currentPartner = null;
+        partnerStatusLoaded = false;
+        partnerProfileInfo = null;
+        partnerProfileFetched = false;
+
+        // 退出登录时立即清掉宠物内存状态：桌面宠物要即时消失，
+        // 入口卡 / petState 也要归零，否则换账号登录后、/pet/status 返回之前，
+        // 「我的」页会先显示上一个账号的宠物。
+        if (window.PetSystem && typeof window.PetSystem.reset === 'function') {
+            window.PetSystem.reset();
         } else {
             const fp = document.getElementById('petFloating');
             if (fp) fp.remove();
         }
 
-        budgetCache = { [getBudgetMonthKey(new Date())]: { my: 0, partner: 0, both: 0 } };
+        // 只清内存，不动缓存：同账号重新登录时还能秒开
+        setAllBills([], false);
+        setBudgetCache({ [getBudgetMonthKey(new Date())]: { my: 0, partner: 0, both: 0 } }, { persist: false });
+
+        WBCache.purgeOthers(prevUid);
+        WBCache.refreshUid();
+        // 退出不走返回动画，二级页栈里还留着账号安全页等；
+        // 这里强制复位，避免下次登录时它们盖在首页上
+        resetOverlayPageStack();
         showLoginPage();
     }
 
@@ -2633,6 +2997,9 @@ function checkAuth() {
         try { currentUser = JSON.parse(u); } catch (e) { currentUser = null; }
         if (currentUser) {
             if (currentUser.avatar) new Image().src = currentUser.avatar;
+            // 自动登录：缓存归属到这个账号，顺手清掉别的账号残留的缓存
+            WBCache.refreshUid();
+            WBCache.purgeOthers(WBCache.getUid());
             
             showMainApp();
             
@@ -2651,6 +3018,78 @@ function checkAuth() {
 
 function restoreFromBack(target) {
     if (!target) target = 'home';
+    if (_pageStack.length) {
+        const closing = _pageStack.pop();
+        const newTop = _pageStack.length ? _pageStack[_pageStack.length - 1] : null;
+        const base = document.querySelector('#page-home.active, #page-bills.active, #page-stats.active, #page-profile.active');
+        if (closing) {
+            // 关键修复：调用方（closeXxxPage）往往已提前 remove('active')，使 .page
+            // 回退到 display:none；若直接 translateX(100%) 则动画作用在不可见元素上、
+            // 关闭无动画。这里在滑出前强制 display:block + visibility:visible 并锁定起始
+            // 位移（translateX(0)），保证滑出过程可见；动画结束后(480ms)再复位隐藏。
+            closing.style.visibility = 'visible';
+            closing.style.display = 'block';
+            // 防御：.page--pushed 用 transform:translateX(-28%) !important，会压过下方内联
+            // 滑出位移导致关闭页原地不动、无动画。closing 是顶层页本不该带此 class，
+            // 这里先移除，确保内联 translateX(100%) 滑出生效。
+            closing.classList.remove('page--pushed');
+            closing.style.transform = 'translateX(0)';
+            void closing.offsetWidth; // 强制 reflow，提交起始位移，确保 transform 过渡触发
+            closing.style.transition = 'transform 0.44s cubic-bezier(.32,.72,0,1)';
+            closing.style.transform = 'translateX(100%)';
+            // 转场期间给滑出页与底层页加 is-animating：CSS 取消子元素独立合成层，消除关闭残影
+            _markAnimating(closing);
+            if (base) _markAnimating(base);
+            setTimeout(() => {
+                closing.classList.remove('active');
+                closing.classList.remove('page--pushed');
+                closing.style.display = 'none';
+                closing.style.visibility = '';
+                closing.style.transform = '';
+                closing.style.zIndex = '';
+                // 二级页栈已清空时复位层级计数（同上）
+                if (_pageStack.length === 0) _pageZCounter = 20;
+            }, 480);
+        }
+        // 新顶层页（即关闭页的直接下层，可能位于 #main-app 之外）必须显式处理：
+        // 带过渡从 -28%（page--pushed）回弹到 0，形成「揭示 / 回弹」动画。
+        // 原逻辑只遍历 #main-app 内 .page，漏掉 #main-app 外的二级页，
+        // 导致嵌套关闭时下层页一直停在 -28%、二级页关闭无推动动画。
+        if (newTop && newTop !== closing) {
+            newTop.style.transition = 'transform 0.44s cubic-bezier(.32,.72,0,1)';
+            newTop.classList.remove('page--pushed');
+            newTop.style.transform = 'translateX(0)';
+            newTop.classList.add('active');
+            _markAnimating(newTop);
+        } else if (!newTop && base) {
+            // 已完全回到一级 tab：底层 tab 同样回弹到 0
+            base.style.transition = 'transform 0.44s cubic-bezier(.32,.72,0,1)';
+            base.classList.remove('page--pushed');
+            base.style.transform = 'translateX(0)';
+            _markAnimating(base);
+        }
+        // 隐藏 #main-app 内其余非活跃页（#main-app 外的二级页由各自 closeXxxPage 管理 display）
+        document.querySelectorAll('#main-app .page').forEach(p => {
+            if (p === closing || p === newTop || p === base) return;
+            p.classList.remove('active');
+            p.style.display = 'none';
+        });
+        const targetEl = document.getElementById('page-' + target);
+        if (targetEl && targetEl !== newTop) { targetEl.style.display = ''; targetEl.classList.add('active'); }
+        navItems.forEach(item => {
+            item.classList.toggle('active', item.dataset.page === target);
+            item.style.color = '';
+        });
+        nav.classList.add('show');
+        currentPage = target;
+        if (target !== 'budget' && target !== 'stats') stopBudgetRealtimeSync();
+        if (target === 'home') renderHome();
+        else if (target === 'bills') renderBills();
+        else if (target === 'stats') { enterStatsPage(); }
+        else if (target === 'profile') renderProfile();
+        try { refreshStatusBar(); } catch(e) {}
+        return;
+    }
     document.querySelectorAll('#main-app .page').forEach(p => {
         p.classList.remove('active');
         p.style.display = 'none';
@@ -2686,28 +3125,26 @@ function showPage(name) {
         pageAuth.style.display = 'flex';
         pageAuth.classList.add('active');
         nav.classList.remove('show');
+        setAuthMode(name === 'register');
+        requestAnimationFrame(() => syncAuthWrapperHeight(false));
         return;
     }
     
 if (name === 'detail') {
-        nav.classList.add('show');  
+        nav.classList.add('show');
+        const pageEl = document.getElementById('page-detail');
+        if (pageEl && !_isExcludedPage(pageEl)) pushPageOpen(pageEl);
         document.querySelectorAll('#main-app .page').forEach(p => {
+            if (p === pageEl || p.classList.contains('page--pushed')) return;
             p.classList.remove('active');
             p.style.display = 'none';
         });
-        const pageEl = document.getElementById('page-detail');
-        if (pageEl) {
-            pageEl.style.display = 'flex';
-            requestAnimationFrame(() => {
-                pageEl.classList.add('active');
-                try { refreshStatusBar(); } catch(e) {}
-            });
-        }
+        try { refreshStatusBar(); } catch(e) {}
         currentPage = 'detail';
         return;
     }
     
-    mainApp.style.display = 'flex';
+    mainApp.style.display = 'grid'; // 一级页用 grid 堆叠，保持与 CSS 一致
     nav.classList.add('show');
     pageAuth.style.display = 'none';
     pageAuth.classList.remove('active');
@@ -2718,15 +3155,32 @@ if (name === 'detail') {
         detailPage.style.display = 'none';
     }
 
+    const pageEl = document.getElementById('page-' + name);
+    // 一级页之间互相切换：push.html 同款淡入淡出 + 轻微缩放；其它情况保持原逻辑
+    const isTabTarget = isTabPage(name);
+    const prevTabEl = isTabTarget ? getActiveTabPage() : null;
+    const animateTabSwitch = !!(isTabTarget && pageEl && prevTabEl && prevTabEl !== pageEl);
+    if (isTabTarget && _pageStack.length) _pageStack.length = 0; // 回到一级页：清空二级/三级页栈
+
+    // 二级/三级页：统一走 push 转场（来源页推走 + 新页右滑入），不再出现 display 直切
+    const _pagePos = pageEl ? getComputedStyle(pageEl).position : '';
+    const isSubPage = !!pageEl && !isTabTarget && !_isExcludedPage(pageEl)
+        && (_pagePos === 'fixed' || _pagePos === 'absolute');
+    if (isSubPage) pushPageOpen(pageEl);
+
     document.querySelectorAll('#main-app .page').forEach(p => {
+        if (p === prevTabEl && animateTabSwitch) return; // 旧一级页延后隐藏，先做淡出
+        if (isSubPage && (p === pageEl || p.classList.contains('page--pushed'))) return;
         p.classList.remove('active');
         p.style.display = 'none';
+        resetPushedStyle(p);
     });
 
-    const pageEl = document.getElementById('page-' + name);
-    if (pageEl) {
+    if (pageEl && !isSubPage) {
         pageEl.style.display = '';
         pageEl.classList.add('active');
+        resetPushedStyle(pageEl);
+        if (animateTabSwitch) crossFadeTabPages(prevTabEl, pageEl);
     }
 
     
@@ -2785,6 +3239,273 @@ nav.classList.add('show');
     try { refreshStatusBar(); } catch(e) {}
 }
 
+/* ===== 二级页转场：push.html 风格 iOS push ===== */
+let _pageZCounter = 20;
+const _pageStack = [];
+function _isExcludedPage(el) {
+    if (!el) return true;
+    const id = el.id || '';
+    return /pet/i.test(id); // 宠物相关页面走原逻辑；新增记账为 modal 不受影响
+}
+/* 底部导航显隐：二级页进出时同步下滑/上滑（push.html 的 tabbar.is-hidden）。
+   动画由 CSS 的 transform/opacity 过渡承担，这里只切 class。 */
+function setBottomNavVisible(show) {
+    const navEl = document.getElementById('bottom-nav');
+    if (!navEl) return;
+    navEl.classList.toggle('show', !!show);
+}
+/* 强制复位所有「压在 tab 之上的二级页」。
+   正常返回走 popKeepSource 会把它们滑出并清理；但退出登录这类「不是返回、
+   而是离开」的流程不走返回动画（否则会把底层的「我的」页揭示出来），
+   栈里就会留着账号安全页等。不复位的话下次登录 mainApp 一显示，
+   这些页面会带着 active / 行内 z-index 直接盖在首页上。
+   注意：多数二级页的 CSS 是 `display: flex !important`（如 #page-account-security），
+   行内 display 压不过它 —— 真正让它们消失的是「摘掉 .active」后
+   transform 回到 translateX(100%) 移出屏幕。这里两者都做。
+   只清非一级 tab 页；宠物页（#page-pet 系）由 PetSystem 自己管理，跳过。 */
+function resetOverlayPageStack() {
+    _pageStack.length = 0;
+    _pageZCounter = 20;
+    prevStack = [];
+    pageBackStack = [];
+    document.querySelectorAll('.page').forEach(p => {
+        const name = (p.id || '').replace(/^page-/, '');
+        if (TAB_PAGE_IDS.indexOf(name) !== -1) return;
+        if (_isExcludedPage(p)) return;
+        p.classList.remove('active', 'page--pushed', 'is-animating');
+        p.style.display = 'none';
+        p.style.transform = '';
+        p.style.transition = '';
+        p.style.zIndex = '';
+        p.style.opacity = '';
+        p.style.visibility = '';
+    });
+    // 一级 tab 页也复位：只留首页 active，其余隐藏，避免退出前的 tab 状态残留
+    TAB_PAGE_IDS.forEach(name => {
+        const el = document.getElementById('page-' + name);
+        if (!el) return;
+        el.classList.remove('page--pushed', 'is-animating');
+        el.style.transform = '';
+        el.style.transition = '';
+        el.style.zIndex = '';
+        el.style.opacity = '';
+        const keep = name === 'home';
+        el.classList.toggle('active', keep);
+        el.style.display = keep ? '' : 'none';
+    });
+    currentPage = 'home';
+    setBottomNavVisible(true);
+}
+/* 转场期间给页面加 is-animating：CSS 会取消子元素独立合成层，消除关闭残影。
+   transform 动画结束后移除；同时兜底定时清理，避免被快速连续转场打断后残留。 */
+function _markAnimating(el) {
+    if (!el) return;
+    el.classList.add('is-animating');
+    let cleaned = false;
+    const cleanup = function () {
+        if (cleaned) return;
+        cleaned = true;
+        el.classList.remove('is-animating');
+        el.removeEventListener('transitionend', onEnd);
+    };
+    const onEnd = function (e) {
+        if (e && e.propertyName && e.propertyName !== 'transform') return;
+        cleanup();
+    };
+    el.addEventListener('transitionend', onEnd);
+    setTimeout(cleanup, 600);
+}
+
+function pushPageOpen(pageEl) {
+    if (!pageEl) return;
+    const excluded = _isExcludedPage(pageEl);
+    const source = _pageStack.length
+        ? _pageStack[_pageStack.length - 1]
+        : document.querySelector('#page-home.active, #page-bills.active, #page-stats.active, #page-profile.active');
+    if (source && source !== pageEl && !_isExcludedPage(source) && !excluded) {
+        source.style.transition = 'transform 0.44s cubic-bezier(.32,.72,0,1)';
+        source.classList.add('page--pushed');
+    }
+    pageEl.style.transition = 'transform 0.44s cubic-bezier(.32,.72,0,1)';
+    pageEl.style.zIndex = String(++_pageZCounter);
+    // 二级页本就是 position:fixed 覆盖层，这里只控制位移：先从右侧屏幕外滑入（push.html 的 push 转场）
+    if (!excluded) pageEl.style.transform = 'translateX(100%)';
+    pageEl.style.display = 'flex';
+    void pageEl.offsetWidth; // 强制 reflow，锁定起始位移
+    // 与 push.html 一致：reflow 后同步切换终点，避免 rAF 内合并导致首帧跳变
+    pageEl.classList.add('active');
+    if (!excluded) pageEl.style.transform = 'translateX(0)';
+    if (!excluded) {
+        _markAnimating(pageEl);
+        if (source) _markAnimating(source);
+    }
+    requestAnimationFrame(() => {
+        try { refreshStatusBar(); } catch (e) {}
+    });
+    if (!excluded) _pageStack.push(pageEl);
+    // 二级页打开：底部导航同步下滑隐藏（与页面滑入同一时间轴）
+    if (!excluded) setBottomNavVisible(false);
+}
+function popKeepSource(closingEl) {
+    if (_pageStack.length) _pageStack.pop();
+    const newTop = _pageStack.length ? _pageStack[_pageStack.length - 1] : null;
+    const base = document.querySelector('#page-home.active, #page-bills.active, #page-stats.active, #page-profile.active');
+    const excluded = _isExcludedPage(closingEl);
+    if (closingEl && !excluded) {
+        // 关键修复（同 restoreFromBack）：调用方可能已提前 remove('active') 使 .page
+        // 回退到 display:none；这里在滑出前强制 display:block + visibility:visible 并锁定
+        // 起始位移，保证 translateX(100%) 滑出过程可见；动画结束后(480ms)再复位隐藏。
+        closingEl.style.visibility = 'visible';
+        closingEl.style.display = 'block';
+        // 防御：.page--pushed 用 transform:translateX(-28%) !important，会压过下方内联
+        // 滑出位移导致关闭页原地不动、无动画。closing 是顶层页本不该带此 class，先移除。
+        closingEl.classList.remove('page--pushed');
+        closingEl.style.transform = 'translateX(0)';
+        void closingEl.offsetWidth; // 强制 reflow，提交起始位移，确保 transform 过渡触发
+        closingEl.style.transition = 'transform 0.44s cubic-bezier(.32,.72,0,1)';
+        closingEl.style.transform = 'translateX(100%)';
+        _markAnimating(closingEl);
+        if (base) _markAnimating(base);
+        setTimeout(() => {
+            closingEl.classList.remove('active');
+            closingEl.style.display = 'none';
+            closingEl.style.visibility = '';
+            closingEl.style.transform = '';
+            closingEl.style.zIndex = '';
+            // 二级页栈已清空时复位层级计数，避免长时间使用后行内 z-index 无限增长、
+            // 进而超过弹层（日期/年份选择等）的层级把弹窗压住
+            if (_pageStack.length === 0) _pageZCounter = 20;
+        }, 480);
+    }
+    // 新顶层页（即关闭页的直接下层，可能位于 #main-app 之外）必须显式处理：
+    // 带过渡从 -28%（page--pushed）回弹到 0，形成「揭示 / 回弹」动画。
+    // 原逻辑只遍历 #main-app 内 .page，漏掉 #main-app 外的二级页（如 account-security、
+    // category-detail），导致嵌套关闭时下层页一直停在 -28%、二级页关闭无推动动画。
+    if (newTop && newTop !== closingEl) {
+        newTop.style.transition = 'transform 0.44s cubic-bezier(.32,.72,0,1)';
+        newTop.classList.remove('page--pushed');
+        newTop.style.transform = 'translateX(0)';
+        _markAnimating(newTop);
+    } else if (!newTop && base) {
+        // 已完全回到一级 tab：底层 tab 同样回弹到 0
+        base.style.transition = 'transform 0.44s cubic-bezier(.32,.72,0,1)';
+        base.classList.remove('page--pushed');
+        base.style.transform = 'translateX(0)';
+        _markAnimating(base);
+    }
+    // 隐藏 #main-app 内其余非活跃页（#main-app 外的二级页由各自 closeXxxPage 管理 display）
+    document.querySelectorAll('#main-app .page').forEach(p => {
+        if (p === closingEl || p === newTop || p === base) return;
+        p.classList.remove('active');
+        p.style.display = 'none';
+    });
+    // 回到一级页：底部导航同步上滑回归；仍在二级页则保持隐藏
+    if (!_pageStack.length) setBottomNavVisible(true);
+}
+
+/* ===== 一级页（底部导航 4 个主页面）转场：push.html 同款 淡入 + 轻微缩放 ===== */
+const TAB_PAGE_IDS = ['home', 'bills', 'stats', 'profile'];
+let _tabSwitchTimers = [];
+
+function isTabPage(name) {
+    return TAB_PAGE_IDS.indexOf(name) !== -1;
+}
+
+function getActiveTabPage() {
+    for (let i = 0; i < TAB_PAGE_IDS.length; i++) {
+        const el = document.getElementById('page-' + TAB_PAGE_IDS[i]);
+        if (el && el.classList.contains('active')) return el;
+    }
+    return null;
+}
+
+function resetPushedStyle(el) {
+    if (!el) return;
+    el.classList.remove('page--pushed');
+    el.style.transform = '';
+    el.style.filter = '';
+    el.style.zIndex = '';
+}
+
+function crossFadeTabPages(fromEl, toEl) {
+    if (!fromEl || !toEl || fromEl === toEl) return;
+    _tabSwitchTimers.forEach(function (t) { clearTimeout(t); });
+    _tabSwitchTimers = [];
+    // 清掉上一次未播放完的转场残留（一级页已常驻重叠，不再操作 display）
+    document.querySelectorAll('#main-app .page').forEach(function (p) {
+        if (p === fromEl || p === toEl) return;
+        if (p.classList.contains('tab-enter') || p.classList.contains('tab-leave')) {
+            p.classList.remove('tab-enter');
+            p.classList.remove('tab-leave');
+        }
+    });
+    // 一级页现在由 CSS 的 opacity/transform/visibility transition 接管动画，
+    // 这里只切换 active 类（对应 push.html 中 .page 加/去 is-active）
+    fromEl.classList.remove('tab-enter');
+    fromEl.classList.remove('tab-leave');
+    fromEl.classList.remove('active');
+    toEl.classList.remove('tab-leave');
+    toEl.classList.remove('tab-enter');
+    toEl.classList.add('active');
+}
+
+/* 测量面板的「自然内容高度」。
+   登录面板在 wrapper 里是 flex:1（会被拉伸到 wrapper 高度），直接读 offsetHeight
+   拿到的是 wrapper 自身高度 —— 会形成自反馈，把中途的临时高度固化成固定值。
+   这里先临时关掉拉伸再量，保证每次都取到真实的 max(登录, 注册) */
+function measureAuthPanel(el) {
+    if (!el) return 0;
+    const prevFlex = el.style.flex;
+    el.style.flex = '0 0 auto';
+    const h = el.offsetHeight;
+    el.style.flex = prevFlex;
+    return h;
+}
+
+/* 登录/注册面板高度同步：wrapper 用 overflow:hidden 承载左右滑动。
+   高度固定取「两个面板中较高的那个」（注册面板），登录/注册切换时卡片高度恒定、不跳动；
+   面板内容始终自上而下正常排列（不做垂直居中），多出的空间由 CSS 均摊到字段间距里 */
+function syncAuthWrapperHeight(animate) {
+    if (!authFormWrapper || !loginForm || !registerForm) return;
+    if (pageAuth && pageAuth.style.display === 'none') return;
+    const h = Math.max(measureAuthPanel(loginForm), measureAuthPanel(registerForm));
+    if (!h) return;
+    if (!animate) {
+        const prev = authFormWrapper.style.transition;
+        authFormWrapper.style.transition = 'none';
+        authFormWrapper.style.height = h + 'px';
+        void authFormWrapper.offsetHeight;
+        authFormWrapper.style.transition = prev;
+    } else {
+        authFormWrapper.style.height = h + 'px';
+    }
+}
+
+/* 登录/注册标签下的滑动下划线（照搬 auth.html 的 .tab-line） */
+function moveAuthTabLine() {
+    if (!authTabLine || !tabLogin || !tabRegister) return;
+    const activeTab = authIsRegister ? tabRegister : tabLogin;
+    if (!activeTab.offsetWidth) return;
+    authTabLine.style.width = activeTab.offsetWidth + 'px';
+    authTabLine.style.transform = 'translateX(' + activeTab.offsetLeft + 'px)';
+}
+
+/* 统一的登录/注册切换（标签 + 下划线 + 面板横滑 + 头部文案） */
+function setAuthMode(isRegister) {
+    authIsRegister = !!isRegister;
+
+    if (authFormWrapper) authFormWrapper.classList.toggle('show-register', authIsRegister);
+
+    if (tabLogin) tabLogin.classList.toggle('active', !authIsRegister);
+    if (tabRegister) tabRegister.classList.toggle('active', authIsRegister);
+    moveAuthTabLine();
+
+    if (authPageTitle) authPageTitle.textContent = authIsRegister ? '创建账户' : '欢迎回来';
+    if (authPageDesc) authPageDesc.textContent = authIsRegister ? '只需几秒即可开始' : '请登录您的账户以继续';
+
+    syncAuthWrapperHeight(true);
+}
+
 function showLoginPage() {
     pageAuth.style.display = 'flex';
     pageAuth.classList.add('active');
@@ -2792,14 +3513,13 @@ function showLoginPage() {
     nav.classList.remove('show');
     nav.classList.remove('nav-ready');
 
-    loginForm.style.display = 'block';
-    registerForm.style.display = 'none';
-    authSwitchText.innerHTML = '还没有账号？<a id="authSwitchLink">立即注册</a>';
     $('#loginError').textContent = '';
     $('#loginError').style.display = 'none';
     $('#loginForm').reset();
     
     resetPwdToggles('#loginForm');
+    setAuthMode(false);
+    requestAnimationFrame(() => syncAuthWrapperHeight(false));
 }
 
 function showRegisterPage() {
@@ -2809,47 +3529,53 @@ function showRegisterPage() {
     nav.classList.remove('show');
     nav.classList.remove('nav-ready');
 
-    loginForm.style.display = 'none';
-    registerForm.style.display = 'block';
-    authSwitchText.innerHTML = '已有账号？<a id="authSwitchLink">去登录</a>';
     $('#registerError').textContent = '';
     $('#registerError').style.display = 'none';
     $('#registerForm').reset();
 
-    
-    const regSendBtn = document.getElementById('regSendCodeBtn');
-    if (regSendBtn) {
-        regSendBtn.disabled = false;
-        regSendBtn.textContent = '获取验证码';
-    }
-    if (countdownTimer) {
-        clearInterval(countdownTimer);
-        countdownTimer = null;
-    }
-    
     resetPwdToggles('#registerForm');
+    setAuthMode(true);
+    requestAnimationFrame(() => syncAuthWrapperHeight(false));
 }
 
 async function showMainApp() {
+    // 每次进入主应用都重置绑定状态标记，首页首次渲染先不画「邀请搭子」气泡
+    partnerStatusLoaded = false;
+    // 账号可能刚切换过，重新解析缓存归属的账号
+    WBCache.refreshUid();
+    // 缓存优先：账单 / 预算 / 个人信息 / 搭子资料 全部先用本地缓存铺一遍，
+    // 首屏不依赖任何接口；随后 loadAllData() 拉服务端数据整体覆盖
+    hydrateFromCache();
+    // 有本地缓存就先用它渲染搭子（头像 / 昵称 / 归属判断），
+    // 不用等 /match/status 往返；接口回来后由 fetchPartnerStatus 覆盖
+    applyPartnerCache();
     pageAuth.style.display = 'none';
     pageAuth.classList.remove('active');
-    mainApp.style.display = 'flex';
+    mainApp.style.display = 'grid'; // 一级页用 grid 堆叠，保持与 CSS 一致
     
     
     if (currentUser?.avatar) new Image().src = currentUser.avatar;
     
     showPage('home');
-    updateHomeAvatar();
+    // 首页左上角头像跟随当前荷包归属（我的/对方的/我们的），
+    // 不能无条件渲染成用户头像，否则「我们的荷包」会先闪一下本人头像。
+    updateWalletDisplay();
     
     requestAnimationFrame(() => {
         nav.classList.add('nav-ready');
     });
+    // 宠物入口 / 桌面宠物不走「等 /match/status 回来再拉」的串行链：
+    // ① hydrate 同步铺缓存，切到「我的」页时入口卡已经是画好的；
+    // ② loadStatus 立刻发请求，与下面的 fetchPartnerStatus 并行，而不是排在它后面
+    //   （原来只在 fetchPartnerStatus / loadAllData 内部触发，等于多等一个往返）
+    if (window.PetSystem) {
+        try { window.PetSystem.hydrate(); } catch (e) { console.warn('宠物缓存渲染失败', e); }
+        window.PetSystem.loadStatus().catch(() => {});
+    }
     fetchPartnerStatus().then(() => {
-        const available = getAvailableWallets();
-        if (currentWalletIndex >= available.length) {
-            currentWalletIndex = available.length - 1;
-        }
+        normalizeWalletIndex();
         updateWalletDisplay();
+        renderHomeSummaryOnly();
     });
 }
 
@@ -2923,12 +3649,11 @@ function renderBillItem(b) {
                         <div class="bill-category">${escapeHtml(displayText)}</div>
                         <div class="bill-note">
                             <span></span>
-                            <span class="belong-tag">${belongDisplay}</span>${isHelp ? '<span class="belong-tag help-tag">帮记</span>' : ''}
-                            <span class="type-tag ${typeClass}">${typeLabel}</span>
+                            <span class="belong-tag">${belongDisplay}</span><span class="type-tag ${typeClass}">${typeLabel}</span>${isHelp ? '<span class="amount-help-tag">(帮)</span>' : ''}
                         </div>
                     </div>
                 </div>
-                <div class="bill-amount ${typeClass}">${sign}¥${b.amount.toFixed(2)}</div>
+                <div class="bill-amount ${typeClass}">${sign}${moneySym()}${b.amount.toFixed(2)}</div>
             </div>
             <div class="bill-item-actions">
                 <button class="action-delete" data-id="${b.id}">删除</button>
@@ -3117,7 +3842,7 @@ function initHomeBillNav() {
 }
 
 function updateWalletDisplay() {
-    const available = getAvailableWallets();
+    const available = normalizeWalletIndex();
     const wallet = available[currentWalletIndex] || available[0];
     const nameEl = document.getElementById('walletName');
     const imgEl = document.getElementById('homeAvatarImg');
@@ -3125,6 +3850,7 @@ function updateWalletDisplay() {
     const prevBtn = document.getElementById('walletPrevBtn');
     const nextBtn = document.getElementById('walletNextBtn');
     const walletDisplay = document.getElementById('walletDisplay');
+    if (!wallet) return;
     
     
     if (prevBtn) {
@@ -3166,53 +3892,46 @@ function updateWalletDisplay() {
     
     
     
-    const oldBubble = walletDisplay?.querySelector('.invite-bubble');
-    if (oldBubble) oldBubble.remove();
     
+    const bubble = walletDisplay ? walletDisplay.querySelector('.invite-bubble') : null;
     
-    if (!currentPartner && wallet.key !== 'partner' && walletDisplay) {
-        const bubble = document.createElement('div');
-        bubble.className = 'invite-bubble';  
-        bubble.textContent = '邀请搭子';
+    const shouldShowBubble = !!walletDisplay && partnerStatusLoaded && !currentPartner && wallet.key !== 'partner';
+    if (!shouldShowBubble) {
+        if (bubble) bubble.remove();
+    } else if (!bubble) {
+        const el = document.createElement('div');
+        el.className = 'invite-bubble';
+        el.textContent = '邀请搭子';
         walletDisplay.style.position = 'relative';
-        walletDisplay.appendChild(bubble);
-        
-        
-        bubble.addEventListener('click', function(e) {
-            e.stopPropagation();
-            openMatchPage();
-        });
+        walletDisplay.appendChild(el);
     }
     
     
     if (walletDisplay) {
-        walletDisplay.style.cursor = currentPartner ? 'default' : 'pointer';
+        walletDisplay.style.cursor = (!partnerStatusLoaded || currentPartner) ? 'default' : 'pointer';
         
-        const newDisplay = walletDisplay.cloneNode(true);
-        walletDisplay.parentNode.replaceChild(newDisplay, walletDisplay);
         
-        newDisplay.addEventListener('click', function(e) {
-            if (!currentPartner) {
-                e.stopPropagation();
-                openMatchPage();
-            }
-        });
+        
+        if (!walletDisplay._matchClickBound) {
+            walletDisplay._matchClickBound = true;
+            walletDisplay.addEventListener('click', function(e) {
+                if (!currentPartner) {
+                    e.stopPropagation();
+                    openMatchPage();
+                }
+            });
+        }
     }
 }
 
 function switchWallet(direction) {
-    const available = getAvailableWallets();
+    const available = normalizeWalletIndex();
     if (available.length <= 1) {
         
         if (!currentPartner) {
             openMatchPage();
         }
         return;
-    }
-    
-    
-    if (currentWalletIndex >= available.length) {
-        currentWalletIndex = available.length - 1;
     }
     
     const total = available.length;
@@ -3222,7 +3941,7 @@ function switchWallet(direction) {
     
     const card = document.querySelector('.summary-card');
     if (!card) {
-        currentWalletIndex = newIndex;
+        setCurrentWalletByIndex(available, newIndex);
         updateWalletDisplay();
         renderHomeSummaryOnly();
         return;
@@ -3245,7 +3964,7 @@ function switchWallet(direction) {
         if (e.propertyName !== 'transform') return;
         card.removeEventListener('transitionend', onExit);
         
-        currentWalletIndex = newIndex;
+        setCurrentWalletByIndex(available, newIndex);
         updateWalletDisplay();
         renderHomeSummaryOnly();
         updateBudgetDisplay();
@@ -3381,7 +4100,7 @@ function renderHomeSummaryOnly() {
         const newItem = budgetItem.cloneNode(true);
         budgetItem.parentNode.replaceChild(newItem, budgetItem);
         newItem.addEventListener('click', function() {
-            const available = getAvailableWallets();
+            const available = normalizeWalletIndex();
             const wallet = available[currentWalletIndex] || available[0];
             budgetViewType = wallet.key;
             budgetViewDate = new Date(selectedMonthDate);
@@ -3402,9 +4121,10 @@ function renderHomeSummaryOnly() {
     const monthPrefix = year + '-' + String(month + 1).padStart(2, '0');
     const monthBills = allBills.filter(b => b.date && b.date.startsWith(monthPrefix));
     
-    const available = getAvailableWallets();
+    const available = normalizeWalletIndex();
     const wallet = available[currentWalletIndex] || available[0];
     if (!wallet) {
+        currentWalletKey = 'both';
         currentWalletIndex = 0;
         return renderHomeSummaryOnly();
     }
@@ -3424,8 +4144,8 @@ function renderHomeSummaryOnly() {
     
     function formatAmount(amount) {
         const formatted = amount.toFixed(2);
-        if (amount < 0) return '-¥' + Math.abs(amount).toFixed(2);
-        return '¥' + formatted;
+        if (amount < 0) return '-' + moneySym() + Math.abs(amount).toFixed(2);
+        return moneySym() + formatted;
     }
     
     if (incomeEl) incomeEl.textContent = formatAmount(summary.income);
@@ -3524,15 +4244,25 @@ function renderHome() {
     const container = $('#homeRecentBills');
     
     if (sorted.length === 0) {
-        const hasOtherBills = allBills.some(b => {
-            return b.date && !b.date.startsWith(monthPrefix);
-        });
-        if (hasOtherBills) {
-container.innerHTML =
-    `<div class="empty-state"><div class="empty-icon"><i class="ri-calendar-2-line"></i></div><div class="empty-text">${year}年${month+1}月没有账单，<span style="color:var(--primary);cursor:pointer;" onclick="goToCurrentMonth()">查看本月</span></div></div>`;
+        const nowPrefix = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0');
+        const isCurrent = monthPrefix === nowPrefix;
+
+        if (isCurrent) {
+            
+            container.innerHTML =
+    `<div class="empty-state"><div class="empty-icon"><i class="ri-inbox-line"></i></div><div class="empty-text">${year}年${month+1}月还没有账单，去记一笔吧</div></div>`;
         } else {
-container.innerHTML =
-    `<div class="empty-state"><div class="empty-icon"><i class="ri-inbox-line"></i></div><div class="empty-text">${year}年${month+1}月还没有账单</div></div>`;
+            
+            container.innerHTML =
+    `<div class="empty-state"><div class="empty-icon"><i class="ri-calendar-2-line"></i></div><div class="empty-text">${year}年${month+1}月没有账单，<button type="button" class="empty-link" id="homeGoCurrentMonth">查看本月</button></div></div>`;
+            const link = container.querySelector('#homeGoCurrentMonth');
+            if (link) {
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    jumpToMonth(new Date());
+                });
+            }
         }
     } else {
         const dateGroups = {};
@@ -3553,9 +4283,9 @@ container.innerHTML =
             });
             
             let summaryHtml = '';
-            if (dayIncome > 0) summaryHtml += `<span class="income">¥${dayIncome.toFixed(2)}</span>`;
-            if (dayExpense > 0) summaryHtml += `<span class="expense">¥${dayExpense.toFixed(2)}</span>`;
-            if (dayIncome === 0 && dayExpense === 0) summaryHtml += `<span class="zero">¥0.00</span>`;
+            if (dayIncome > 0) summaryHtml += `<span class="income">${moneySym()}${dayIncome.toFixed(2)}</span>`;
+            if (dayExpense > 0) summaryHtml += `<span class="expense">${moneySym()}${dayExpense.toFixed(2)}</span>`;
+            if (dayIncome === 0 && dayExpense === 0) summaryHtml += `<span class="zero">${moneySym()}0.00</span>`;
             
             html += `
                 <div class="home-date-card">
@@ -4290,7 +5020,7 @@ function initBounceScroll(selector, options = {}) {
     const MAX_OVERSCROLL = 120;  
     const DAMPING = 0.3;         
     const DURATION = 0.55;       
-    const REFRESH_THRESHOLD = options.refreshThreshold || 150; 
+    const REFRESH_THRESHOLD = options.refreshThreshold || 260; 
 
     const { onRefresh = null, indicatorEl = null } = options;
     let refreshTextEl = null;
@@ -4750,7 +5480,11 @@ async function loadAllData(animate) {
     if (!token) return;
     try {
         if (animate) showLoading();
-        
+
+        // 上次没传成功的本地改动（断网时改的预算 / 资料）先补传，
+        // 再拉服务端数据，否则服务端的旧值会把本地改动直接盖掉
+        await flushPendingWrites();
+
         const [categoriesResult, billsResult, budgetResult] = await Promise.allSettled([
             fetchCategoriesFromBackend(),
             apiCall('/bills', 'GET'),
@@ -4758,7 +5492,10 @@ async function loadAllData(animate) {
         ]);
         
         if (billsResult.status === 'fulfilled') {
-            allBills = billsResult.value.bills || [];
+            setAllBills(billsResult.value.bills);
+        } else if (allBills.length > 0) {
+            // 接口失败但缓存里已经有账单：保留缓存渲染，别把界面清空
+            console.warn('账单拉取失败，继续使用本地缓存', billsResult.reason);
         } else {
             throw billsResult.reason;
         }
@@ -4771,6 +5508,14 @@ async function loadAllData(animate) {
         renderBills();
         renderProfile();
         updateBudgetDisplay();
+        
+        // 报表页可能在数据回来之前就被点开了：补一次渲染。
+        // 否则初次切到报表页是空的，要再点一次底部导航才会出数据
+        //（报表的数据全部来自内存里的 allBills，没有自己的接口）。
+        if (currentPage === 'stats') {
+            renderStatsPage();
+            updateStatsDateLabel();
+        }
         
         
         if (window.PetSystem) {
@@ -4791,7 +5536,7 @@ async function refreshHomeData() {
             loadBudgetData()
         ]);
         if (billsResult.status === 'fulfilled') {
-            allBills = billsResult.value.bills || [];
+            setAllBills(billsResult.value.bills);
         } else {
             throw billsResult.reason;
         }
@@ -4812,7 +5557,7 @@ async function addBill(bill) {
     try {
         const data = await apiCall('/bills', 'POST', bill);
         if (data.bills && data.bills.length > 0) {
-            allBills = data.bills || [];
+            setAllBills(data.bills);
         } else {
             const newBill = {
                 ...bill,
@@ -4820,7 +5565,7 @@ async function addBill(bill) {
                 owner_username: currentUser.username,
                 user_id: currentUser.id
             };
-            allBills = [newBill, ...allBills];
+            setAllBills([newBill, ...allBills]);
         }
         
         
@@ -4853,7 +5598,7 @@ async function addBill(bill) {
 async function updateBill(id, bill) {
     try {
         const data = await apiCall('/bills/' + id, 'PUT', bill);
-        allBills = data.bills || [];
+        setAllBills(data.bills);
         
         
         if (!selectedMonthDate) {
@@ -4885,7 +5630,7 @@ async function updateBill(id, bill) {
         try {
             await apiCall('/bills/' + id, 'DELETE');
             const data = await apiCall('/bills', 'POST', bill);
-            allBills = data.bills || [];
+            setAllBills(data.bills);
             
             
             if (!selectedMonthDate) {
@@ -4919,7 +5664,7 @@ async function updateBill(id, bill) {
 async function deleteBill(id) {
     try {
         const data = await apiCall('/bills/' + id, 'DELETE');
-        allBills = data.bills || [];
+        setAllBills(data.bills);
         renderHome();
         updateBudgetDisplay();
         renderProfile();
@@ -5079,14 +5824,11 @@ function initCropper() {
 }
 
 function updateHomeAvatar() {
-    if (currentUser && currentUser.avatar) {
-        homeAvatarImg.src = currentUser.avatar;
-        homeAvatarImg.style.display = 'block';
-        homeAvatarIcon.style.display = 'none';
-    } else {
-        homeAvatarImg.style.display = 'none';
-        homeAvatarIcon.style.display = 'block';
-    }
+    // 首页左上角头像 = 当前荷包归属的图标：
+    // 「我的小荷包」显示本人头像 / 用户图标，「对方的荷包」显示对方头像，
+    // 「我们的荷包」显示钱包图标。各归属的显隐规则统一在 updateWalletDisplay 里，
+    // 这里只做转发，避免出现「先渲染本人头像再被覆盖」的一闪。
+    updateWalletDisplay();
 }
 
 function updatePartnerUI() {
@@ -5099,7 +5841,26 @@ function updatePartnerUI() {
     const statusArrow = document.getElementById('partnerStatusArrow');
     
     if (!wrapper) return;
-    
+
+    // 绑定状态还没拉回来（/match/status 未返回）时，不要先按「未绑定」渲染。
+    // 否则已匹配的用户进「我的」页会先看到默认头像 + 邀请搭子气泡，
+    // 等接口回来后才换成搭子头像，出现一闪 —— 与首页「邀请搭子」气泡同一个坑。
+    // 这里先保持中性空态，等 fetchPartnerStatus 回来再渲染真实状态。
+    if (!partnerStatusLoaded) {
+        // 连虚线空圈也一起藏掉：虚线边框是「未绑定」的视觉暗示，
+        // 先亮出虚线圈再换成搭子头像，用户还是会觉得"闪了一下未匹配态"。
+        // 用 visibility 而不是 display，保留 68px 占位，避免卡片布局跳动。
+        wrapper.classList.remove('has-partner');
+        wrapper.style.visibility = 'hidden';
+        if (img) img.style.display = 'none';
+        if (defaultIcon) defaultIcon.style.display = 'none';
+        if (addIcon) addIcon.style.display = 'none';
+        if (inviteBubble) inviteBubble.style.display = 'none';
+        updateBelongButtons();
+        return;
+    }
+    wrapper.style.visibility = '';
+
     if (currentPartner) {
         wrapper.classList.add('has-partner');
         
@@ -5168,14 +5929,11 @@ function updatePartnerUI() {
 
 
 function goBackFromDetail() {
-    const target = previousPage || 'home';
+    const target = prevStack.pop() || 'home';
     const detailPage = document.getElementById('page-detail');
     detailPage.classList.remove('active');
-    setTimeout(() => { detailPage.style.display = 'none'; }, 350);
-    document.querySelectorAll('#main-app .page').forEach(p => {
-        p.classList.remove('active');
-        p.style.display = 'none';
-    });
+    setTimeout(() => { detailPage.style.display = 'none'; }, 480);
+    popKeepSource(detailPage);
     const targetEl = document.getElementById('page-' + target);
     if (targetEl) {
         targetEl.style.display = '';
@@ -5202,20 +5960,16 @@ function goBackFromDetail() {
 
 async function viewBillDetail(id) {
     if (currentPage === 'search') {
-        previousPage = 'search';
+        prevStack.push('search');
     } else {
-        previousPage = currentPage;
+        prevStack.push(currentPage);
     }
 
     currentBillId = id;
 
     
     const pageEl = document.getElementById('page-detail');
-    pageEl.style.display = 'flex';
-    requestAnimationFrame(() => {
-        pageEl.classList.add('active');
-        try { refreshStatusBar(); } catch(e) {}
-    });
+    pushPageOpen(pageEl);
     currentPage = 'detail';
 
 
@@ -5355,16 +6109,22 @@ function getDisplayName(user, defaultName) {
     
     avatarsContainer.innerHTML = avatarHtml;
     ownerLabel.textContent = labelText;
-    recordBy.textContent = `来源：${recordByName}的手动记账`;
+    // 帮记（对方/小知）场景下，来源显示「记这笔帐的用户昵称 + 的帮记」
+    if (isHelpBill(bill)) {
+        recordBy.textContent = `来源：${recordByName}的帮记`;
+    } else {
+        recordBy.textContent = `来源：${recordByName}的手动记账`;
+    }
     
     const cats = getCategoriesByType(bill.type);
     const cat = cats.find(c => c.label === bill.category);
     const iconHtml = cat ? `<i class="fas ${cat.icon || 'fa-tag'}"></i> ` : '';
-    $('#detailCategory').innerHTML = iconHtml + (bill.category || '-');
+    const typeSuffix = bill.type === 'income' ? '-收入' : '-支出';
+    $('#detailCategory').innerHTML = iconHtml + (bill.category || '-') + typeSuffix;
     
     
     const amountVal = bill.amount || 0;
-    $('#detailAmount').textContent = '¥' + amountVal.toFixed(2);
+    $('#detailAmount').textContent = moneySym() + amountVal.toFixed(2);
     $('#detailAmount').className = 'field-value ' + (bill.type === 'income' ? 'income' : 'expense');
     
     $('#detailPayment').textContent = bill.payment || '-';
@@ -6198,23 +6958,29 @@ function renderChangelogPage(releases) {
         tocHtml +=
             '<div class="changelog-toc-item' + (i === 0 ? ' active' : '') + '" data-index="' + i + '">' +
                 '<span class="changelog-toc-version">' + escapeHtml(version) + '</span>' +
-                (date ? '<span class="changelog-toc-date">' + escapeHtml(date.slice(5)) + '</span>' : '') +
+                (date ? '<span class="changelog-toc-date">' + escapeHtml(date) + '</span>' : '') +
             '</div>';
 
         
-        let badges = '';
-        if (i === 0) badges += '<span class="changelog-badge latest">最新</span>';
-        if (rel.prerelease) badges += '<span class="changelog-badge pre">预发布</span>';
+        const latestBadge = (i === 0) ? '<span class="changelog-badge latest">最新</span>' : '';
+        const preBadge = rel.prerelease ? '<span class="changelog-badge pre">预发布</span>' : '';
+        const hasTitle = !!(name && name.toLowerCase() !== version.toLowerCase());
+        const titleText = hasTitle ? escapeHtml(name) : '';
+        const hasHead = titleText || latestBadge || preBadge;
+
+        let headHtml = '';
+        if (hasHead) {
+            headHtml =
+                '<div class="changelog-section-head' + (hasTitle ? '' : ' no-title') + '">' +
+                    (titleText ? '<span class="changelog-section-name">' + titleText + '</span>' : '') +
+                    preBadge +
+                    latestBadge +
+                '</div>';
+        }
 
         secHtml +=
             '<div class="changelog-section" id="changelogSec' + i + '">' +
-                '<div class="changelog-section-top">' +
-                    '<span class="changelog-section-version">' + escapeHtml(version) + '</span>' +
-                    badges +
-                    '<span class="changelog-section-date">' + escapeHtml(date) + '</span>' +
-                '</div>' +
-                (name && name.toLowerCase() !== version.toLowerCase()
-                    ? '<div class="changelog-section-name">' + escapeHtml(name) + '</div>' : '') +
+                headHtml +
                 '<div class="changelog-section-body">' + changelogBodyToHtml(rel.body) + '</div>' +
             '</div>';
     }
@@ -6278,11 +7044,7 @@ function openChangelogPage() {
     const pageEl = document.getElementById('page-changelog');
     if (!pageEl) return;
     pageBackStack.push(currentPage);
-    pageEl.style.display = 'flex';
-    requestAnimationFrame(() => {
-        pageEl.classList.add('active');
-        try { refreshStatusBar(); } catch(e) {}
-    });
+    pushPageOpen(pageEl);
     currentPage = 'changelog';
 
     const cacheValid = changelogCache.releases &&
@@ -6307,7 +7069,7 @@ function closeChangelogPage() {
     if (!pageEl) return;
     const target = pageBackStack.length > 0 ? pageBackStack.pop() : 'about';
     pageEl.classList.remove('active');
-    setTimeout(() => { pageEl.style.display = 'none'; }, 350);
+    setTimeout(() => { pageEl.style.display = 'none'; }, 480);
     restoreFromBack(target);
 }
 
@@ -6470,13 +7232,31 @@ function initTermsModalEvents() {
 }
 
     
+let settingsNavHiddenByUs = false;
+
 function openSettings() {
     if (paymentSheet.classList.contains('show')) closePaymentSheet();
     if (noteOverlay.classList.contains('show')) closeNoteModal();
     if (dateModal.classList.contains('show')) closeDatePicker();
     
     settingsCurrentType = currentType || 'expense';
+    // 由来源决定 settingsFromProfile：从记一笔弹层进入时 addModalOverlay 仍处于 show，
+    // 否则视为从我的页进入；closeSettings 据此决定关闭时是否复位记一笔弹层。
+    // 放这里保证两个入口（记一笔 / 我的页）语义一致，不再依赖外部手动赋值。
+    settingsFromProfile = !addModalOverlay.classList.contains('show');
     settingsOverlay.classList.add('show');
+    // 与其他二级页（push 转场）一致：打开类目设置时把底层元素（一级页 或 新增记账弹层）往左推 + 变暗，形成 iOS push 视差
+    settingsPushedSource = settingsFromProfile
+        ? document.querySelector('#page-home.active, #page-bills.active, #page-stats.active, #page-profile.active')
+        : addModalOverlay;
+    if (settingsPushedSource && !settingsPushedSource.classList.contains('page--pushed')) {
+        settingsPushedSource.style.transition = 'transform 0.44s cubic-bezier(.32,.72,0,1), background 0.3s ease';
+        settingsPushedSource.classList.add('page--pushed');
+    }
+    // 与其他二级页一致：打开时底部导航下沉隐藏，记录原状态以便关闭时还原
+    const navEl = document.getElementById('bottom-nav');
+    settingsNavHiddenByUs = !!(navEl && navEl.classList.contains('show'));
+    if (settingsNavHiddenByUs) setBottomNavVisible(false);
     renderSettingsList(settingsCurrentType);
     settingsTabs.querySelectorAll('.settings-tab').forEach(tab => {
         tab.classList.toggle('active', tab.dataset.stype === settingsCurrentType);
@@ -6487,6 +7267,15 @@ function openSettings() {
 
 function closeSettings() {
     settingsOverlay.classList.remove('show');
+    // 还原底层元素的 push 视差（与其他二级页关闭一致：源页/弹层滑回原位）
+    if (settingsPushedSource) {
+        settingsPushedSource.classList.remove('page--pushed');
+        settingsPushedSource = null;
+    }
+    if (settingsNavHiddenByUs) {
+        settingsNavHiddenByUs = false;
+        setBottomNavVisible(true);
+    }
     document.body.style.overflow = '';
     closeCatAddModal();
     closeCatEditModal();
@@ -6494,7 +7283,7 @@ function closeSettings() {
     
     if (settingsFromProfile) {
         settingsFromProfile = false;
-        
+
         if (addModalOverlay.classList.contains('show')) {
             addModalOverlay.classList.remove('show');
             document.body.style.overflow = '';
@@ -7145,15 +7934,26 @@ partnerEntry?.addEventListener('click', function() {
     });
 
     
-    document.getElementById('authSwitchArea').addEventListener('click', function(e) {
-        const link = e.target.closest('#authSwitchLink');
-        if (!link) return;
+    if (tabLogin) tabLogin.addEventListener('click', function(e) {
         e.preventDefault();
-        if (loginForm.style.display !== 'none') {
-            showRegisterPage();
-        } else {
-            showLoginPage();
-        }
+        if (authIsRegister) showLoginPage();
+        else setAuthMode(false);
+    });
+    if (tabRegister) tabRegister.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (!authIsRegister) showRegisterPage();
+        else setAuthMode(true);
+    });
+
+    
+    if (authFormWrapper && typeof ResizeObserver !== 'undefined') {
+        const authRO = new ResizeObserver(() => syncAuthWrapperHeight(false));
+        authRO.observe(loginForm);
+        authRO.observe(registerForm);
+    }
+    window.addEventListener('resize', () => {
+        syncAuthWrapperHeight(false);
+        moveAuthTabLine();
     });
 
 
@@ -7188,6 +7988,9 @@ $('#loginForm').addEventListener('submit', async (e) => {
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(currentUser));
         localStorage.removeItem('categories_data');
+        // 切到新账号：缓存归属跟着换，并清掉上一个账号残留的缓存
+        WBCache.refreshUid();
+        WBCache.purgeOthers(WBCache.getUid());
         showMainApp();
 
         await loadAllData(true);
@@ -7204,13 +8007,12 @@ $('#loginForm').addEventListener('submit', async (e) => {
 $('#registerForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = $('#regEmail').value.trim();
-    const code = $('#regCode').value.trim();
     const nickname = $('#regNickname').value.trim();
     const password = $('#regPassword').value.trim();
     const password2 = $('#regPassword2').value.trim();
 
-    if (!email || !code) {
-        showToast('请输入邮箱和验证码');
+    if (!email) {
+        showToast('请输入邮箱');
         return;
     }
 
@@ -7240,7 +8042,7 @@ $('#registerForm').addEventListener('submit', async (e) => {
     }
 
     try {
-        await registerWithCode(email, code, password, nickname);
+        await registerWithCode(email, password, nickname);
         showToast('注册成功，请登录');
         showLoginPage();
         $('#loginAccount').value = email;
@@ -7743,7 +8545,8 @@ async function loadBudgetData() {
     try {
         const data = await apiCall('/budgets', 'GET');
         const src = data.budgets || data.budget || data;
-        budgetCache = normalizeBudgetData(src);
+        // 服务端数据覆盖本地缓存，dirty 标记一并清掉
+        setBudgetCache(normalizeBudgetData(src));
     } catch (err) {
         
         console.warn('从后端加载预算失败', err);
@@ -7761,7 +8564,9 @@ async function retryBudgetSync() {
     try {
         const res = await apiCall('/budgets', 'PUT', { budgets: budgetCache });
         if (res.budgets) {
-            budgetCache = normalizeBudgetData(res.budgets);
+            setBudgetCache(normalizeBudgetData(res.budgets));
+        } else {
+            setBudgetCache(budgetCache);
         }
         pendingBudgetSync = false;
         budgetSyncTimer = null;
@@ -7799,11 +8604,18 @@ async function saveBudgetData(data, monthKey) {
         showToast('请先登录后再设置预算');
         return false;
     }
+
+    // 本地已改：先落缓存并标脏。即使这次请求失败，下次启动也会自动补传，
+    // 不会出现「改完断网 → 重开 App 预算变回旧值」
+    setBudgetCache(budgetCache, { dirty: true });
+
     try {
         
         const res = await apiCall('/budgets', 'PUT', { budgets: budgetCache });
         if (res.budgets) {
-            budgetCache = normalizeBudgetData(res.budgets);
+            setBudgetCache(normalizeBudgetData(res.budgets));
+        } else {
+            setBudgetCache(budgetCache);
         }
         pendingBudgetSync = false;
         if (typeof budgetLastSeen !== 'undefined') budgetLastSeen = snapshotBudgets();
@@ -7873,26 +8685,16 @@ function updateBudgetDisplay() {
     budgetItem.dataset.type = wallet.key;
 
     const mk = getBudgetMonthKey(selectedMonthDate);
-    
-    // 「我们的」（共同）钱包按总预算口径统计：自己+对方+共同 三个预算之和。
-    // 关键：每个钱包各自计算「预算−支出」后【带符号相加】——某方超预算则扣减其超出额（如 300+200−100=400），
-    // 而不是把超预算方记为 0 再相加。结果下限为 0（剩余预算不会显示为负数）。
-    // 自己/对方钱包仍各自独立显示。
+
+    // 「我们」钱包按「共同预算」口径统计：「共同预算」是【独立】设置项，
+    // 不再 = 我的预算 + 对方预算 + 共同预算 三个相加。若未单独设置则 limit=0（引导去设置）。
+    // 「预算−支出」下限为 0，剩余预算不会显示为负数。
     const isCombined = wallet.key === 'both';
     let limit, spent, remaining;
     if (isCombined) {
-        const keys = ['my', 'partner', 'both'];
-        limit = 0;
-        spent = 0;
-        remaining = 0;
-        keys.forEach(function (k) {
-            const b = getBudgetForMonth(k, mk);
-            const s = getMonthExpenseByBelong(BUDGET_CONFIG[k].filter, selectedMonthDate);
-            limit += b;
-            spent += s;
-            remaining += (b - s);
-        });
-        remaining = Math.max(remaining, 0);
+        limit = getBudgetForMonth('both', mk);
+        spent = getMonthExpenseByBelong(BUDGET_CONFIG.both.filter, selectedMonthDate);
+        remaining = Math.max(limit - spent, 0);
     } else {
         limit = getBudgetForMonth(wallet.key, mk);
         spent = getMonthExpenseByBelong(config.filter, selectedMonthDate);
@@ -7953,7 +8755,7 @@ function openBudgetModal(type) {
         <div class="budget-modal budget-modal-with-keyboard">
             <div class="budget-modal-body">
                 <div class="budget-amount-area">
-                    <span class="amount-currency budget-amount-currency">¥</span>
+                    <span class="amount-currency budget-amount-currency">${moneySym()}</span>
                     <span class="amount-display budget-amount-display" id="budgetAmountDisplay">0.00</span>
                 </div>
 
@@ -8275,7 +9077,7 @@ function updateBudgetUsageInModal(type) {
 
     const usageEl = document.getElementById('budgetUsageAmount');
     if (usageEl) {
-        usageEl.textContent = '¥' + total.toFixed(2);
+        usageEl.textContent = moneySym() + total.toFixed(2);
         const limit = getBudgetForMonth(type, getBudgetMonthKey(budgetViewDate));
         if (limit > 0 && total > limit) {
             usageEl.style.color = 'var(--expense)';
@@ -8288,7 +9090,7 @@ function updateBudgetUsageInModal(type) {
 
 function openBudgetPage() {
     
-    previousPage = currentPage;
+    prevStack.push(currentPage);
 
 
     
@@ -8300,11 +9102,7 @@ function openBudgetPage() {
         budgetViewDate = new Date(selectedMonthDate);
     }
 
-    pageEl.style.display = 'flex';
-    requestAnimationFrame(() => {
-        pageEl.classList.add('active');
-        try { refreshStatusBar(); } catch(e) {}
-    });
+    pushPageOpen(pageEl);
 
     currentPage = 'budget';
 
@@ -8313,24 +9111,31 @@ function openBudgetPage() {
     updateBudgetCircle();
     startBudgetRealtimeSync();
     requestAnimationFrame(() => {
-        
+
         setTimeout(() => updateBudgetBelongSlider(), 0);
     });
+
+    // 进入页面即拉取云端最新预算，避免只显示进入瞬间的旧缓存数据
+    if (token) {
+        loadBudgetData().then(() => {
+            if (currentPage === 'budget') {
+                updateBudgetPage();
+                updateBudgetCircle();
+            }
+        });
+    }
 }
 
 
 function closeBudgetPage() {
-    const target = previousPage || 'home';
+    const target = prevStack.pop() || 'home';
     if (target !== 'stats') {
         stopBudgetRealtimeSync();
     }
     const pageEl = document.getElementById('page-budget');
     pageEl.classList.remove('active');
-    setTimeout(() => { pageEl.style.display = 'none'; }, 350);
-    document.querySelectorAll('#main-app .page').forEach(p => {
-        p.classList.remove('active');
-        p.style.display = 'none';
-    });
+    setTimeout(() => { pageEl.style.display = 'none'; }, 480);
+    popKeepSource(pageEl);
     const targetEl = document.getElementById('page-' + target);
     if (targetEl) {
         targetEl.style.display = '';
@@ -8440,17 +9245,18 @@ function updateBudgetPage() {
     });
     
     const mk = getBudgetMonthKey(budgetViewDate);
+    // 「共同」view 按「共同预算」独立字段口径计算：不再 = 我的预算 + 对方预算 + 共同预算 三个相加；
+    // 「共同预算」是单独设置项，未设置时 limit=0（引导去设置）。口径与钱包页 updateBudgetDisplay 保持一致。
     const isCombined = budgetViewType === 'both';
     let limit, spent, remaining;
     if (isCombined) {
-        
-        limit = getBudgetForMonth('my', mk) + getBudgetForMonth('partner', mk) + getBudgetForMonth('both', mk);
-        spent = getMonthExpenseAllBelongs(budgetViewDate);
-        remaining = limit - spent;
+        limit = getBudgetForMonth('both', mk);
+        spent = getMonthExpenseByBelong(BUDGET_CONFIG.both.filter, budgetViewDate);
+        remaining = Math.max(limit - spent, 0);
     } else {
         limit = getBudgetForMonth(budgetViewType, mk);
         spent = getMonthExpenseByBelong(config.filter, budgetViewDate);
-        remaining = limit - spent;
+        remaining = Math.max(limit - spent, 0);
     }
     const daysInMonth = new Date(year, budgetViewDate.getMonth() + 1, 0).getDate();
     const daily = daysInMonth > 0 ? limit / daysInMonth : 0;
@@ -8461,9 +9267,10 @@ function updateBudgetPage() {
     
     const totalAmount = document.getElementById('budgetTotalAmount');
     if (totalAmount) {
-        totalAmount.textContent = '¥' + limit.toFixed(2);
+        const totalLimit = getBudgetForMonth('my', mk) + getBudgetForMonth('partner', mk) + getBudgetForMonth('both', mk);
+        totalAmount.textContent = moneySym() + totalLimit.toFixed(2);
     }
-    
+
     
     const titleEl = document.getElementById('budgetCircleTitle');
     if (titleEl) {
@@ -8473,17 +9280,17 @@ function updateBudgetPage() {
     
     const remainingEl = document.getElementById('budgetRemaining');
     if (remainingEl) {
-        remainingEl.textContent = '¥' + Math.max(remaining, 0).toFixed(2);
+        remainingEl.textContent = moneySym() + Math.max(remaining, 0).toFixed(2);
     }
     
     const spentEl = document.getElementById('budgetSpent');
     if (spentEl) {
-        spentEl.textContent = '¥' + spent.toFixed(2);
+        spentEl.textContent = moneySym() + spent.toFixed(2);
     }
     
     const dailyEl = document.getElementById('budgetDaily');
     if (dailyEl) {
-        dailyEl.textContent = '¥' + daily.toFixed(2);
+        dailyEl.textContent = moneySym() + daily.toFixed(2);
     }
     
     
@@ -8494,10 +9301,11 @@ function updateBudgetCircle() {
     if (!config) return;
 
     const mk = getBudgetMonthKey(budgetViewDate);
+    // 「共同」view 同样按「共同预算」独立字段计算（与 updateBudgetPage / updateBudgetDisplay 口径一致）。
     let limit, spent;
     if (budgetViewType === 'both') {
-        limit = getBudgetForMonth('my', mk) + getBudgetForMonth('partner', mk) + getBudgetForMonth('both', mk);
-        spent = getMonthExpenseAllBelongs(budgetViewDate);
+        limit = getBudgetForMonth('both', mk);
+        spent = getMonthExpenseByBelong(BUDGET_CONFIG.both.filter, budgetViewDate);
     } else {
         limit = getBudgetForMonth(budgetViewType, mk);
         spent = getMonthExpenseByBelong(config.filter, budgetViewDate);
@@ -8526,7 +9334,7 @@ function updateBudgetCircle() {
     
     if (limit > 0) {
         
-        labelEl.innerHTML = `总预算 ¥${limit.toFixed(2)}`;
+        labelEl.innerHTML = `总预算<div class="budget-circle-amount-row"><span class="budget-circle-amount">${moneySym()}${limit.toFixed(2)}</span><i class="ri-edit-line budget-circle-edit"></i></div>`;
         labelEl.style.cursor = 'pointer';
         labelEl.onclick = function() {
             openBudgetModal(budgetViewType);
@@ -8535,7 +9343,7 @@ function updateBudgetCircle() {
         
         const nameMap = { 'my': '我的', 'partner': '对方的', 'both': '我们的' };
         const displayName = nameMap[budgetViewType] || '我的';
-        labelEl.innerHTML = `点击设置${displayName}预算`;
+        labelEl.innerHTML = `点击设置${displayName}预算 &gt;`;
         labelEl.style.cursor = 'pointer';
         labelEl.onclick = function() {
             openBudgetModal(budgetViewType);
@@ -8647,41 +9455,11 @@ function initBudgetPage() {
         renderMonthPicker();
 
         
-        const originalConfirm = monthBtnConfirm._originalClick || monthBtnConfirm.onclick;
-        const originalToday = monthBtnToday ? (monthBtnToday._originalClick || monthBtnToday.onclick) : null;
-
-        
-        monthBtnConfirm.onclick = function() {
-            
-            syncMonthPickerValue();
-            
-            budgetViewDate = new Date(tempMonthDate);
-            
+        beginMonthPickerOverride(function (date) {
+            budgetViewDate = new Date(date);
             updateBudgetPage();
             updateBudgetCircle();
-            closeMonthPicker();
-            
-            monthBtnConfirm.onclick = originalConfirm || confirmMonth;
-            if (monthBtnToday) monthBtnToday.onclick = originalToday || goToCurrentMonth;
-        };
-
-        
-        if (monthBtnToday) {
-            monthBtnToday.onclick = function() {
-                const today = new Date();
-                tempMonthDate = new Date(today.getFullYear(), today.getMonth(), 1);
-                renderMonthPicker();
-                
-                if (currentPage === 'budget') {
-                    budgetViewDate = new Date(tempMonthDate);
-                    updateBudgetPage();
-                    updateBudgetCircle();
-                    closeMonthPicker();
-                } else {
-                    confirmMonth();
-                }
-            };
-        }
+        });
 
         
         openMonthPicker();
@@ -8833,7 +9611,7 @@ document.querySelectorAll('#statsMonthGrid .stats-date-month-item').forEach(btn 
 function renderStatsYearView() {
     const wheelStatsYear = document.getElementById('wheelStatsYear');
     if (!wheelStatsYear) return;
-    const yearValues = generateWheelItems(YEAR_MIN, YEAR_MAX, false);
+    const yearValues = buildYearWheel(false);
     const selectedYear = statsTempSelectedDate.getFullYear();
     renderWheel(wheelStatsYear, yearValues, selectedYear, (newYear) => {
         const ny = parseInt(newYear, 10);
@@ -9532,10 +10310,10 @@ function renderStatsDetail(bills, date, belong) {
     }
 
 
-    document.getElementById('statsMonthTotal').textContent = '¥' + monthTotal.toFixed(2);
-    document.getElementById('statsTodayTotal').textContent = '¥' + todayTotal.toFixed(2);
-    document.getElementById('statsDailyAvg').textContent = '¥' + dailyAvg.toFixed(2);
-    document.getElementById('statsRemaining').textContent = '¥' + remaining.toFixed(2);
+    document.getElementById('statsMonthTotal').textContent = moneySym() + monthTotal.toFixed(2);
+    document.getElementById('statsTodayTotal').textContent = moneySym() + todayTotal.toFixed(2);
+    document.getElementById('statsDailyAvg').textContent = moneySym() + dailyAvg.toFixed(2);
+    document.getElementById('statsRemaining').textContent = moneySym() + remaining.toFixed(2);
     
     
     const prevMonth = month === 0 ? 11 : month - 1;
@@ -9724,7 +10502,7 @@ if (data.length === 0 || total === 0) {
                     <div class="cat-content">
                         <div class="cat-top-row">
                             <span class="cat-name">${item.name}</span>
-                            <span class="cat-amount">${sign}¥${item.value.toFixed(2)} <span class="cat-count">(${item.count}笔)</span></span>
+                            <span class="cat-amount">${sign}${moneySym()}${item.value.toFixed(2)} <span class="cat-count">(${item.count}笔)</span></span>
                         </div>
                         <div class="cat-bar-row">
                             <div class="cat-bar">
@@ -9845,7 +10623,7 @@ function renderCategoryItemsStatic(count, data, belong) {
                 <div class="cat-content">
                     <div class="cat-top-row">
                         <span class="cat-name">${item.name}</span>
-                        <span class="cat-amount">${sign}¥${item.value.toFixed(2)} <span class="cat-count">(${item.count}笔)</span></span>
+                        <span class="cat-amount">${sign}${moneySym()}${item.value.toFixed(2)} <span class="cat-count">(${item.count}笔)</span></span>
                     </div>
                     <div class="cat-bar-row">
                         <div class="cat-bar">
@@ -9871,7 +10649,7 @@ function renderStatsPieChart(data, total) {
     
     
     document.getElementById('statsPieTotal').textContent =
-        total >= 10000 ? ('¥' + (total / 10000).toFixed(2) + 'w') : ('¥' + total.toFixed(2));
+        total >= 10000 ? (moneySym() + (total / 10000).toFixed(2) + 'w') : (moneySym() + total.toFixed(2));
     
     var colors = [
         '#5CB8E8',
@@ -10148,9 +10926,9 @@ function renderStatsTrend(bills, date, view) {
                 color: 'var(--text-fix, #999)',
                 formatter: function(value) {
                     if (value >= 10000) {
-                        return '¥' + (value / 10000).toFixed(1) + 'w';
+                        return moneySym() + (value / 10000).toFixed(1) + 'w';
                     }
-                    return '¥' + Math.round(value);
+                    return moneySym() + Math.round(value);
                 }
             },
             splitLine: {
@@ -10221,6 +10999,7 @@ function renderBillItems(count) {
         
         const typeClass = bill.type === 'income' ? 'income' : 'expense';
         const sign = bill.type === 'income' ? '+' : '-';
+        const typeLabel = bill.type === 'income' ? '收入' : '支出';
         const displayText = bill.note && bill.note.trim() ? bill.note.trim() : bill.category;
 
         
@@ -10238,11 +11017,10 @@ function renderBillItems(count) {
                             <div class="bill-category">${escapeHtml(displayText)}</div>
                             <div class="bill-note">
                                 <span></span>
-                                <span class="belong-tag">${belongDisplay}</span>${isHelp ? '<span class="belong-tag help-tag">帮记</span>' : ''}
-                            </div>
+                                <span class="belong-tag">${belongDisplay}</span><span class="type-tag ${typeClass}">${typeLabel}</span>${isHelp ? '<span class="amount-help-tag">(帮)</span>' : ''}                            </div>
                         </div>
                     </div>
-                    <div class="bill-amount ${typeClass}">${sign}¥${bill.amount.toFixed(2)}</div>
+                    <div class="bill-amount ${typeClass}">${sign}${moneySym()}${bill.amount.toFixed(2)}</div>
                 </div>
             </div>
         `;
@@ -10292,6 +11070,7 @@ loadMoreBtn.addEventListener('click', function() {
         const icon = cat ? cat.icon : 'fa-tag';
         const typeClass = bill.type === 'income' ? 'income' : 'expense';
         const sign = bill.type === 'income' ? '+' : '-';
+        const typeLabel = bill.type === 'income' ? '收入' : '支出';
         const displayText = bill.note && bill.note.trim() ? bill.note.trim() : bill.category;
 
         
@@ -10309,11 +11088,10 @@ loadMoreBtn.addEventListener('click', function() {
                             <div class="bill-category">${escapeHtml(displayText)}</div>
                             <div class="bill-note">
                                 <span></span>
-                                <span class="belong-tag">${belongDisplay}</span>${isHelp ? '<span class="belong-tag help-tag">帮记</span>' : ''}
-                            </div>
+                                <span class="belong-tag">${belongDisplay}</span><span class="type-tag ${typeClass}">${typeLabel}</span>${isHelp ? '<span class="amount-help-tag">(帮)</span>' : ''}                            </div>
                         </div>
                     </div>
-                    <div class="bill-amount ${typeClass}">${sign}¥${bill.amount.toFixed(2)}</div>
+                    <div class="bill-amount ${typeClass}">${sign}${moneySym()}${bill.amount.toFixed(2)}</div>
                 </div>
             </div>
         `;
@@ -10344,8 +11122,8 @@ let annualState = {
 
 function formatAnnualAmount(num) {
     const value = Number(num || 0);
-    if (value < 0) return '-¥' + Math.abs(value).toFixed(2);
-    return '¥' + value.toFixed(2);
+    if (value < 0) return '-' + moneySym() + Math.abs(value).toFixed(2);
+    return moneySym() + value.toFixed(2);
 }
 
 
@@ -10434,11 +11212,7 @@ if (balanceEl) {
 function openAnnualPage() {
     const pageEl = document.getElementById('page-annual');
     if (!pageEl) return;
-    pageEl.style.display = 'flex';
-    requestAnimationFrame(() => {
-        pageEl.classList.add('active');
-        try { refreshStatusBar(); } catch(e) {}
-    });
+    pushPageOpen(pageEl);
     renderAnnualPage();
     
     requestAnimationFrame(() => {
@@ -10451,7 +11225,8 @@ function openAnnualPage() {
 function closeAnnualPage() {
     const pageEl = document.getElementById('page-annual');
     pageEl.classList.remove('active');
-    setTimeout(() => { pageEl.style.display = 'none'; }, 350);
+    setTimeout(() => { pageEl.style.display = 'none'; }, 480);
+    popKeepSource(pageEl);
     currentPage = 'profile';
 }
 
@@ -10705,7 +11480,7 @@ function openCategoryDetail(category, type, belong) {
     if (!category) return;
     
     
-    previousPage = currentPage;
+    prevStack.push(currentPage);
     
     
     catDetailState.category = category;
@@ -10722,11 +11497,7 @@ function openCategoryDetail(category, type, belong) {
     
     document.getElementById('catDetailTitle').textContent = category;
 
-    pageEl.style.display = 'flex';
-    requestAnimationFrame(() => {
-        pageEl.classList.add('active');
-        try { refreshStatusBar(); } catch(e) {}
-    });
+    pushPageOpen(pageEl);
 
     currentPage = 'category-detail';
 
@@ -10737,14 +11508,11 @@ function openCategoryDetail(category, type, belong) {
 
 function closeCategoryDetail() {
     
-    const target = (previousPage && previousPage !== 'category-detail') ? previousPage : 'stats';
+    const target = (() => { const p = prevStack.pop(); return (p && p !== 'category-detail') ? p : 'stats'; })();
     const pageEl = document.getElementById('page-category-detail');
     pageEl.classList.remove('active');
-    setTimeout(() => { pageEl.style.display = 'none'; }, 350);
-    document.querySelectorAll('#main-app .page').forEach(p => {
-        p.classList.remove('active');
-        p.style.display = 'none';
-    });
+    setTimeout(() => { pageEl.style.display = 'none'; }, 480);
+    popKeepSource(pageEl);
     const targetEl = document.getElementById('page-' + target);
     if (targetEl) {
         targetEl.style.display = '';
@@ -10825,7 +11593,7 @@ function renderCategoryDetail() {
     const totalValueEl = document.getElementById('catDetailTotal');
     if (totalValueEl) {
         const sign = isIncome ? '' : '-';
-        totalValueEl.textContent = sign + '¥' + total.toFixed(2);
+        totalValueEl.textContent = sign + moneySym() + total.toFixed(2);
         
         totalValueEl.className = 'cat-detail-summary-value ' + (isIncome ? 'income' : 'expense');
     }
@@ -10904,7 +11672,7 @@ function renderCategoryDetailList(bills) {
             <div class="cat-detail-date-card">
                 <div class="cat-detail-date-card-header">
                     <span class="date-label">${formatDateDisplay(date)}</span>
-                    <span class="date-total"><span class="total-prefix">总</span>${sign}¥${dayTotal.toFixed(2)}</span>
+                    <span class="date-total"><span class="total-prefix">总</span>${sign}${moneySym()}${dayTotal.toFixed(2)}</span>
                 </div>
                 <div class="cat-detail-date-card-body">
                     ${dayBills.map(b => renderCategoryDetailBillItem(b)).join('')}
@@ -10952,11 +11720,10 @@ function renderCategoryDetailBillItem(b) {
                         <div class="bill-category">${escapeHtml(displayText)}</div>
                         <div class="bill-note">
                             <span></span>
-                            <span class="belong-tag">${belongDisplay}</span>${isHelp ? '<span class="belong-tag help-tag">帮记</span>' : ''}
-                        </div>
+                            <span class="belong-tag">${belongDisplay}</span>${isHelp ? '<span class="amount-help-tag">(帮)</span>' : ''}                        </div>
                     </div>
                 </div>
-                <div class="bill-amount ${typeClass}">${sign}¥${b.amount.toFixed(2)}</div>
+                <div class="bill-amount ${typeClass}">${sign}${moneySym()}${b.amount.toFixed(2)}</div>
             </div>
         </div>
     `;
@@ -11192,53 +11959,60 @@ function handleStatsViewSwitch(e) {
     }
 }
 
-async function fetchPartnerProfile() {
+async function fetchPartnerProfile(force) {
     if (!currentPartner) {
         return null;
     }
     try {
-        
-        if (partnerProfileInfo) {
+        // 本次会话已经拉过就不再重复请求（页面内切换回来时直接用内存里的）；
+        // force = true 用于「先用缓存铺好页面、再强制后台刷新」的场景
+        if (!force && partnerProfileFetched && partnerProfileInfo) {
             return partnerProfileInfo;
         }
         const data = await apiCall('/user/partner/profile', 'GET');
         partnerProfileInfo = data.profile || currentPartner || null;
+        partnerProfileFetched = true;
+        // 写缓存：下次打开资料页先用缓存渲染，不用等接口
+        if (partnerProfileInfo) WBCache.write('partnerProfile', partnerProfileInfo);
         return partnerProfileInfo;
     } catch (err) {
         console.warn('获取搭子信息失败:', err);
-        
-        partnerProfileInfo = currentPartner || null;
+        // 接口失败时退到缓存，最后才退到列表里那份概要
+        partnerProfileInfo = WBCache.read('partnerProfile') || currentPartner || null;
         return partnerProfileInfo;
     }
 }
 
 
-async function openPartnerProfilePage() {
+function openPartnerProfilePage() {
     if (!currentPartner) {
         showToast('请先匹配搭子');
         return;
     }
     
-    previousPage = currentPage;
+    prevStack.push(currentPage);
     const pageEl = document.getElementById('page-partner-profile');
     if (!pageEl) return;
-    
-    try {
-        await fetchPartnerProfile();
-    } catch (err) {
-        partnerProfileInfo = currentPartner;
-        console.warn('使用缓存的搭子信息');
+
+    /* 先画页面、再拉数据。
+       原来是 await fetchPartnerProfile() 之后才 pushPageOpen —— 接口没回来
+       页面就滑不出来，手感就是"点了要等一下才打开"。这里的资料字段
+       （昵称/UID/性别/生日/手机号）任何一层有值就能完整渲染：
+       内存已拉过的资料 → 本地缓存 → 搭子概要 currentPartner。
+       所以第一帧先铺上，页面立刻滑入，网络在后台跑。 */
+    if (!partnerProfileInfo) {
+        const cached = WBCache.read('partnerProfile');
+        if (cached) partnerProfileInfo = cached;
     }
-    
     updatePartnerProfilePage();
 
-    pageEl.style.display = 'flex';
-    requestAnimationFrame(() => {
-        pageEl.classList.add('active');
-        try { refreshStatusBar(); } catch(e) {}
-    });
-
+    pushPageOpen(pageEl);
     currentPage = 'partner-profile';
+
+    // 后台强制刷新一次；回来时若还停在本页才覆盖，避免污染别的页面
+    fetchPartnerProfile(true).then(() => {
+        if (currentPage === 'partner-profile') updatePartnerProfilePage();
+    }).catch(() => {});
 }
 
 
@@ -11280,14 +12054,11 @@ function updatePartnerProfilePage() {
 
 
 function closePartnerProfilePage() {
-    const target = previousPage || 'profile';
+    const target = prevStack.pop() || 'profile';
     const pageEl = document.getElementById('page-partner-profile');
     pageEl.classList.remove('active');
-    setTimeout(() => { pageEl.style.display = 'none'; }, 350);
-    document.querySelectorAll('#main-app .page').forEach(p => {
-        p.classList.remove('active');
-        p.style.display = 'none';
-    });
+    setTimeout(() => { pageEl.style.display = 'none'; }, 480);
+    popKeepSource(pageEl);
     const targetEl = document.getElementById('page-' + target);
     if (targetEl) {
         targetEl.style.display = '';
@@ -11318,7 +12089,7 @@ function rebindPartnerAvatarClick() {
         e.stopPropagation();
         if (currentPartner) {
             
-            previousPage = currentPage;
+            prevStack.push(currentPage);
             openPartnerProfilePage();
         } else {
             
@@ -11365,17 +12136,17 @@ async function loadProfileInfo() {
             currentUser.phone = profile.phone;  
             localStorage.setItem('user', JSON.stringify(currentUser));
         }
+        // 服务端是最新真相：覆盖缓存并清掉 dirty 标记
+        persistProfileInfo(false);
         return profileInfoState;
     } catch (err) {
         console.warn('加载个人信息失败:', err);
         
-        try {
-            const raw = localStorage.getItem('profile_info');
-            if (raw) {
-                const data = JSON.parse(raw);
-                profileInfoState = { ...profileInfoState, ...data };
-            }
-        } catch (e) {}
+        // 接口失败时退回本地缓存（内存里可能已有 pending 的本地改动，不要被覆盖）
+        const cached = WBCache.read('profile');
+        if (cached) {
+            profileInfoState = { ...profileInfoState, ...cached };
+        }
         if (currentUser && !profileInfoState.nickname) {
             profileInfoState.nickname = currentUser.nickname || currentUser.uid || '';
         }
@@ -11401,16 +12172,17 @@ async function saveProfileInfo(data) {
             currentUser.phone = profile.phone;
             localStorage.setItem('user', JSON.stringify(currentUser));
         }
-        localStorage.setItem('profile_info', JSON.stringify(profileInfoState));
+        persistProfileInfo(false);
         
         updateProfileInfoCard();
         updateProfileInfoUid();
         return profileInfoState;
     } catch (err) {
         console.warn('保存个人信息失败:', err);
+        // 上传失败：本地改动照常生效，标记 dirty 等下次启动补传
         const newData = { ...profileInfoState, ...data };
         profileInfoState = newData;
-        localStorage.setItem('profile_info', JSON.stringify(newData));
+        persistProfileInfo(true);
         updateProfileInfoCard();
         updateProfileInfoUid();
         return newData;
@@ -11421,17 +12193,13 @@ async function openProfileInfoPage() {
     const pageEl = document.getElementById('page-profile-info');
     if (!pageEl) return;
 
-    previousPage = currentPage;
+    prevStack.push(currentPage);
     
     updateProfileInfoAvatar();
     updateProfileInfoCard();
     updateProfileInfoUid(); 
 
-    pageEl.style.display = 'flex';
-    requestAnimationFrame(() => {
-        pageEl.classList.add('active');
-        try { refreshStatusBar(); } catch(e) {}
-    });
+    pushPageOpen(pageEl);
 
     currentPage = 'profile-info';
     
@@ -11457,14 +12225,11 @@ function updateProfileInfoUid() {
     }
 }
 function closeProfileInfoPage() {
-    const target = previousPage || 'profile';
+    const target = prevStack.pop() || 'profile';
     const pageEl = document.getElementById('page-profile-info');
     pageEl.classList.remove('active');
-    setTimeout(() => { pageEl.style.display = 'none'; }, 350);
-    document.querySelectorAll('#main-app .page').forEach(p => {
-        p.classList.remove('active');
-        p.style.display = 'none';
-    });
+    setTimeout(() => { pageEl.style.display = 'none'; }, 480);
+    popKeepSource(pageEl);
     const targetEl = document.getElementById('page-' + target);
     if (targetEl) {
         targetEl.style.display = '';
@@ -11713,16 +12478,29 @@ function openProfileEditModal(field) {
     document.body.appendChild(overlay);
     
     
+    let _profileEditClosing = false;
     const forceCloseModal = function() {
-        
-        if (overlay && overlay.parentNode) {
-            overlay.parentNode.removeChild(overlay);
-        }
-        
-        const residual = document.getElementById('profileEditOverlay');
-        if (residual && residual.parentNode) {
-            residual.parentNode.removeChild(residual);
-        }
+        if (_profileEditClosing) return;
+        _profileEditClosing = true;
+        // 先移除 .show 触发退场动画（遮罩淡出 0.3s + 弹窗下滑 0.35s），结束后再移除节点
+        overlay.classList.remove('show');
+        let _peDone = false;
+        const _peFinish = function () {
+            if (_peDone) return;
+            _peDone = true;
+            if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+            const residual = document.getElementById('profileEditOverlay');
+            if (residual && residual.parentNode && residual !== overlay) {
+                residual.parentNode.removeChild(residual);
+            }
+        };
+        const _peOnEnd = function (e) {
+            if (e && e.propertyName && e.propertyName !== 'opacity' && e.propertyName !== 'transform') return;
+            overlay.removeEventListener('transitionend', _peOnEnd);
+            _peFinish();
+        };
+        overlay.addEventListener('transitionend', _peOnEnd);
+        setTimeout(_peFinish, 420);
     };
     
     
@@ -11798,7 +12576,7 @@ function openProfileEditModal(field) {
                         currentUser.phone = response.profile.phone;
                         localStorage.setItem('user', JSON.stringify(currentUser));
                     }
-                    localStorage.setItem('profile_info', JSON.stringify(profileInfoState));
+                    persistProfileInfo(false);
                 }
                 
                 updateProfileInfoCard();
@@ -11852,6 +12630,7 @@ let birthdaySelectedDate = null;
 
 function openBirthdayPicker() {
     
+    datePickerIsBirthday = true;
     const currentBirthday = profileInfoState.birthday || '';
     let initialDate = new Date();
     initialDate.setHours(0, 0, 0, 0);
@@ -11896,8 +12675,7 @@ function openBirthdayPicker() {
         
         
         
-        overlay.style.zIndex = '1000';
-        modal.style.zIndex = '1001';
+        // 日期弹窗（生日等）层级已由 CSS 统一抬高（.date-overlay 1150 / .date-modal 1151），无需再单独设置
     }
     
     
@@ -12115,7 +12893,7 @@ function initProfileInfoEvents() {
                         currentUser.nickname = response.profile.nickname;
                         localStorage.setItem('user', JSON.stringify(currentUser));
                     }
-                    localStorage.setItem('profile_info', JSON.stringify(profileInfoState));
+                    persistProfileInfo(false);
                 }
                 updateProfileInfoCard();
                 renderProfile();
@@ -12202,7 +12980,7 @@ function rebindProfileAvatarClick() {
 
 function openAccountSecurityPage() {
     
-    previousPage = currentPage;
+    prevStack.push(currentPage);
     
     
     
@@ -12212,25 +12990,21 @@ function openAccountSecurityPage() {
     
     updateAccountSecurityStatus();
 
-    pageEl.style.display = 'flex';
-    requestAnimationFrame(() => {
-        pageEl.classList.add('active');
-        try { refreshStatusBar(); } catch(e) {}
-    });
+    pushPageOpen(pageEl);
 
     currentPage = 'account-security';
 }
 
 
+/* 返回上一页。注意：退出登录**不走这里** —— 这里会把底层的「我的」页
+   揭示出来（上层页右滑出 + 底层 tab 从 -28% 回弹），退出会变成
+   "先回到我的页、再跳登录页"。退出走的是 handleLogout 里的整体淡出。 */
 function closeAccountSecurityPage() {
-    const target = previousPage || 'profile';
+    const target = prevStack.pop() || 'profile';
     const pageEl = document.getElementById('page-account-security');
     pageEl.classList.remove('active');
-    setTimeout(() => { pageEl.style.display = 'none'; }, 350);
-    document.querySelectorAll('#main-app .page').forEach(p => {
-        p.classList.remove('active');
-        p.style.display = 'none';
-    });
+    setTimeout(() => { pageEl.style.display = 'none'; }, 480);
+    popKeepSource(pageEl);
     const targetEl = document.getElementById('page-' + target);
     if (targetEl) {
         targetEl.style.display = '';
@@ -12245,7 +13019,7 @@ function closeAccountSecurityPage() {
     if (target === 'home') renderHome();
     else if (target === 'bills') renderBills();
     else if (target === 'stats') { enterStatsPage(); }
-    else if (target === 'profile') renderProfile();
+    else if (target === 'profile') { renderProfile(); }
 }
 
 
@@ -12295,11 +13069,7 @@ function openAccountDeletePage() {
         btn.textContent = '确认注销账号';
     }
     
-    pageEl.style.display = 'flex';
-    requestAnimationFrame(() => {
-        pageEl.classList.add('active');
-        try { refreshStatusBar(); } catch(e) {}
-    });
+    pushPageOpen(pageEl);
 
     currentPage = 'delete-account';
 }
@@ -12310,11 +13080,8 @@ function closeDeleteAccountPage() {
     const target = 'account-security';
     const pageEl = document.getElementById('page-delete-account');
     pageEl.classList.remove('active');
-    setTimeout(() => { pageEl.style.display = 'none'; }, 350);
-    document.querySelectorAll('#main-app .page').forEach(p => {
-        p.classList.remove('active');
-        p.style.display = 'none';
-    });
+    setTimeout(() => { pageEl.style.display = 'none'; }, 480);
+    popKeepSource(pageEl);
     const targetEl = document.getElementById('page-' + target);
     if (targetEl) {
         targetEl.style.display = '';
@@ -12346,11 +13113,7 @@ function openUnbindAccountPage() {
         btn.textContent = '确认解除匹配';
     }
 
-    pageEl.style.display = 'flex';
-    requestAnimationFrame(() => {
-        pageEl.classList.add('active');
-        try { refreshStatusBar(); } catch(e) {}
-    });
+    pushPageOpen(pageEl);
 
     currentPage = 'unbind-account';
 }
@@ -12361,11 +13124,8 @@ function closeUnbindAccountPage() {
     const target = 'account-security';
     const pageEl = document.getElementById('page-unbind-account');
     pageEl.classList.remove('active');
-    setTimeout(() => { pageEl.style.display = 'none'; }, 350);
-    document.querySelectorAll('#main-app .page').forEach(p => {
-        p.classList.remove('active');
-        p.style.display = 'none';
-    });
+    setTimeout(() => { pageEl.style.display = 'none'; }, 480);
+    popKeepSource(pageEl);
     const targetEl = document.getElementById('page-' + target);
     if (targetEl) {
         targetEl.style.display = '';
@@ -12477,7 +13237,8 @@ function fpShowStep(step) {
 }
 
 function openForgotPasswordPage() {
-    pageBackStack.push(currentPage);
+    const isOnAuthPage = pageAuth.style.display === 'flex';
+    pageBackStack.push(isOnAuthPage ? 'auth' : currentPage);
     const pageEl = document.getElementById('page-forgot-password');
     if (!pageEl) return;
 
@@ -12498,22 +13259,71 @@ function openForgotPasswordPage() {
 
     fpShowStep(1);
 
-    pageEl.style.display = 'flex';
-    requestAnimationFrame(() => {
-        pageEl.classList.add('active');
-        try { refreshStatusBar(); } catch(e) {}
-    });
+    /* 登录态下 #main-app 被隐藏，而 #page-forgot-password 是其子元素，pushPageOpen 只设
+       子元素 display:flex 无法显示。下面 auth 分支里先显示 mainApp，并让登录页临时 fixed
+       保留可见作为底层被推走——pushPageOpen 的 iOS push 转场（找回密码页右滑入、登录页
+       左推）才能正常生效；关闭时按 target==='auth' 滑回并还原登录页。 */
+    if (isOnAuthPage) {
+        /* 登录页作为底层被推走（iOS push 的"推动登录页"效果），找回密码页随后从右侧滑入覆盖其上。
+           关键：#page-forgot-password 是 #main-app 的子元素，必须显示 #main-app 才能渲染；
+           但 #main-app 内的首页等一级页若仍 active 会一并露出并被推走（视觉穿帮），故先取消
+           其 active（按 .page 默认 display:none 隐藏），既避免穿帮，也避免 pushPageOpen 把首页
+           误当底层推送。登录页仅用 transform 左推，position 保持 absolute（见下方），返回不回退。 */
+        const baseHome = document.querySelector('#main-app .page.active');
+        if (baseHome) baseHome.classList.remove('active');
+        /* 登录页用 absolute 覆盖在 #app 内（而非 fixed 跨视口），与 relative 基类同尺寸；
+           返回时不再回退 position，从根上消除卡片跳动。z-index 压在找回密码页之下。 */
+        pageAuth.style.position = 'absolute';
+        pageAuth.style.top = '0';
+        pageAuth.style.left = '0';
+        pageAuth.style.right = '0';
+        pageAuth.style.bottom = '0';
+        pageAuth.style.zIndex = '1'; /* 低于找回密码页(z-index>=10) */
+        pageAuth.style.transition = 'transform 0.44s cubic-bezier(.32,.72,0,1)';
+        pageAuth.style.transform = 'translateX(0)';
+        void pageAuth.offsetWidth; /* 锁定起始帧，避免与显示同帧合并跳过动画 */
+        pageAuth.style.transform = 'translateX(-28%)';
+        _markAnimating(pageAuth);
+        mainApp.style.display = 'grid';
+        setBottomNavVisible(false); /* auth 路径无底部导航，全程保持隐藏 */
+    }
+
+    pushPageOpen(pageEl);
     currentPage = 'forgot-password';
 }
 
 function closeForgotPasswordPage() {
     const target = pageBackStack.length > 0 ? pageBackStack.pop() : 'account-security';
     const pageEl = document.getElementById('page-forgot-password');
-    pageEl.classList.remove('active');
-    setTimeout(() => { pageEl.style.display = 'none'; }, 350);
     if (fpCountdownTimer) {
         clearInterval(fpCountdownTimer);
         fpCountdownTimer = null;
+    }
+    if (target === 'auth') {
+        /* 从登录页进入的找回密码：popKeepSource 让找回密码页向右滑出；登录页同步从
+           translateX(-28%) 滑回 0，形成"推回登录页"的标准 pop 效果。480ms 后仅复位 transform /
+           过渡/临时层级，position:absolute 与 inset 保留（与基类 relative 同尺寸，无回退跳动），
+           登录页恢复常态。若误走 restoreFromBack('home') 会直接跳到首页且丢失登录页上下文。 */
+        popKeepSource(pageEl);
+        setBottomNavVisible(false); /* popKeepSource 在栈空时会显示导航，auth 路径须保持隐藏 */
+        pageAuth.style.transition = 'transform 0.44s cubic-bezier(.32,.72,0,1)';
+        pageAuth.style.transform = 'translateX(0)';
+        _markAnimating(pageAuth);
+        setTimeout(() => {
+            mainApp.style.display = 'none';
+            pageAuth.style.display = 'flex';
+            pageAuth.classList.add('active');
+            /* 保留 position:absolute 与 inset（与基类 relative 同尺寸、无回退跳动）；
+               仅复位 transform / 过渡 / 临时层级，登录页恢复常态。 */
+            pageAuth.style.zIndex = '';
+            pageAuth.style.transform = '';
+            pageAuth.style.transition = '';
+            pageAuth.classList.remove('is-animating');
+            currentPage = 'home';
+            requestAnimationFrame(() => syncAuthWrapperHeight(false));
+            try { refreshStatusBar(); } catch(e) {}
+        }, 480);
+        return;
     }
     restoreFromBack(target);
 }
@@ -12604,7 +13414,7 @@ async function fpSubmit() {
         setTimeout(() => {
             closeForgotPasswordPage();
             
-            if (loginForm.style.display !== 'block') showLoginPage();
+            if (authIsRegister) showLoginPage();
             const loginAccountInput = document.getElementById('loginAccount');
             if (loginAccountInput) loginAccountInput.value = email;
             const loginPwdInput = document.getElementById('loginPassword');
@@ -12695,11 +13505,9 @@ function openChangePasswordPage() {
 
     cpwShowStep(1);
 
-    pageEl.style.display = 'flex';
-    requestAnimationFrame(() => {
-        pageEl.classList.add('active');
-        try { refreshStatusBar(); } catch(e) {}
-    });
+    resetPwdToggles('#page-change-password');
+
+    pushPageOpen(pageEl);
     currentPage = 'change-password';
 }
 
@@ -12708,11 +13516,8 @@ function closeChangePasswordPage() {
     const target = 'account-security';
     const pageEl = document.getElementById('page-change-password');
     pageEl.classList.remove('active');
-    setTimeout(() => { pageEl.style.display = 'none'; }, 350);
-    document.querySelectorAll('#main-app .page').forEach(p => {
-        p.classList.remove('active');
-        p.style.display = 'none';
-    });
+    setTimeout(() => { pageEl.style.display = 'none'; }, 480);
+    popKeepSource(pageEl);
     const targetEl = document.getElementById('page-' + target);
     if (targetEl) {
         targetEl.style.display = '';
@@ -12955,8 +13760,14 @@ async function performAccountDeletion() {
         token = null;
         currentUser = null;
         currentPartner = null;
-        allBills = [];
-        budgetCache = { [getBudgetMonthKey(new Date())]: { my: 0, partner: 0, both: 0 } };
+        partnerStatusLoaded = false;
+        partnerProfileInfo = null;
+        partnerProfileFetched = false;
+        setAllBills([], false);
+        setBudgetCache({ [getBudgetMonthKey(new Date())]: { my: 0, partner: 0, both: 0 } }, { persist: false });
+        // 账号已注销，本机不能再留这个账号的任何缓存
+        WBCache.clearAll();
+        WBCache.refreshUid();
 
         showToast('账户已注销');
 
@@ -13048,21 +13859,39 @@ function handleLogout() {
         '确定要退出登录吗？',
         async function() {
             try {
-                
-                const securityPage = document.getElementById('page-account-security');
-                if (securityPage && securityPage.classList.contains('active')) {
-                    securityPage.classList.remove('active');
-                    
-                    await new Promise(resolve => setTimeout(resolve, 350));
-                    securityPage.style.display = 'none';
-                    securityPage.style.transform = '';
-                }
-                
+                // 1) 确认弹窗先淡出（0.3s），否则它会一直压在整个退出流程上面
                 hideDeleteModal();
-                
+
+                /* 2) 退出**不走返回转场**。
+                   退出入口在「账号安全」二级页内，标准返回动画是「上层页右滑出 +
+                   底层 tab 回弹到 0」——底层那个 tab 就是「我的」页。也就是说走标准返回
+                   一定会把「我的」页揭示出来，看起来就是"先回到我的页、再退出"。
+                   退出是「离开当前会话」而不是「返回上一页」，所以这里保持账号安全页
+                   留在最上层，整个主应用一起淡出即可。 */
+                const securityPage = document.getElementById('page-account-security');
+                const fading = [mainApp];
+                if (securityPage && securityPage.classList.contains('active')) fading.push(securityPage);
+
+                fading.forEach(el => {
+                    el.style.transition = 'opacity 0.22s ease';
+                    el.style.opacity = '0';
+                });
+
+                // 3) 等淡出跑完再切登录页，避免「还没淡完就硬切」
+                await new Promise(resolve => setTimeout(resolve, 240));
+
                 logout();
             } catch (err) {
                 showToast('退出失败: ' + err.message);
+            } finally {
+                // logout 已经把主应用 display:none，此时复位不可见；
+                // 放在 finally 里兜底，避免中途出错后 opacity 卡在 0 导致下次登录白屏
+                const securityPage = document.getElementById('page-account-security');
+                [mainApp, securityPage].forEach(el => {
+                    if (!el) return;
+                    el.style.opacity = '';
+                    el.style.transition = '';
+                });
             }
         },
         '退出'
@@ -13117,7 +13946,7 @@ function rebindAccountManage() {
 
 function openMatchPage() {
     
-    previousPage = currentPage;
+    prevStack.push(currentPage);
   
     
     
@@ -13133,11 +13962,7 @@ function openMatchPage() {
     document.getElementById('matchUnbound').style.display = 'none';
     document.getElementById('matchLoading').style.display = 'flex';
 
-    pageEl.style.display = 'flex';
-    requestAnimationFrame(() => {
-        pageEl.classList.add('active');
-        try { refreshStatusBar(); } catch(e) {}
-    });
+    pushPageOpen(pageEl);
 
     currentPage = 'match';
 
@@ -13148,14 +13973,11 @@ function openMatchPage() {
 
 function closeMatchPage() {
     
-    const target = previousPage || 'profile';
+    const target = prevStack.pop() || 'profile';
     const pageEl = document.getElementById('page-match');
     pageEl.classList.remove('active');
-    setTimeout(() => { pageEl.style.display = 'none'; }, 350);
-    document.querySelectorAll('#main-app .page').forEach(p => {
-        p.classList.remove('active');
-        p.style.display = 'none';
-    });
+    setTimeout(() => { pageEl.style.display = 'none'; }, 480);
+    popKeepSource(pageEl);
     const targetEl = document.getElementById('page-' + target);
     if (targetEl) {
         targetEl.style.display = '';
@@ -13324,7 +14146,7 @@ function initMatchPageEvents() {
 
 const THEME_PRESETS = [
     { id: 'default', name: '默认蓝', primary: '#4F9BFA', light: '#A5CAF1', bg: '#EEF4FF', shadow: 'rgba(165, 202, 241, 0.22)' },
-{ id: 'gray', name: '高级灰', primary: '#78909C', light: '#B0BEC5', bg: '#ECEFF1', shadow: 'rgba(120, 144, 156, 0.22)' },
+{ id: 'gray', name: '高级黑', primary: '#2D2D2D', light: '#9E9E9E', bg: '#ECEFF1', shadow: 'rgba(45, 45, 45, 0.22)' },
     { id: 'forest', name: '森林绿', primary: '#43A047', light: '#A5D6A7', bg: '#E8F5E9', shadow: 'rgba(67, 160, 71, 0.22)' },
     { id: 'sunset', name: '日落橙', primary: '#FF7043', light: '#FFAB91', bg: '#FBE9E7', shadow: 'rgba(255, 112, 67, 0.22)' },
     { id: 'lavender', name: '薰衣草', primary: '#7E57C2', light: '#B39DDB', bg: '#EDE7F6', shadow: 'rgba(126, 87, 194, 0.22)' },
@@ -13593,18 +14415,14 @@ function initThemeEvents() {
 
 function openScheduledPage() {
     
-    previousPage = currentPage;
+    prevStack.push(currentPage);
     
     
     
     const pageEl = document.getElementById('page-scheduled');
     if (!pageEl) return;
 
-    pageEl.style.display = 'flex';
-    requestAnimationFrame(() => {
-        pageEl.classList.add('active');
-        try { refreshStatusBar(); } catch(e) {}
-    });
+    pushPageOpen(pageEl);
 
     currentPage = 'scheduled';
 
@@ -13615,14 +14433,11 @@ function openScheduledPage() {
 
 function closeScheduledPage() {
     
-    const target = previousPage || 'profile';
+    const target = prevStack.pop() || 'profile';
     const pageEl = document.getElementById('page-scheduled');
     pageEl.classList.remove('active');
-    setTimeout(() => { pageEl.style.display = 'none'; }, 350);
-    document.querySelectorAll('#main-app .page').forEach(p => {
-        p.classList.remove('active');
-        p.style.display = 'none';
-    });
+    setTimeout(() => { pageEl.style.display = 'none'; }, 480);
+    popKeepSource(pageEl);
     const targetEl = document.getElementById('page-' + target);
     if (targetEl) {
         targetEl.style.display = '';
@@ -13644,25 +14459,35 @@ function closeScheduledPage() {
 
 async function renderScheduledList() {
     const container = document.getElementById('scheduledList');
-    const titleEl = document.querySelector('.scheduled-section-title');
     if (!container) return;
-    
-    
+
+    // 缓存优先：先用上次的任务列表把页面画出来，不用盯着空白等接口
+    const cached = WBCache.read('scheduled');
+    const cachedTasks = (cached && Array.isArray(cached.tasks)) ? cached.tasks : null;
+    if (cachedTasks) {
+        scheduledTasksCache = cachedTasks;
+        renderScheduledTasks(container, cachedTasks);
+    }
+
     let tasks = [];
     try {
         const data = await apiCall('/scheduled', 'GET');
         tasks = data.tasks || [];
+        // 写后即缓存：接口拿到的最新列表立刻落盘
+        WBCache.write('scheduled', { tasks: tasks });
     } catch (e) {
         console.warn('加载定时任务失败', e);
+        if (cachedTasks) return;   // 已经用缓存画过了，别把它擦成空白
         tasks = [];
     }
-    
-    
-    if (titleEl) {
-        titleEl.style.display = tasks.length > 0 ? 'block' : 'none';
-    }
-    
-    
+
+    // 内存副本：编辑页靠它免掉一次 /scheduled/:id 往返
+    scheduledTasksCache = tasks;
+    renderScheduledTasks(container, tasks);
+}
+
+
+function renderScheduledTasks(container, tasks) {
     if (tasks.length === 0) {
         container.innerHTML = `
             <div class="scheduled-empty">
@@ -13727,7 +14552,7 @@ async function renderScheduledList() {
                     </div>
                     <div class="scheduled-item-right">
                         <div class="scheduled-item-right-col">
-                            <span class="scheduled-item-amount ${typeClass}">${sign}¥${Number(task.amount || 0).toFixed(2)}</span>
+                            <span class="scheduled-item-amount ${typeClass}">${sign}${moneySym()}${Number(task.amount || 0).toFixed(2)}</span>
                             <span class="scheduled-item-repeat">${repeatLabel}</span>
                         </div>
                     </div>
@@ -13763,6 +14588,49 @@ const schedState = {
     note: ''                  
 };
 
+/* 定时任务列表的内存副本。
+   /api/scheduled（列表）与 /api/scheduled/:id（单条）后端返回的是同一份
+   rowToScheduledTask 结构，列表里已经有编辑表单需要的全部字段。
+   所以点「编辑」时可以先拿列表里那份把表单填好、页面立刻滑入，
+   不用等 /scheduled/:id 往返 —— 原来 await 完接口才 pushPageOpen，
+   手感就是「点了要等一下页面才出来」。 */
+let scheduledTasksCache = [];
+
+function findLocalScheduledTask(editId) {
+    const id = String(editId);
+    let list = Array.isArray(scheduledTasksCache) ? scheduledTasksCache : [];
+    if (!list.length) {
+        const cached = WBCache.read('scheduled');
+        list = (cached && Array.isArray(cached.tasks)) ? cached.tasks : [];
+    }
+    for (let i = 0; i < list.length; i++) {
+        if (String(list[i].id) === id) return list[i];
+    }
+    return null;
+}
+
+/* 把一条任务（列表项或 /scheduled/:id 返回）灌进编辑表单状态 */
+function applyScheduledTaskToState(task) {
+    if (!task) return;
+    schedState.editingId = String(task.id);
+    schedState.type = task.type || 'expense';
+    schedState.category = task.category || null;
+    schedState.categoryIcon = task.categoryIcon || null;
+    schedState.amount = task.amount != null ? String(task.amount) : '';
+    schedState.belong = task.belong || '自己';
+    schedState.payment = task.payment || '微信';
+    schedEditingOwnTask = task.isOwn !== false;
+
+    const repeatConfig = task.repeatConfig || { mode: 'daily', daily: 'daily' };
+    schedState.repeatTab = repeatConfig.mode || 'daily';
+    schedState.repeatDaily = repeatConfig.daily || 'daily';
+    schedState.repeatWeekly = repeatConfig.weekly || [];
+    schedState.repeatMonthly = repeatConfig.monthly || 1;
+    schedState.endType = task.endType || 'forever';
+    schedState.endDate = task.endDate || null;
+    schedState.note = task.note || '';
+}
+
 
 function resetSchedState() {
     schedState.editingId = null;
@@ -13783,70 +14651,91 @@ function resetSchedState() {
 }
 
 
-async function openScheduledEditPage(editId = null) {
+function openScheduledEditPage(editId = null) {
     resetSchedState();
-    
-    
-    if (editId) {
-        try {
-            const data = await apiCall('/scheduled/' + editId, 'GET');
-            const task = data.task;
-            if (task) {
-                schedState.editingId = String(task.id);
-                schedState.type = task.type || 'expense';
-                schedState.category = task.category || null;
-                schedState.categoryIcon = task.categoryIcon || null;
-                schedState.amount = task.amount != null ? String(task.amount) : '';
-                schedState.belong = task.belong || '自己';
-                schedState.payment = task.payment || '微信';
-                schedEditingOwnTask = task.isOwn !== false;
-                
-                const repeatConfig = task.repeatConfig || { mode: 'daily', daily: 'daily' };
-                schedState.repeatTab = repeatConfig.mode || 'daily';
-                schedState.repeatDaily = repeatConfig.daily || 'daily';
-                schedState.repeatWeekly = repeatConfig.weekly || [];
-                schedState.repeatMonthly = repeatConfig.monthly || 1;
-                schedState.endType = task.endType || 'forever';
-                schedState.endDate = task.endDate || null;
-                schedState.note = task.note || '';
-            }
-        } catch (e) {
-            console.warn('加载定时任务失败', e);
-            showToast('加载失败，请重试');
-            return;
-        }
-    }
-    
-    
-    const titleEl = document.getElementById('schedEditTitle');
-    if (titleEl) {
-        if (editId) {
-            titleEl.textContent = schedEditingOwnTask ? '编辑定时记账' : '编辑对方的定时记账';
-        } else {
-            titleEl.textContent = '创建定时记账';
-        }
-    }
-    
-    
-    refreshSchedEditUI();
-    
-    
+
     const pageEl = document.getElementById('page-scheduled-edit');
     if (!pageEl) return;
-    pageBackStack.push(currentPage);
-    pageEl.style.display = 'flex';
-    requestAnimationFrame(() => {
-        pageEl.classList.add('active');
-        try { refreshStatusBar(); } catch(e) {}
+
+    /* 打开顺序：先填表单 → 立刻滑入页面 → 后台再对一次接口。
+       原来是把 /scheduled/:id 的 await 放在 pushPageOpen 之前，
+       接口没回来页面就出不来（"点编辑要等一下才打开"）。
+       列表 /api/scheduled 和单条 /api/scheduled/:id 是同一份后端结构，
+       列表里那份足够把表单填满，所以有本地副本就不等接口。 */
+    const localTask = editId ? findLocalScheduledTask(editId) : null;
+
+    const paint = (task) => {
+        applyScheduledTaskToState(task);
+        const titleEl = document.getElementById('schedEditTitle');
+        if (titleEl) {
+            if (editId) {
+                titleEl.textContent = schedEditingOwnTask ? '编辑定时记账' : '编辑对方的定时记账';
+            } else {
+                titleEl.textContent = '创建定时记账';
+            }
+        }
+        refreshSchedEditUI();
+    };
+
+    if (editId && localTask) {
+        paint(localTask);
+        finishOpen();
+        refreshEditFromServer(editId);
+        return;
+    }
+
+    if (!editId) {
+        paint(null);
+        finishOpen();
+        return;
+    }
+
+    // 没有本地副本（例如直接从别处进来）时才必须等接口，否则表单会是空的
+    apiCall('/scheduled/' + editId, 'GET').then(data => {
+        paint(data.task);
+        finishOpen();
+        refreshEditFromServer(editId);
+    }).catch(e => {
+        console.warn('加载定时任务失败', e);
+        showToast('加载失败，请重试');
     });
-    currentPage = 'scheduled-edit';
+
+    function finishOpen() {
+        pageBackStack.push(currentPage);
+        pushPageOpen(pageEl);
+        currentPage = 'scheduled-edit';
+    }
+}
+
+/* 编辑页后台刷新：用最新数据覆盖一次。
+   用户已经动过表单就不再覆盖（防止把编辑中的内容冲掉） */
+function refreshEditFromServer(editId) {
+    const openedId = String(editId);
+    const pageEl = document.getElementById('page-scheduled-edit');
+    if (!pageEl) return;
+
+    let touched = false;
+    pageEl.addEventListener('pointerdown', function () { touched = true; }, { once: true, passive: true });
+
+    apiCall('/scheduled/' + openedId, 'GET').then(data => {
+        if (touched) return;
+        if (currentPage !== 'scheduled-edit') return;
+        if (String(schedState.editingId) !== openedId) return;
+        applyScheduledTaskToState(data.task);
+        const titleEl = document.getElementById('schedEditTitle');
+        if (titleEl) titleEl.textContent = schedEditingOwnTask ? '编辑定时记账' : '编辑对方的定时记账';
+        refreshSchedEditUI();
+        // 同步列表内存副本，避免下次点编辑又用旧值
+        const idx = scheduledTasksCache.findIndex(t => String(t.id) === openedId);
+        if (idx !== -1) scheduledTasksCache[idx] = Object.assign({}, scheduledTasksCache[idx], data.task);
+    }).catch(() => {});
 }
 
 function closeScheduledEditPage() {
     const target = pageBackStack.length > 0 ? pageBackStack.pop() : 'scheduled';
     const pageEl = document.getElementById('page-scheduled-edit');
     pageEl.classList.remove('active');
-    setTimeout(() => { pageEl.style.display = 'none'; }, 350);
+    setTimeout(() => { pageEl.style.display = 'none'; }, 480);
     closeAllSchedModals();
     restoreFromBack(target);
 }
@@ -13940,10 +14829,16 @@ function updateSchedSaveBtn() {
 
 
 let schedCategoryCurrentType = 'expense';
+let schedCatTempType = 'expense';
+let schedCatTempCategory = '';
+let schedCatTempIcon = '';
 
 function openSchedCategorySheet() {
     schedCategoryCurrentType = schedState.type;
-    
+    schedCatTempType = schedState.type;
+    schedCatTempCategory = schedState.category || '';
+    schedCatTempIcon = schedState.categoryIcon || '';
+
     updateSchedCategoryToggleUI(true);
     renderSchedCategoryGrid();
     document.getElementById('schedCategoryOverlay').classList.add('show');
@@ -13954,6 +14849,17 @@ function openSchedCategorySheet() {
 function closeSchedCategorySheet() {
     document.getElementById('schedCategoryOverlay').classList.remove('show');
     document.getElementById('schedCategorySheet').classList.remove('show');
+}
+function confirmSchedCategory() {
+    if (!schedCatTempCategory) {
+        showToast('请先选择类别');
+        return;
+    }
+    schedState.type = schedCatTempType;
+    schedState.category = schedCatTempCategory;
+    schedState.categoryIcon = schedCatTempIcon;
+    closeSchedCategorySheet();
+    refreshSchedEditUI();
 }
 function updateSchedCategoryToggleUI(skipAnim) {
     const toggleEl = document.getElementById('schedCategoryToggle');
@@ -13990,7 +14896,7 @@ function renderSchedCategoryGrid() {
     const cats = getCategoriesForType(schedCategoryCurrentType);
     let html = '';
     cats.forEach(cat => {
-        const active = (schedState.type === schedCategoryCurrentType && schedState.category === cat.label) ? 'active' : '';
+        const active = (schedCatTempType === schedCategoryCurrentType && schedCatTempCategory === cat.label) ? 'active' : '';
         html += `
             <div class="sched-cat-item ${active}" data-label="${escapeHtml(cat.label)}" data-icon="${escapeHtml(cat.icon)}">
                 <span class="sched-cat-icon"><i class="fas ${escapeHtml(cat.icon)}"></i></span>
@@ -14000,11 +14906,11 @@ function renderSchedCategoryGrid() {
     grid.innerHTML = html;
     grid.querySelectorAll('.sched-cat-item').forEach(item => {
         item.addEventListener('click', () => {
-            schedState.type = schedCategoryCurrentType;
-            schedState.category = item.dataset.label;
-            schedState.categoryIcon = item.dataset.icon;
-            closeSchedCategorySheet();
-            refreshSchedEditUI();
+            schedCatTempType = schedCategoryCurrentType;
+            schedCatTempCategory = item.dataset.label;
+            schedCatTempIcon = item.dataset.icon;
+            grid.querySelectorAll('.sched-cat-item').forEach(el => el.classList.remove('active'));
+            item.classList.add('active');
         });
     });
 }
@@ -14537,7 +15443,7 @@ function setSchedAmountDisplay(value) {
     const amtEl = document.getElementById('schedAmountInput');
     if (!amtEl) return;
     if (value) {
-        amtEl.textContent = '¥' + value;
+        amtEl.textContent = moneySym() + value;
         amtEl.classList.remove('placeholder');
     } else {
         amtEl.textContent = '请输入金额';
@@ -14617,9 +15523,8 @@ function confirmSchedAmountKeyboard() {
 function bindSchedAmountKeyboardEvents() {
     if (schedAmountKeyboardBound) return;
     const body = document.getElementById('schedAmountKeyboardBody');
-    const closeBtn = document.getElementById('schedAmountKeyboardClose');
     const overlay = document.getElementById('schedAmountKeyboardOverlay');
-    if (!body || !closeBtn || !overlay) return;
+    if (!body || !overlay) return;
     schedAmountKeyboardBound = true;
 
     body.addEventListener('click', function(e) {
@@ -14627,11 +15532,6 @@ function bindSchedAmountKeyboardEvents() {
         if (!key) return;
         e.stopPropagation();
         handleSchedAmountKey(key.dataset.key);
-    });
-
-    closeBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        closeSchedAmountKeyboard();
     });
 
     overlay.addEventListener('click', function(e) {
@@ -14701,10 +15601,17 @@ function initScheduledEditEvents() {
     
     document.getElementById('schedCategoryField')?.addEventListener('click', openSchedCategorySheet);
     document.getElementById('schedCategoryClose')?.addEventListener('click', closeSchedCategorySheet);
+    document.getElementById('schedCategoryConfirm')?.addEventListener('click', confirmSchedCategory);
     document.getElementById('schedCategoryOverlay')?.addEventListener('click', closeSchedCategorySheet);
     document.querySelectorAll('#schedCategoryToggle button').forEach(b => {
         b.addEventListener('click', () => {
-            schedCategoryCurrentType = b.dataset.type;
+            const newType = b.dataset.type;
+            if (newType !== schedCatTempType) {
+                schedCatTempCategory = '';
+                schedCatTempIcon = '';
+            }
+            schedCategoryCurrentType = newType;
+            schedCatTempType = newType;
             updateSchedCategoryToggleUI();
             renderSchedCategoryGrid();
         });
@@ -14733,17 +15640,30 @@ function initScheduledEditEvents() {
         r.addEventListener('change', function() {
             if (!this.checked) return;
             schedState.endType = this.value;
-            if (this.value === 'date') {
-                
-                openSchedEndDatePicker();
-            }
             refreshSchedEditUI();
         });
     });
     
-    document.getElementById('schedEndDateRow')?.addEventListener('click', function() {
-        if (schedState.endType === 'date') openSchedEndDatePicker();
+    document.getElementById('schedEndDateRow')?.addEventListener('click', function(e) {
+        if (schedState.endType === 'date') {
+            e.stopPropagation();
+            openSchedEndDatePicker();
+        }
     });
+
+    
+    const schedEndDateLabel = document.querySelector('.sched-checkbox[data-end="date"]');
+    if (schedEndDateLabel) {
+        schedEndDateLabel.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            schedState.endType = 'date';
+            const radio = this.querySelector('input[type="radio"]');
+            if (radio) radio.checked = true;
+            refreshSchedEditUI();
+            openSchedEndDatePicker();
+        });
+    }
     
     
     document.getElementById('schedNoteInput')?.addEventListener('input', function() {
@@ -14977,11 +15897,7 @@ function openSearchPage() {
     resetFilterOptionsUI();
     
     
-    pageEl.style.display = 'flex';
-    requestAnimationFrame(() => {
-        pageEl.classList.add('active');
-        try { refreshStatusBar(); } catch(e) {}
-    });
+    pushPageOpen(pageEl);
     setTimeout(() => document.getElementById('searchInput').focus(), 350);
     currentPage = 'search';
 
@@ -14993,11 +15909,8 @@ function closeSearchPage() {
     const target = searchPreviousPage || 'home';
     const pageEl = document.getElementById('page-search');
     pageEl.classList.remove('active');
-    setTimeout(() => { pageEl.style.display = 'none'; }, 350);
-    document.querySelectorAll('#main-app .page').forEach(p => {
-        p.classList.remove('active');
-        p.style.display = 'none';
-    });
+    setTimeout(() => { pageEl.style.display = 'none'; }, 480);
+    popKeepSource(pageEl);
     const targetEl = document.getElementById('page-' + target);
     if (targetEl) {
         targetEl.style.display = '';
@@ -15187,9 +16100,9 @@ function renderSearchResults(bills, pagination) {
         });
         
         let summaryHtml = '';
-        if (dayIncome > 0) summaryHtml += `<span class="income">¥${dayIncome.toFixed(2)}</span>`;
-        if (dayExpense > 0) summaryHtml += `<span class="expense">¥${dayExpense.toFixed(2)}</span>`;
-        if (dayIncome === 0 && dayExpense === 0) summaryHtml += `<span class="zero">¥0.00</span>`;
+        if (dayIncome > 0) summaryHtml += `<span class="income">${moneySym()}${dayIncome.toFixed(2)}</span>`;
+        if (dayExpense > 0) summaryHtml += `<span class="expense">${moneySym()}${dayExpense.toFixed(2)}</span>`;
+        if (dayIncome === 0 && dayExpense === 0) summaryHtml += `<span class="zero">${moneySym()}0.00</span>`;
         
         html += `
             <div class="home-date-card">
@@ -15274,9 +16187,9 @@ function appendSearchResults(bills, pagination) {
         });
         
         let summaryHtml = '';
-        if (dayIncome > 0) summaryHtml += `<span class="income">¥${dayIncome.toFixed(2)}</span>`;
-        if (dayExpense > 0) summaryHtml += `<span class="expense">¥${dayExpense.toFixed(2)}</span>`;
-        if (dayIncome === 0 && dayExpense === 0) summaryHtml += `<span class="zero">¥0.00</span>`;
+        if (dayIncome > 0) summaryHtml += `<span class="income">${moneySym()}${dayIncome.toFixed(2)}</span>`;
+        if (dayExpense > 0) summaryHtml += `<span class="expense">${moneySym()}${dayExpense.toFixed(2)}</span>`;
+        if (dayIncome === 0 && dayExpense === 0) summaryHtml += `<span class="zero">${moneySym()}0.00</span>`;
         
         html += `
             <div class="home-date-card">
@@ -15336,8 +16249,8 @@ function updateSearchSummary(data) {
     const expenseCount = document.getElementById('searchExpenseCount');
     const incomeCount = document.getElementById('searchIncomeCount');
     
-    if (expenseTotal) expenseTotal.textContent = '¥' + data.expense.toFixed(2);
-    if (incomeTotal) incomeTotal.textContent = '¥' + data.income.toFixed(2);
+    if (expenseTotal) expenseTotal.textContent = moneySym() + data.expense.toFixed(2);
+    if (incomeTotal) incomeTotal.textContent = moneySym() + data.income.toFixed(2);
     if (expenseCount) expenseCount.textContent = data.expenseCount;
     if (incomeCount) incomeCount.textContent = data.incomeCount;
 }
@@ -15928,12 +16841,11 @@ function renderSearchBillItem(b) {
                         <div class="bill-category">${escapeHtml(displayText)}</div>
                         <div class="bill-note">
                             <span></span>
-                            <span class="belong-tag">${belongDisplay}</span>${isHelp ? '<span class="belong-tag help-tag">帮记</span>' : ''}
-                            <span class="type-tag ${typeClass}">${typeLabel}</span>
+                            <span class="belong-tag">${belongDisplay}</span><span class="type-tag ${typeClass}">${typeLabel}</span>${isHelp ? '<span class="amount-help-tag">(帮)</span>' : ''}
                         </div>
                     </div>
                 </div>
-                <div class="bill-amount ${typeClass}">${sign}¥${b.amount.toFixed(2)}</div>
+                <div class="bill-amount ${typeClass}">${sign}${moneySym()}${b.amount.toFixed(2)}</div>
             </div>
         </div>
     `;
@@ -15945,25 +16857,18 @@ function openFeedbackPage() {
     const pageEl = document.getElementById('page-feedback');
     if (!pageEl) return;
 
-    previousPage = currentPage;
-    pageEl.style.display = 'flex';
-    requestAnimationFrame(() => {
-        pageEl.classList.add('active');
-        try { refreshStatusBar(); } catch(e) {}
-    });
+    prevStack.push(currentPage);
+    pushPageOpen(pageEl);
     currentPage = 'feedback';
 }
 
 
 function closeFeedbackPage() {
-    const target = previousPage || 'profile';
+    const target = prevStack.pop() || 'profile';
     const pageEl = document.getElementById('page-feedback');
     pageEl.classList.remove('active');
-    setTimeout(() => { pageEl.style.display = 'none'; }, 350);
-    document.querySelectorAll('#main-app .page').forEach(p => {
-        p.classList.remove('active');
-        p.style.display = 'none';
-    });
+    setTimeout(() => { pageEl.style.display = 'none'; }, 480);
+    popKeepSource(pageEl);
     const targetEl = document.getElementById('page-' + target);
     if (targetEl) {
         targetEl.style.display = '';
@@ -16121,11 +17026,7 @@ function openBugFeedbackPage() {
     const pageEl = document.getElementById('page-bug-feedback');
     if (!pageEl) return;
     pageEl.querySelectorAll('.bugfb-overlay, .bugfb-sheet').forEach(el => el.classList.remove('show'));
-    pageEl.style.display = 'flex';
-    requestAnimationFrame(() => {
-        pageEl.classList.add('active');
-        try { refreshStatusBar(); } catch(e) {}
-    });
+    pushPageOpen(pageEl);
     requestAnimationFrame(() => {
         requestAnimationFrame(updateBugfbTabSlider);
     });
@@ -16137,7 +17038,7 @@ function closeBugFeedbackPage() {
     const pageEl = document.getElementById('page-bug-feedback');
     if (!pageEl) return;
     pageEl.classList.remove('active');
-    setTimeout(() => { pageEl.style.display = 'none'; }, 350);
+    setTimeout(() => { pageEl.style.display = 'none'; }, 480);
     restoreFromBack(target);
 }
 
@@ -16261,7 +17162,7 @@ function initBugTimeWheel() {
         sel.h = getVal(wH) ?? sel.h;
         sel.min = getVal(wMin) ?? sel.min;
         if (valueEl) {
-            valueEl.textContent = `${sel.y}年${pad(sel.m)}月${pad(sel.d)}日 ${pad(sel.h)}:${pad(sel.min)}`;
+            valueEl.textContent = `${sel.y}-${pad(sel.m)}-${pad(sel.d)} ${pad(sel.h)}:${pad(sel.min)}`;
             valueEl.classList.remove('placeholder');
         }
         close();
@@ -16476,8 +17377,20 @@ renderBills();
     if (summaryDateLabel) {
         summaryDateLabel.addEventListener('click', function(e) {
             e.stopPropagation();
+            
+            beginMonthPickerOverride(null);
             openMonthPicker();
         });
+    }
+
+    
+    window.__monthBaseConfirm = confirmMonth;
+    window.__monthBaseToday = goToCurrentMonth;
+    if (monthBtnConfirm) {
+        monthBtnConfirm.onclick = confirmMonth;
+    }
+    if (monthBtnToday) {
+        monthBtnToday.onclick = goToCurrentMonth;
     }
 
     
@@ -16491,26 +17404,12 @@ renderBills();
     }
 
     
-if (monthBtnToday) {
-    monthBtnToday.onclick = goToCurrentMonth;
-}
-    if (monthBtnConfirm) {
-        monthBtnConfirm._originalClick = monthBtnConfirm.onclick || confirmMonth;
-        monthBtnConfirm.onclick = confirmMonth;
-    }
-
-
-
 const aboutUsItem = document.getElementById('profileAboutUs');
 if (aboutUsItem) {
     aboutUsItem.addEventListener('click', function() {
         pageBackStack.push(currentPage);
         const pageEl = document.getElementById('page-about');
-        pageEl.style.display = 'flex';
-        requestAnimationFrame(() => {
-            pageEl.classList.add('active');
-            try { refreshStatusBar(); } catch(e) {}
-        });
+        pushPageOpen(pageEl);
         currentPage = 'about';
     });
 }
@@ -16521,7 +17420,7 @@ function closeAboutPage() {
     const target = pageBackStack.length > 0 ? pageBackStack.pop() : 'profile';
     const pageEl = document.getElementById('page-about');
     pageEl.classList.remove('active');
-    setTimeout(() => { pageEl.style.display = 'none'; }, 350);
+    setTimeout(() => { pageEl.style.display = 'none'; }, 480);
     restoreFromBack(target);
 }
 document.getElementById('aboutBackBtn').addEventListener('click', closeAboutPage);
@@ -16584,9 +17483,7 @@ document.addEventListener('click', function(e) {
 
 
 document.getElementById('profileCategoryManage')?.addEventListener('click', function() {
-    
     if (addModalOverlay.classList.contains('show')) {
-        
         addModalOverlay.style.transition = 'none';
         addModalOverlay.classList.remove('show');
         document.body.style.overflow = '';
@@ -16594,21 +17491,9 @@ document.getElementById('profileCategoryManage')?.addEventListener('click', func
             addModalOverlay.style.transition = '';
         }, 50);
     }
-    
-    
-    settingsFromProfile = true;
-    
-    
-    settingsCurrentType = currentType || 'expense';
-    
-    
-    settingsOverlay.classList.add('show');
-    renderSettingsList(settingsCurrentType);
-    settingsTabs.querySelectorAll('.settings-tab').forEach(tab => {
-        tab.classList.toggle('active', tab.dataset.stype === settingsCurrentType);
-    });
-    requestAnimationFrame(() => updateSettingsTabSlider());
-    document.body.style.overflow = 'hidden';
+    // 统一走 openSettings()：保持与其他二级页一致的右侧滑入 + 底部导航下沉，
+    // 不再在此重复逻辑（否则从我的页进入时导航不会下沉，与记一笔入口行为不一致）
+    openSettings();
 });
 
 
@@ -16642,7 +17527,7 @@ const CSV_HEADER_CN = {
     amount: '金额',
     date: '日期',
     note: '备注',
-    payment: '支付方式',
+    payment: '关联账户',
     belong: '归属'
 };
 const TYPE_EN_TO_CN = { income: '收入', expense: '支出' };
@@ -16717,7 +17602,7 @@ function csvToBills(text) {
         '金额': 'amount', 'amount': 'amount',
         '日期': 'date', 'date': 'date',
         '备注': 'note', 'note': 'note',
-        '支付方式': 'payment', 'payment': 'payment',
+        '关联账户': 'payment', 'payment': 'payment',
         '归属': 'belong', 'belong': 'belong',
         'ID': 'id', 'id': 'id',
         '账本类型': 'ledger_type', 'ledger_type': 'ledger_type'
@@ -17232,7 +18117,8 @@ const PAGE_CLOSE_MAP = {
     'changelog': closeChangelogPage,
     'clear-bills': closeClearBillsPage,
     'export-bills': closeExportBillsPage,
-    'webview': closeWebViewPage
+    'webview': closeWebViewPage,
+    'currency': closeCurrencyPage
 };
 
 function handleHardwareBack() {
@@ -17405,7 +18291,7 @@ let clearBillsState = {
 
 
 function openClearBillsPage() {
-    previousPage = currentPage;
+    prevStack.push(currentPage);
 
     
     clearBillsState = { dateStart: '', dateEnd: '', belong: '所有', editingField: null };
@@ -17427,11 +18313,7 @@ function openClearBillsPage() {
     const pageEl = document.getElementById('page-clear-bills');
     if (!pageEl) return;
 
-    pageEl.style.display = 'flex';
-    requestAnimationFrame(() => {
-        pageEl.classList.add('active');
-        try { refreshStatusBar(); } catch(e) {}
-    });
+    pushPageOpen(pageEl);
 
     currentPage = 'clear-bills';
 }
@@ -17439,14 +18321,11 @@ function openClearBillsPage() {
 
 function closeClearBillsPage() {
     
-    const target = previousPage || 'profile';
+    const target = prevStack.pop() || 'profile';
     const pageEl = document.getElementById('page-clear-bills');
     pageEl.classList.remove('active');
-    setTimeout(() => { pageEl.style.display = 'none'; }, 350);
-    document.querySelectorAll('#main-app .page').forEach(p => {
-        p.classList.remove('active');
-        p.style.display = 'none';
-    });
+    setTimeout(() => { pageEl.style.display = 'none'; }, 480);
+    popKeepSource(pageEl);
     const targetEl = document.getElementById('page-' + target);
     if (targetEl) {
         targetEl.style.display = '';
@@ -17618,7 +18497,7 @@ async function executeClearBills() {
                 dateEnd: clearBillsState.dateEnd,
                 belong: clearBillsState.belong
             });
-            allBills = data.bills || [];
+            setAllBills(data.bills);
             const count = data.deleted || 0;
             hideDeleteModal();
             showToast(count > 0 ? `已清除 ${count} 笔账单` : '该范围内没有账单');
@@ -17692,7 +18571,7 @@ function formatDateYMD(d) {
 
 
 function openExportBillsPage() {
-    previousPage = currentPage;
+    prevStack.push(currentPage);
 
     
     const today = new Date();
@@ -17707,27 +18586,20 @@ function openExportBillsPage() {
     const pageEl = document.getElementById('page-export-bills');
     if (!pageEl) return;
 
-    pageEl.style.display = 'flex';
-    requestAnimationFrame(() => {
-        pageEl.classList.add('active');
-        try { refreshStatusBar(); } catch (e) {}
-    });
+    pushPageOpen(pageEl);
 
     currentPage = 'export-bills';
 }
 
 
 function closeExportBillsPage() {
-    const target = previousPage || 'profile';
+    const target = prevStack.pop() || 'profile';
     const pageEl = document.getElementById('page-export-bills');
     if (pageEl) {
         pageEl.classList.remove('active');
-        setTimeout(() => { pageEl.style.display = 'none'; }, 350);
+        setTimeout(() => { pageEl.style.display = 'none'; }, 480);
     }
-    document.querySelectorAll('#main-app .page').forEach(p => {
-        p.classList.remove('active');
-        p.style.display = 'none';
-    });
+    popKeepSource(pageEl);
     const targetEl = document.getElementById('page-' + target);
     if (targetEl) {
         targetEl.style.display = '';
@@ -17946,42 +18818,6 @@ if (regEmailInput) {
     });
 }
 
-const regSendBtn = document.getElementById('regSendCodeBtn');
-if (regSendBtn) {
-    regSendBtn.addEventListener('click', async function() {
-        const email = $('#regEmail').value.trim();
-        if (!email) {
-            showToast('请输入邮箱地址');
-            return;
-        }
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            showToast('请输入有效的邮箱地址');
-            return;
-        }
-        
-        
-        try {
-            const exists = await checkEmailExists(email);
-            if (exists) {
-                showToast('该邮箱已被注册，请直接登录');
-                return;
-            }
-        } catch (err) {
-            showToast('检查邮箱失败，请重试');
-            return;
-        }
-        
-        try {
-            await sendVerificationCode(email, 'register');
-            showToast('验证码已发送到您的邮箱');
-            startCountdown(this, 60);
-        } catch (err) {
-            showToast(err.message || '发送失败，请重试');
-        }
-    });
-}
-
 let emailCheckTimer = null;
 $('#regEmail')?.addEventListener('input', function() {
     clearTimeout(emailCheckTimer);
@@ -18011,7 +18847,170 @@ $('#regEmail')?.addEventListener('input', function() {
 });
 }
 
+    /* ==========================================================
+     * 币种设置（对齐 uni-app pages/settings/currency.vue）
+     * 全局金额符号由 js/currency.js 提供（moneySym / CurrencyAPI）
+     * ========================================================== */
+    const currencyPageEl = document.getElementById('page-currency');
+    const currencyListEl = document.getElementById('currencyList');
+    const currencyHelpMaskEl = document.getElementById('currencyHelpMask');
+
+    function currencyEl(id) {
+        return document.getElementById(id);
+    }
+
+    /** 刷新「当前币种」区块 + 个人中心入口文案 + 记账键盘币种符号 */
+    function renderCurrencyCurrent() {
+        if (!window.CurrencyAPI) return;
+        const cur = CurrencyAPI.get();
+        const flag = currencyEl('currencyCurrentFlag');
+        const name = currencyEl('currencyCurrentName');
+        const symbol = currencyEl('currencyCurrentSymbol');
+        if (flag) flag.src = cur.flag;
+        if (name) name.textContent = cur.name + '（' + cur.code + '）';
+        if (symbol) symbol.textContent = cur.symbol;
+        const profileFlag = currencyEl('profileCurrencyFlag');
+        if (profileFlag) {
+            profileFlag.src = cur.flag;
+            profileFlag.alt = cur.name;
+            profileFlag.title = cur.name;
+        }
+        document.querySelectorAll('.amount-currency').forEach(function (el) {
+            el.textContent = cur.symbol;
+        });
+    }
+
+    /** 渲染币种选择列表 */
+    function renderCurrencyList() {
+        if (!currencyListEl || !window.CurrencyAPI) return;
+        const cur = CurrencyAPI.get();
+        currencyListEl.innerHTML = CurrencyAPI.list.map(function (item) {
+            const checked = item.code === cur.code;
+            return '<div class="currency-item' + (checked ? ' currency-item-active' : '') + '" data-code="' + item.code + '">' +
+                '<img class="currency-flag" src="' + item.flag + '" alt="" />' +
+                '<div class="currency-info">' +
+                '<span class="currency-name">' + item.name + '（' + item.code + '）</span>' +
+                '<span class="currency-symbol">' + item.symbol + '</span>' +
+                '</div>' +
+                '<div class="currency-radio' + (checked ? ' checked' : '') + '"><i class="ri-check-line"></i></div>' +
+                '</div>';
+        }).join('');
+    }
+
+    /** 切换币种后刷新全站金额展示 */
+    function refreshCurrencyUI() {
+        renderCurrencyCurrent();
+        renderCurrencyList();
+        try {
+            if (currentPage === 'home') {
+                updateWalletDisplay();
+                renderHome();
+            } else if (currentPage === 'bills') {
+                renderBills();
+            } else if (currentPage === 'stats') {
+                renderStatsPage();
+                updateStatsDateLabel();
+            } else if (currentPage === 'profile') {
+                renderProfile();
+            } else if (currentPage === 'detail' && currentBill) {
+                renderBillDetail(currentBill);
+            } else if (currentPage === 'budget') {
+                updateBudgetPage();
+            } else if (currentPage === 'annual') {
+                renderAnnualPage();
+            } else if (currentPage === 'category-detail') {
+                renderCategoryDetail();
+            } else if (currentPage === 'scheduled') {
+                renderScheduledList();
+            }
+        } catch (e) {
+            console.warn('[currency] 刷新页面金额失败', e);
+        }
+    }
+
+    function openCurrencyPage() {
+        if (!currencyPageEl) return;
+        prevStack.push(currentPage);
+        renderCurrencyCurrent();
+        renderCurrencyList();
+        pushPageOpen(currencyPageEl);
+        currentPage = 'currency';
+    }
+
+    function closeCurrencyPage() {
+        if (!currencyPageEl) return;
+        closeCurrencyHelp();
+        const target = prevStack.length > 0 ? prevStack.pop() : 'profile';
+        currencyPageEl.classList.remove('active');
+        setTimeout(function () { currencyPageEl.style.display = 'none'; }, 480);
+        popKeepSource(currencyPageEl);
+        const targetEl = document.getElementById('page-' + target);
+        if (targetEl) {
+            targetEl.style.display = '';
+            targetEl.classList.add('active');
+        }
+        navItems.forEach(function (item) {
+            item.classList.toggle('active', item.dataset.page === target);
+            item.style.color = '';
+        });
+        currentPage = target;
+        if (target === 'home') renderHome();
+        else if (target === 'bills') renderBills();
+        else if (target === 'stats') enterStatsPage();
+        else if (target === 'profile') renderProfile();
+        try { refreshStatusBar(); } catch (e) {}
+    }
+
+    function openCurrencyHelp() {
+        if (currencyHelpMaskEl) currencyHelpMaskEl.classList.add('show');
+    }
+
+    function closeCurrencyHelp() {
+        if (currencyHelpMaskEl) currencyHelpMaskEl.classList.remove('show');
+    }
+
+    function selectCurrency(code) {
+        if (!window.CurrencyAPI) return;
+        const item = CurrencyAPI.find(code);
+        if (!item || item.code === CurrencyAPI.code()) return;
+        CurrencyAPI.set(code);
+        showToast('已切换到 ' + item.name);
+        refreshCurrencyUI();
+    }
+
+    function initCurrencyEvents() {
+        const profileItem = currencyEl('profileCurrency');
+        if (profileItem) profileItem.addEventListener('click', openCurrencyPage);
+        const backBtn = currencyEl('currencyBackBtn');
+        if (backBtn) backBtn.addEventListener('click', closeCurrencyPage);
+        const helpBtn = currencyEl('currencyHelpBtn');
+        if (helpBtn) helpBtn.addEventListener('click', openCurrencyHelp);
+        const helpClose = currencyEl('currencyHelpClose');
+        if (helpClose) helpClose.addEventListener('click', closeCurrencyHelp);
+        if (currencyHelpMaskEl) {
+            currencyHelpMaskEl.addEventListener('click', function (e) {
+                if (e.target === currencyHelpMaskEl) closeCurrencyHelp();
+            });
+        }
+        if (currencyListEl) {
+            currencyListEl.addEventListener('click', function (e) {
+                const item = e.target.closest('.currency-item');
+                if (item && item.dataset.code) selectCurrency(item.dataset.code);
+            });
+        }
+        if (window.CurrencyAPI) {
+            CurrencyAPI.onChange(function () {
+                refreshCurrencyUI();
+            });
+        }
+        renderCurrencyCurrent();
+    }
+
+    initCurrencyEvents();
+
     init();
+
+    window.__nav = { pushPageOpen, popKeepSource, restoreFromBack, showPage, openBudgetPage, closeBudgetPage, openProfileInfoPage, closeProfileInfoPage, openPartnerProfilePage, closePartnerProfilePage, openAccountSecurityPage, closeAccountSecurityPage, openCategoryDetail, closeCategoryDetail, openChangelogPage, closeChangelogPage, getStack: () => _pageStack.slice(), getPage: () => currentPage };
 
     window.__app = { allBills, currentUser, token, loadAllData, closeAllSwiped };
 

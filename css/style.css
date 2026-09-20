@@ -40,10 +40,17 @@
     font-style: normal;
     font-display: swap;
 }
+@font-face  {
+    font-family: 'MyRegular';
+    src: url('../webfonts/MyRegular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
 
 
 .num  {
-    font-family: 'MyCustomFont', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'MyRegular', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 body  {
@@ -92,11 +99,11 @@ input, textarea  {
     height: 100dvh;
     background: var(--bg-main);
     position: relative;
+    transform: translateZ(0);
     overflow: hidden;
     display: flex;
     flex-direction: column;
     margin: 0 auto;
-    box-shadow: 0 0 60px rgba(0, 0, 0, 0.10), 0 0 0 1px rgba(0, 0, 0, 0.04);
         font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
@@ -108,8 +115,8 @@ input, textarea  {
     padding: var(--safe-top) 0px calc(var(--nav-height) + var(--safe-bottom) + 16px);
     display: none;
     -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
-        background: var(--bg-main);
+    scroll-behavior: auto;
+    background: var(--bg-main);
 }
 .page.active  {
     display: block;
@@ -131,6 +138,7 @@ input, textarea  {
 #page-annual,
 #page-clear-bills,
 #page-export-bills,
+#page-currency,
 #page-webview  {
     padding-top: var(--safe-top) !important;
 }
@@ -154,12 +162,11 @@ input, textarea  {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 36px 10px calc(var(--safe-bottom) + 24px);
+    justify-content: flex-start;
+    padding: 16px;
     background:
-        radial-gradient(140% 90% at 50% -10%, var(--primary-bg) 0%, rgba(255,255,255,0) 55%),
-        linear-gradient(180deg, #FAFBFD 0%, #FFFFFF 100%);
-    min-height: 100vh;
+            radial-gradient(140% 90% at 50% -10%, var(--primary-bg) 0%, rgba(255,255,255,0) 55%),
+            linear-gradient(180deg, #FAFBFD 0%, #FFFFFF 100%);
     min-height: 100dvh;
     overflow-y: auto;
     overflow-x: hidden;
@@ -176,15 +183,15 @@ input, textarea  {
 .auth-deco-grid  {
     background-image: radial-gradient(currentColor 1px, transparent 1px);
     background-size: 22px 22px;
-    color: var(--primary-light);
-    opacity: 0.10;
+    color: #9CA8B8;
+    opacity: 0.12;
     -webkit-mask-image: radial-gradient(70% 55% at 50% 38%, #000 0%, transparent 75%);
     mask-image: radial-gradient(70% 55% at 50% 38%, #000 0%, transparent 75%);
 }
 .auth-deco-glow  {
     background:
-        radial-gradient(40% 30% at 18% 12%, var(--primary-bg) 0%, transparent 70%),
-        radial-gradient(36% 28% at 86% 88%, var(--primary-bg) 0%, transparent 70%);
+        radial-gradient(40% 30% at 18% 12%, rgba(200, 210, 220, 0.28) 0%, transparent 70%),
+        radial-gradient(36% 28% at 86% 88%, rgba(200, 210, 220, 0.28) 0%, transparent 70%);
     opacity: 0.9;
 }
 
@@ -192,7 +199,8 @@ input, textarea  {
     position: relative;
     z-index: 1;
     width: 100%;
-    max-width: 420px;
+    max-width: 400px;
+    margin: auto 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -204,7 +212,6 @@ input, textarea  {
     flex-direction: column;
     align-items: center;
     margin-bottom: 34px;
-    animation: authFadeUp 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
 #auth-page .logo .logo-text  {
@@ -237,16 +244,11 @@ input, textarea  {
 
 #auth-page .auth-box  {
     width: 100%;
-    background: rgba(255,255,255,0.86);
-    backdrop-filter: blur(22px) saturate(1.5);
-    -webkit-backdrop-filter: blur(22px) saturate(1.5);
-    border-radius: var(--radius);
+    background: #ffffff;
+    border-radius: 12px;
     border: none;
-    padding: 30px 20px;
-    box-shadow:
-        0 1px 0 rgba(255,255,255,0.9) inset,
-        0 24px 60px -20px rgba(31, 42, 60, 0.12),
-        0 8px 24px -12px rgba(31, 42, 60, 0.08);
+    padding: 44px 36px 36px;
+    box-shadow: none;
     animation: authFadeUp 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) 0.08s both;
 }
 
@@ -257,130 +259,92 @@ input, textarea  {
 
 .form-group  {
     margin-bottom: 14px;
-    animation: authFadeUp 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
-.form-group:nth-child(1)  { animation-delay: 0.16s; }
-.form-group:nth-child(2)  { animation-delay: 0.22s; }
-.form-group:nth-child(3)  { animation-delay: 0.28s; }
-.form-group:nth-child(4)  { animation-delay: 0.34s; }
-.form-group:nth-child(5)  { animation-delay: 0.40s; }
 
 .input-wrap  {
     position: relative;
     display: flex;
     align-items: center;
 }
-.input-wrap .input-icon  {
-    position: absolute;
-    left: 14px;
-    font-size: 18px;
-    color: #B3BFD0;
-    pointer-events: none;
-    transition: color 0.25s;
-}
 .form-group input  {
     width: 100%;
-    padding: 15px 14px 15px 44px;
+    padding: 15px 16px;
     border: none;
-    border-radius: var(--radius-sm);
-    font-size: 15px;
-    background: #F6F8FC;
+    border-radius: 12px;
+    font-size: 14px;
+    background: var(--bg-input);
     outline: none;
-    color: #1F2A3C;
-    transition: border-color 0.25s, background 0.25s, box-shadow 0.25s;
+    color: #0a0a0a;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    transition: box-shadow 0.25s ease, background 0.25s ease;
 }
+
 .form-group input::placeholder  {
-    color: #B3BFD0;
+    color: #a3a3a3;
+    font-weight: 400;
 }
 
 
-.input-wrap-with-code input  { padding-right: 110px; }
 .input-wrap .pwd-toggle  {
     position: absolute;
-    right: 8px;
+    right: 14px;
     top: 50%;
     transform: translateY(-50%);
-    width: 36px;
-    height: 36px;
+    width: 22px;
+    height: 22px;
     border: none;
     background: transparent;
-    color: #B3BFD0;
-    font-size: 19px;
+    color: var(--primary);
+    font-size: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
     touch-action: manipulation;
     padding: 0;
-    border-radius: var(--radius-sm);
-    transition: color 0.2s, background 0.2s;
+    opacity: 0.35;
+    transition: opacity 0.25s ease;
 }
-.input-wrap:focus-within .pwd-toggle  { color: var(--primary); }
-.form-group .input-wrap:has(.pwd-toggle) input  { padding-right: 48px; }
+.input-wrap .pwd-toggle:hover  { opacity: 0.9; }
+.input-wrap:focus-within .pwd-toggle  { opacity: 0.9; }
+.form-group .input-wrap:has(.pwd-toggle) input  { padding-right: 44px; }
 
-
-.input-wrap .code-send-btn  {
-    position: absolute;
-    right: 6px;
-    top: 50%;
-    transform: translateY(-50%);
-    padding: 7px 14px;
-    border: none;
-    border-radius: var(--radius-sm);
-    background: var(--primary);
-    color: #fff;
-    font-size: 12px;
-    font-weight: 500;
-    touch-action: manipulation;
-    white-space: nowrap;
-    transition: all 0.2s;
-}
-.input-wrap .code-send-btn:disabled  {
-    opacity: 0.6;
-    pointer-events: none;
-}
-
-.input-wrap:focus-within .input-icon  {
-    color: var(--primary);
-}
 
 .btn-primary  {
     width: 100%;
-    padding: 15px 12px;
+    padding: 15px 0;
     margin-top: 6px;
     background: var(--primary);
     color: #fff;
     border: none;
-    border-radius: 360px;
-    font-size: 15px;
+    border-radius: 12px;
+    font-size: 14px;
     font-weight: 500;
-    letter-spacing: 4px;
-    transition: transform 0.18s ease, box-shadow 0.25s, filter 0.25s;
-    animation: authFadeUp 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) 0.38s both;
+    letter-spacing: -0.01em;
+    cursor: pointer;
+    box-shadow: 0 6px 16px -8px var(--primary-shadow);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.2s ease;
 }
-
-.switch-auth  {
-    text-align: center;
-    margin-top: 18px;
-    font-size: 13px;
-    color: var(--text-fix);
-    letter-spacing: 1px;
-    animation: authFadeUp 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) 0.44s both;
+.btn-primary:hover  {
+    transform: translateY(-1px);
+    filter: brightness(0.96);
+    box-shadow: 0 10px 22px -8px var(--primary-shadow);
 }
-.switch-auth a  {
-    color: var(--primary);
-    font-weight: 500;
-    text-decoration: none;
-    margin-left: 4px;
-    position: relative;
+.btn-primary:active  {
+    transform: translateY(0);
+    filter: brightness(1);
+    box-shadow: 0 6px 16px -8px var(--primary-shadow);
 }
 
 .error-msg  {
-    color: var(--expense);
-    font-size: 12px;
-    text-align: center;
-    margin-top: 10px;
-    min-height: 16px;
-    letter-spacing: 0.5px;
+    color: #d92d20;
+    font-size: 12.5px;
+    text-align: left;
+    line-height: 1.4;
+    margin: 2px 0 0;
+    padding-left: 2px;
+    min-height: 17px;
+    letter-spacing: -0.005em;
 }
 
 @keyframes authFadeUp  {
@@ -393,12 +357,15 @@ input, textarea  {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin: 4px 2px 14px;
-    animation: authFadeUp 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) 0.36s both;
+    gap: 12px;
+    margin: 0 0 18px;
+    flex-wrap: wrap;
 }
 .auth-agree  {
     display: flex;
     align-items: center;
+    gap: 8px;
+    flex: 1;
     min-width: 0;
     user-select: none;
     -webkit-user-select: none;
@@ -413,19 +380,19 @@ input, textarea  {
 }
 .auth-agree-box  {
     flex-shrink: 0;
-    width: 18px;
-    height: 18px;
-    margin-right: 4px;
-    border: 1.5px solid #C9D2E0;
-    border-radius: 360px;
-    background: #fff;
+    width: 16px;
+    height: 16px;
+    margin-right: 0;
+    border: 1.5px solid #e8e8e8;
+    border-radius: 5px;
+    background: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
     color: transparent;
-    font-size: 13px;
+    font-size: 11px;
     line-height: 1;
-    transition: all 0.2s ease;
+    transition: background 0.2s ease, border-color 0.2s ease;
 }
 .auth-agree-box i  { transform: scale(0.7); }
 .auth-agree input:checked + .auth-agree-box  {
@@ -434,36 +401,148 @@ input, textarea  {
     color: #fff;
 }
 .auth-agree-text  {
-    font-size: 12px;
-    color: var(--text-fix);
-    line-height: 1.5;
-    letter-spacing: 0.2px;
+    font-size: 12.5px;
+    color: #666666;
+    line-height: 1.4;
+    letter-spacing: -0.005em;
     word-break: break-word;
 }
 .auth-agree-link  {
     color: var(--primary);
+	font-weight: 500;
     text-decoration: none;
+    transition: border-color 0.2s ease;
     position: relative;
 }
-
 .auth-agree-divider  {
     display: inline-block;
     width: 1px;
     height: 11px;
-    background: var(--text-fix);
-    opacity: 0.35;
+    background: #e8e8e8;
+    opacity: 1;
     vertical-align: middle;
 }
 
 .auth-forgot  {
     flex-shrink: 0;
-    font-size: 12px;
-    color: var(--text-fix);
+    font-size: 12.5px;
+    color: #666666;
+    font-weight: 500;
     text-decoration: none;
-    letter-spacing: 0.3px;
-    transition: color 0.2s;
+    letter-spacing: -0.005em;
     align-self: center;
     white-space: nowrap;
+    position: relative;
+    transition: color 0.25s ease;
+}
+
+.auth-forgot:hover  { color: var(--primary); }
+
+
+/* 头部（标题 + 描述） */
+.auth-head  {
+    width: 100%;
+    margin-bottom: 32px;
+}
+.auth-head-title  {
+    font-size: 24px;
+    font-weight: 600;
+    color: #0a0a0a;
+    letter-spacing: -0.03em;
+    margin: 0 0 6px;
+    transition: opacity 0.2s ease;
+}
+.auth-head-desc  {
+    font-size: 14px;
+    font-weight: 400;
+    color: #666666;
+    letter-spacing: -0.01em;
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* 登录 / 注册 切换标签（下划线滑动） */
+.auth-tabs  {
+    position: relative;
+    display: flex;
+    gap: 28px;
+    width: 100%;
+    margin-bottom: 32px;
+}
+.auth-tab  {
+    position: relative;
+    padding: 0 0 12px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: #a3a3a3;
+    background: none;
+    border: none;
+    cursor: pointer;
+    letter-spacing: -0.01em;
+    transition: color 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.auth-tab:hover  { color: #666666; }
+.auth-tab.active  { color: var(--primary); }
+.auth-tab-line  {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 1.5px;
+    background: var(--primary);
+    border-radius: 2px;
+    transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1), transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.auth-form-wrapper  {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    /* 高度由 JS 固定为「两个面板中较高的那个」（注册面板），登录/注册切换时卡片高度恒定；
+       面板保持原生间距、自上而下正常排列，不做任何拉伸或居中 */
+    transition: height 0.45s cubic-bezier(0.34, 1.05, 0.64, 1);
+}
+.auth-form-panel  {
+    width: 100%;
+    transition: transform 0.5s cubic-bezier(0.34, 1.1, 0.64, 1), opacity 0.4s ease;
+}
+.auth-form-panel.login-panel  {
+    transform: translateX(0);
+    opacity: 1;
+}
+.auth-form-panel.register-panel  {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform: translateX(100%);
+    opacity: 0;
+    pointer-events: none;
+}
+.auth-form-wrapper.show-register .login-panel  {
+    transform: translateX(-100%);
+    opacity: 0;
+    pointer-events: none;
+}
+.auth-form-wrapper.show-register .register-panel  {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* 响应式（照搬 auth.html） */
+@media (max-width: 480px)  {
+    #auth-page  { padding: 16px; }
+    #auth-page .auth-box  {
+        padding: 32px 22px 26px;
+        border-radius: 16px;
+    }
+    .auth-head  { margin-bottom: 24px; }
+    .auth-head-title  { font-size: 21px; }
+    .auth-tabs  { margin-bottom: 24px; }
+    .form-group input  { padding: 14px 14px; }
+    .auth-actions-row  { gap: 6px; }
+    .auth-agree-text  { font-size: 12px; }
+    .auth-forgot  { font-size: 12px; }
 }
 
 @media (prefers-reduced-motion: reduce)  {
@@ -471,9 +550,16 @@ input, textarea  {
     #auth-page .auth-box,
     .form-group,
     .btn-primary,
-    .switch-auth,
-    .auth-actions-row  {
+    .auth-actions-row,
+    .auth-brand,
+    .auth-head,
+    .auth-tabs,
+    .auth-tab,
+    .auth-tab-line,
+    .auth-form-wrapper,
+    .auth-form-panel  {
         animation: none;
+        transition: none;
     }
 }
 
@@ -481,9 +567,19 @@ input, textarea  {
 #bottom-nav  {
     position: fixed;
     bottom: calc(16px + var(--safe-bottom, 0px));
-    left: max(16px, calc((100vw - 430px) / 2 + 16px));
-    right: max(16px, calc((100vw - 430px) / 2 + 16px));
-    display: none;
+    /* 相对 #app 列宽（包含块因 transform 已变为 #app，不再用 100vw） */
+    left: max(16px, calc((100% - 430px) / 2 + 16px));
+    right: max(16px, calc((100% - 430px) / 2 + 16px));
+    height: 64px;
+    box-sizing: border-box;
+    /* 常驻 flex，靠 transform/opacity 过渡进出（display 不可插值，会瞬切） */
+    display: flex;
+    opacity: 0;
+    transform: translateY(calc(100% + 40px));
+    pointer-events: none;
+    transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1),
+                opacity 0.28s ease;
+    will-change: transform, opacity;
     background: rgba(255, 255, 255, 0.72);  
     backdrop-filter: blur(20px) saturate(1.8);  
     -webkit-backdrop-filter: blur(20px) saturate(1.8);  
@@ -491,13 +587,15 @@ input, textarea  {
     padding: 6px;
     gap: 10px;
     border-radius: 360px;
-    z-index: 2;
+    z-index: 1;
     justify-content: space-evenly;
     align-items: center;
     border: none;  
 }
 #bottom-nav.show  {
-    display: flex;
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
 }
 .nav-item  {
     flex: 0 0 auto;
@@ -514,6 +612,8 @@ input, textarea  {
     padding: 6px 14px;
     position: relative;
     touch-action: manipulation;
+    transition: color 0.25s ease,
+                transform 0.34s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 #bottom-nav.nav-ready .nav-item  {
@@ -537,6 +637,10 @@ input, textarea  {
     transform: scale(1.1);
     color: var(--primary);
 }
+/* 底部导航：激活显示实心图标，未激活显示线条图标 */
+.nav-item .icon-fill  { display: none; }
+.nav-item.active .icon-line  { display: none; }
+.nav-item.active .icon-fill  { display: inline-block; }
 .nav-add  {
     flex: 0 0 auto;
     height: 50px;
@@ -712,7 +816,7 @@ input, textarea  {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-radius: 360px;
-    color: var(--text-fix);
+    color: #a3a3a3;
     font-size: 13px;
     transition: all 0.2s;
     touch-action: manipulation;
@@ -726,6 +830,7 @@ input, textarea  {
 .search-box span  {
     white-space: nowrap;
     flex: 1;
+	
 }
 
 
@@ -1204,6 +1309,21 @@ input, textarea  {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+/* 记账记录：归属标签与「支出·收入」标签之间的统一间距 */
+.type-tag  {
+    margin-left: 6px;
+}
+/* 帮记账单：单条记录左侧「归属 / 支出·收入」旁边的独立「(帮)」标识 */
+.amount-help-tag  {
+    font-size: 12px;
+    font-weight: 500;
+    flex-shrink: 0;
+    align-self: center;
+    font-family: inherit;
+    white-space: nowrap;
+    padding: 1px 7px;
+    line-height: 1.3;
+}
 .bill-date  {
     font-size: 11px;
     color: var(--text-fix);
@@ -1234,6 +1354,22 @@ input, textarea  {
 .empty-text  {
     font-size: 15px;
 }
+/* 空态里的行内可点文字（如「查看本月」） */
+.empty-link  {
+    display: inline;
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    color: var(--primary);
+    cursor: pointer;
+    font-weight: 500;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
 
 .bill-date-group  {
     margin-bottom: 12px;
@@ -1254,7 +1390,7 @@ input, textarea  {
     left: 50%;
     transform: translate(-50%, calc(-50% + 30px));
     opacity: 0;
-    z-index: 99;
+    z-index: 1400;
     pointer-events: none;
     max-width: 85%;
     text-align: center;
@@ -1280,35 +1416,46 @@ input, textarea  {
 }
 
 
+/* 居中弹出：通用确认框（删除确认 / showConfirmDialog） */
 .modal-overlay  {
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.3);
-    display: none;
+    display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 100;
+    padding: 0 20px;
+    box-sizing: border-box;
+    z-index: 1300;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
 }
 .modal-overlay.show  {
-    display: flex;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 0.3s ease, visibility 0s;
 }
 .modal-box  {
     background: var(--bg-card);
     border-radius: var(--radius);
-    padding: 24px 20px 18px;
-    max-width: 300px;
-    width: 90%;
-    animation: modalIn 0.25s ease;
+    padding: 24px 20px calc(18px + var(--safe-bottom, 0px));
+    max-width: 360px;
+    width: 100%;
+    box-sizing: border-box;
+    transform: scale(0.6);
+    opacity: 0;
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), opacity 0.3s ease, visibility 0s 0.35s;
+    will-change: transform, opacity;
+    visibility: hidden;
 }
-@keyframes modalIn  {
-    from  {
-        transform: scale(0.92);
-        opacity: 0;
-    }
-    to  {
-        transform: scale(1);
-        opacity: 1;
-    }
+.modal-overlay.show .modal-box  {
+    transform: scale(1);
+    opacity: 1;
+    visibility: visible;
+    transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease, visibility 0s;
 }
 .modal-title  {
     font-size: 16px;
@@ -1356,31 +1503,37 @@ input, textarea  {
     align-items: center;
     justify-content: center;
     z-index: 999;
-    padding: 24px;
+    padding: 0 20px;
+    box-sizing: border-box;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.25s ease, visibility 0.25s ease;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
     pointer-events: none;
 }
 .update-modal-overlay.show  {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
+    transition: opacity 0.3s ease, visibility 0s;
 }
 .update-modal-box  {
     background: var(--bg-card);
     border-radius: 20px;
     width: 100%;
-    max-width: 340px;
+    max-width: 360px;
+    max-height: 88vh;
     overflow: hidden;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
-    transform: scale(0.85);
+    transform: scale(0.6);
     opacity: 0;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), opacity 0.3s ease, visibility 0s 0.35s;
+    will-change: transform, opacity;
+    visibility: hidden;
 }
 .update-modal-overlay.show .update-modal-box  {
     transform: scale(1);
     opacity: 1;
+    transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease, visibility 0s;
+    visibility: visible;
 }
 .update-modal-header  {
     padding: 28px 24px 20px;
@@ -1420,7 +1573,7 @@ input, textarea  {
 }
 .update-modal-title  {
     font-size: 18px;
-    font-weight: 600;
+    font-weight: 500;
     margin-bottom: 4px;
     position: relative;
     z-index: 1;
@@ -1523,7 +1676,7 @@ input, textarea  {
 .update-modal-footer  {
     display: flex;
     gap: 10px;
-    padding: 0 24px 20px;
+    padding: 0 24px calc(20px + var(--safe-bottom, 0px));
 }
 .update-modal-footer button  {
     flex: 1;
@@ -1555,9 +1708,11 @@ input, textarea  {
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 3;
+    z-index: 10;
     background: var(--bg-main);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateX(100%);
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1), opacity 0.44s cubic-bezier(.32,.72,0,1);
+    will-change: transform, opacity;
     padding: 0;
     display: flex !important;
     flex-direction: column;
@@ -1631,11 +1786,11 @@ input, textarea  {
 .changelog-toc-item.active::before  {
     content: '';
     position: absolute;
-    left: 0;
+    right: 0;
     top: 12px;
     bottom: 12px;
     width: 3px;
-    border-radius: 0 2px 2px 0;
+    border-radius: 2px 0 0 2px;
     background: var(--primary);
 }
 .changelog-toc-version  {
@@ -1675,18 +1830,15 @@ input, textarea  {
     margin-bottom: 12px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
-.changelog-section-top  {
+.changelog-section-head  {
     display: flex;
     align-items: center;
     gap: 6px;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
     flex-wrap: wrap;
 }
-.changelog-section-version  {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--primary);
-    font-variant-numeric: tabular-nums;
+.changelog-section-head.no-title  {
+    justify-content: flex-end;
 }
 .changelog-badge  {
     font-size: 10px;
@@ -1705,18 +1857,11 @@ input, textarea  {
     color: var(--text-tertiary);
     border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
 }
-.changelog-section-date  {
-    margin-left: auto;
-    font-size: 11px;
-    color: var(--text-tertiary);
-    font-variant-numeric: tabular-nums;
-    flex-shrink: 0;
-}
 .changelog-section-name  {
     font-size: 14px;
     font-weight: 500;
     color: var(--text-primary);
-    margin-bottom: 8px;
+    margin-right: auto;
     word-break: break-word;
 }
 .changelog-section-body  {
@@ -1805,7 +1950,7 @@ input, textarea  {
     inset: 0;
     display: flex;
     justify-content: center;
-    z-index: 8;
+    z-index: 800;
     background: none;
     pointer-events: none;
     transition: background 0.3s ease;
@@ -1827,13 +1972,16 @@ input, textarea  {
     overflow: hidden;
     position: relative;
     transform: translateY(100%);
-    transition: transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
     max-height: 100vh;
     will-change: transform;
     pointer-events: auto;
+    visibility: hidden;
 }
 .add-modal-overlay.show .add-modal-full  {
     transform: translateY(0);
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    visibility: visible;
 }
 
 
@@ -1864,8 +2012,8 @@ input, textarea  {
     padding: 8px 6px 14px;          
     border: none;
     background: transparent;
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 500;
     color: var(--text-fix);
     transition: color 0.25s;
  
@@ -2133,7 +2281,7 @@ input, textarea  {
     flex: 1;
 }
 .note-display .note-placeholder  {
-    color: var(--text-fix);
+    color: #a3a3a3;
     font-size: 14px;
     font-weight: 400;
 }
@@ -2180,6 +2328,7 @@ input, textarea  {
     font-weight: 500;
     background: var(--bg-input);
     color: var(--text-primary);
+    font-family: 'MyCustomFont', -apple-system, BlinkMacSystemFont, sans-serif;
     transition: all 0.15s;
     touch-action: manipulation;
     display: flex;
@@ -2217,14 +2366,21 @@ input, textarea  {
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.35);
-    z-index: 100;                
-    display: none;              
-    transition: opacity 0.3s ease;
+    z-index: 100;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
     opacity: 0;
+    pointer-events: none;
 }
 .payment-overlay.show  {
-    display: block;
+    visibility: visible;
     opacity: 1;
+    pointer-events: auto;
+    transition: opacity 0.3s ease, visibility 0s;
+}
+/* 遮罩淡出期间禁止接收点击，避免挡住刚显示的页面按钮 */
+.payment-overlay:not(.show)  {
+    pointer-events: none !important;
 }
 .payment-sheet  {
     position: absolute;
@@ -2236,7 +2392,7 @@ input, textarea  {
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.3s;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
     z-index: 101;
     padding: 16px;
     will-change: transform;
@@ -2244,7 +2400,7 @@ input, textarea  {
 }
 .payment-sheet.show  {
     transform: translateY(0);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
     visibility: visible;
 }
 .payment-sheet-header  {
@@ -2254,7 +2410,7 @@ input, textarea  {
     margin-bottom: 16px;
 }
 .payment-sheet-title  {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
 }
@@ -2337,7 +2493,7 @@ input, textarea  {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity 0.3s ease, visibility 0s 0.3s;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
 }
 .note-overlay.show  {
     opacity: 1;
@@ -2355,33 +2511,18 @@ input, textarea  {
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
     z-index: 6;
     padding: 16px 20px 20px;
     will-change: transform;
+    visibility: hidden;
 }
 .note-overlay.show .note-modal  {
     transform: translateY(0);
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    visibility: visible;
 }
-.note-modal-header  {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 14px;
-}
-.note-modal-title  {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-.note-modal-close  {
-    background: none;
-    border: none;
-    font-size: 20px;
-    color: var(--text-fix);
-    padding: 4px;
-    touch-action: manipulation;
-}
+
 
 .note-modal-body  {
     display: flex;
@@ -2407,8 +2548,8 @@ input, textarea  {
     color: #fff;
     border: none;
     border-radius: var(--radius-sm);
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 500;
     transition: background 0.2s, transform 0.1s;
  
     touch-action: manipulation;
@@ -2481,7 +2622,6 @@ input, textarea  {
         flex: 0 0 54px;
         height: 54px;
         font-size: 24px;
-        margin-top: -24px;
     }
     .bill-item-actions button  {
         padding: 0 14px;
@@ -2550,14 +2690,21 @@ input, textarea  {
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.35);
-    z-index: 9;
-    display: none;
+    z-index: 1150;
+    visibility: hidden;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
 }
 .date-overlay.show  {
-    display: block;
+    visibility: visible;
     opacity: 1;
+    pointer-events: auto;
+    transition: opacity 0.3s ease, visibility 0s;
+}
+/* 遮罩淡出期间禁止接收点击，避免挡住刚显示的页面按钮 */
+.date-overlay:not(.show)  {
+    pointer-events: none !important;
 }
 
 .date-modal  {
@@ -2568,8 +2715,8 @@ input, textarea  {
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.3s;
-    z-index: 10;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
+    z-index: 1151;
     padding: 16px 20px 20px;
     will-change: transform;
     max-height: 85vh;
@@ -2577,7 +2724,7 @@ input, textarea  {
 }
 .date-modal.show  {
     transform: translateY(0);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
     visibility: visible;
 }
 
@@ -2586,36 +2733,44 @@ input, textarea  {
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.45);
-    z-index: 9;
-    display: none;
+    z-index: 1100;
+    display: block;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
 }
 .import-overlay.show  {
-    display: block;
     opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 0.3s ease, visibility 0s;
 }
 .import-progress-modal  {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0.85);
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    transform: translateY(100%);
     background: var(--bg-card);
-    border-radius: var(--radius);
-    padding: 28px 36px 24px;
-    z-index: 10;
-    display: none;
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 28px 36px calc(24px + var(--safe-bottom, 0px));
+    z-index: 1101;
+    max-width: 480px;
+    display: flex;
     flex-direction: column;
     align-items: center;
     gap: 16px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-    opacity: 0;
-    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    visibility: hidden;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
+    will-change: transform;
 }
 .import-progress-modal.show  {
-    display: flex;
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translateY(0);
+    visibility: visible;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
 }
 .import-progress-ring  {
     position: relative;
@@ -2909,17 +3064,22 @@ input, textarea  {
 .settings-overlay  {
     position: absolute;
     inset: 0;
-    background: var(--bg-main);
-    z-index: 20;
+    background: transparent;
+    z-index: 850;
     visibility: hidden;
-    opacity: 0;
-    transition: opacity 0.35s ease, visibility 0.35s ease;
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
+    opacity: 1;
+    pointer-events: none;
+    transition: visibility 0s 0.44s;
 }
 .settings-overlay.show  {
     visibility: visible;
     opacity: 1;
+    pointer-events: auto;
+    transition: visibility 0s;
+}
+/* 遮罩淡出期间禁止接收点击，避免挡住刚显示的页面按钮 */
+.settings-overlay:not(.show)  {
+    pointer-events: none !important;
 }
 
 .settings-panel  {
@@ -2929,18 +3089,22 @@ input, textarea  {
     bottom: 0;
     width: 100%;
     max-width: 480px;
-    
+
     padding: var(--safe-top, 0px) 16px 0;
-    background: var(--bg-mian);
-    transform: translateX(100vw);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    background: var(--bg-main);
+    transform: translateX(100%);
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1), visibility 0s 0.44s;
     z-index: 5;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    will-change: transform;
+    visibility: hidden;
 }
 .settings-overlay.show .settings-panel  {
     transform: translateX(0);
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1), visibility 0s;
+    visibility: visible;
 }
 
 
@@ -2979,7 +3143,7 @@ position: relative;
     border-radius: var(--radius-sm);
     background: transparent;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--text-fix);
     position: relative;
     transition: color 0.25s ease;
@@ -3169,12 +3333,11 @@ position: relative;
     width: 100%;
     padding: 12px;
     border: none;
-    border-radius: 360px;
+    border-radius: 12px;
     background: var(--primary);
     color: var(--bg-card);
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
- 
     transition: all 0.2s;
     touch-action: manipulation;
     display: flex;
@@ -3294,17 +3457,20 @@ position: relative;
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.3);
-    z-index: 21;
+    z-index: 850;
     display: flex;
     align-items: flex-end;
     justify-content: center;
     opacity: 0;
-    pointer-events: none; 
-    transition: opacity 0.3s ease;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
 }
 .cat-modal-overlay.show  {
     opacity: 1;
-    pointer-events: auto; 
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 0.3s ease, visibility 0s;
 }
 
 .cat-modal  {
@@ -3313,7 +3479,7 @@ position: relative;
     width: 100%;
     max-width: 480px;
     transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.3s;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
     padding: 16px 20px 20px;
     max-height: 95vh;
     display: flex;
@@ -3322,7 +3488,7 @@ position: relative;
 }
 .cat-modal-overlay.show .cat-modal  {
     transform: translateY(0);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
     visibility: visible;
 }
 
@@ -3334,8 +3500,8 @@ position: relative;
     flex-shrink: 0;
 }
 .cat-modal-title  {
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 500;
     color: var(--text-primary);
 }
 .cat-modal-close  {
@@ -3386,9 +3552,9 @@ position: relative;
 .cat-form-group label  {
     display: block;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--text-primary);
-    margin-bottom: 6px;
+    margin: 10px 0;
 }
 .cat-form-group input  {
     width: 100%;
@@ -3398,7 +3564,6 @@ position: relative;
     font-size: 15px;
     background: var(--bg-btn);
     color: var(--text-primary);
- 
     outline: none;
 }
 
@@ -3467,10 +3632,11 @@ position: relative;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 6;
+    z-index: 10;
     background: var(--bg-main);
-    transform: translateX(100vw);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateX(100%);
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1), opacity 0.44s cubic-bezier(.32,.72,0,1);
+    will-change: transform, opacity;
     padding: 0;
     display: flex !important;
     flex-direction: column;
@@ -3601,7 +3767,7 @@ position: relative;
     background: var(--primary);
     color: #fff;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 500;
     transition: all 0.2s;
     touch-action: manipulation;
     white-space: nowrap;
@@ -3654,17 +3820,18 @@ position: relative;
     text-transform: none;
     letter-spacing: 0;
     font-weight: 400;
-    color: var(--text-fix);
+    color: #a3a3a3;
+    font-size: 14px;
 }
 
 .match-bind-btn  {
     padding: 12px 24px;
     border: none;
-    border-radius: 360px;
+    border-radius: 12px;
     background: var(--primary);
     color: #fff;
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 500;
     transition: all 0.2s;
     touch-action: manipulation;
     white-space: nowrap;
@@ -3860,23 +4027,39 @@ margin-bottom: 24px;
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.6);
-    z-index: 6;
-    display: none;
-    align-items: center;
+    z-index: 1050;
+    display: flex;
+    align-items: flex-end;
     justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
 }
 .avatar-overlay.show  {
-    display: flex;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 0.3s ease, visibility 0s;
 }
 .avatar-modal  {
     background: var(--bg-card);
-    border-radius: var(--radius);
-    width: 90%;
-    max-width: 400px;
+    border-radius: var(--radius) var(--radius) 0 0;
+    width: 100%;
+    max-width: 480px;
     max-height: 90vh;
-    padding: 16px 20px 20px;
+    padding: 16px 20px calc(20px + var(--safe-bottom, 0px));
     display: flex;
     flex-direction: column;
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
+    will-change: transform;
+    visibility: hidden;
+}
+.avatar-overlay.show .avatar-modal  {
+    transform: translateY(0);
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    visibility: visible;
 }
 .avatar-modal-header  {
     display: flex;
@@ -3885,7 +4068,7 @@ margin-bottom: 24px;
     margin-bottom: 12px;
 }
 .avatar-modal-title  {
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 600;
 }
 
@@ -3915,8 +4098,8 @@ margin-bottom: 24px;
     padding: 12px;
     border: none;
     border-radius: var(--radius-sm);
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 500;
 }
 .avatar-btn-cancel  {
     background: var(--bg-btn);
@@ -3937,8 +4120,9 @@ margin-bottom: 24px;
     bottom: 0;
     z-index: 7;
     background: var(--bg-main);
-    transform: translateX(100vw);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateX(100%);
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1), opacity 0.44s cubic-bezier(.32,.72,0,1);
+    will-change: transform, opacity;
     padding: 0;
     display: flex !important;
     flex-direction: column;
@@ -4253,7 +4437,7 @@ margin-bottom: 24px;
     padding: 10px 0;
 }
 .detail-comment-input input::placeholder  {
-    color: var(--text-fix);
+    color: #a3a3a3;
 }
 .comment-send  {
     flex-shrink: 0;
@@ -4277,17 +4461,20 @@ margin-bottom: 24px;
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.3);
-    z-index: 5;
-    display: flex;               
+    z-index: 1050;
+    display: flex;
     align-items: flex-end;
     justify-content: center;
     opacity: 0;
+    visibility: hidden;
     pointer-events: none;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
 }
 .detail-menu-overlay.show  {
     opacity: 1;
-    pointer-events: auto;        
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 0.3s ease, visibility 0s;
 }
 
 .detail-menu-panel  {
@@ -4297,12 +4484,12 @@ margin-bottom: 24px;
     max-width: 480px;
     padding: 12px 16px 20px;
     transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.3s;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
     visibility: hidden;
 }
 .detail-menu-overlay.show .detail-menu-panel  {
     transform: translateY(0);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
     visibility: visible;
 }
 
@@ -4352,14 +4539,22 @@ margin-bottom: 24px;
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.35);
-    z-index: 5;
-    display: none;
+    z-index: 1050;
+    display: block;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
 }
 .month-overlay.show  {
-    display: block;
     opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 0.3s ease, visibility 0s;
+}
+/* 遮罩淡出期间禁止接收点击，避免挡住刚显示的页面按钮 */
+.month-overlay:not(.show)  {
+    pointer-events: none !important;
 }
 
 .month-modal  {
@@ -4372,17 +4567,19 @@ margin-bottom: 24px;
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.3s;
-    z-index: 6;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
+    z-index: 1051;
     padding: 16px;
     will-change: transform;
     max-height: 85vh;
     visibility: hidden;
+    pointer-events: none;
 }
 .month-modal.show  {
     transform: translateY(0);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
     visibility: visible;
+    pointer-events: auto;
 }
 
 .month-modal-header  {
@@ -4537,28 +4734,35 @@ margin-bottom: 24px;
     background: rgba(0, 0, 0, 0.35);
     z-index: 998;
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
     opacity: 0;
+    visibility: hidden;
     pointer-events: none;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
 }
 .budget-modal-overlay.show  {
     opacity: 1;
+    visibility: visible;
     pointer-events: auto;
+    transition: opacity 0.3s ease, visibility 0s;
 }
 
 .budget-modal  {
     background: var(--bg-card);
-    border-radius: var(--radius);
-    width: 90%;
-    max-width: 360px;
-    padding: 24px 20px 20px;
-    transform: scale(0.92);
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border-radius: var(--radius) var(--radius) 0 0;
+    width: 100%;
+    max-width: 480px;
+    padding: 24px 20px calc(20px + var(--safe-bottom, 0px));
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
+    will-change: transform;
+    visibility: hidden;
 }
 .budget-modal-overlay.show .budget-modal  {
-    transform: scale(1);
+    transform: translateY(0);
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    visibility: visible;
 }
 
 
@@ -4568,10 +4772,16 @@ margin-bottom: 24px;
     display: block;
     pointer-events: none;
     z-index: 998;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
 }
 .budget-keyboard-overlay.show  {
     pointer-events: auto;
     background: rgba(0, 0, 0, 0.4);
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s ease, visibility 0s;
 }
 .budget-keyboard-overlay .budget-modal-with-keyboard  {
     position: absolute;
@@ -4583,7 +4793,7 @@ margin-bottom: 24px;
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     transform: translateY(100%);
-    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s 0.35s;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
     z-index: 999;
     width: 100%;
     padding: 16px;
@@ -4593,7 +4803,7 @@ margin-bottom: 24px;
 }
 .budget-keyboard-overlay.show .budget-modal-with-keyboard  {
     transform: translateY(0);
-    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
     visibility: visible;
 }
 
@@ -4764,7 +4974,7 @@ margin-bottom: 24px;
     font-size: 20px;
     font-weight: 500;
     transition: all 0.12s;
-    font-family: inherit;
+    font-family: 'MyCustomFont', -apple-system, BlinkMacSystemFont, sans-serif;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -4807,10 +5017,11 @@ margin-bottom: 24px;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 3;
+    z-index: 10;
     background: var(--bg-main);
-    transform: translateX(100vw);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateX(100%);
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1), opacity 0.44s cubic-bezier(.32,.72,0,1);
+    will-change: transform, opacity;
     padding: 0;
     display: flex !important;
     flex-direction: column;
@@ -4891,7 +5102,7 @@ margin-bottom: 24px;
     background: none;
 }
 .budget-total-label  {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
     color: var(--text-primary);
 }
@@ -4920,7 +5131,7 @@ margin-bottom: 24px;
     border-radius: var(--radius-sm);
     background: transparent;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--text-fix);
     position: relative;
     transition: color 0.25s ease;
@@ -5025,21 +5236,46 @@ margin-bottom: 24px;
 
 .budget-circle-center  {
     position: absolute;
-    top: 80%;
+    top: 86%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -100%);
     width: 100%;
     text-align: center;
     pointer-events: none;
 }
 
 .budget-circle-label  {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     font-size: 14px;
     font-weight: 400;
     color: var(--primary);
     line-height: 1.3;
     pointer-events: auto;
+    font-family: 'MyCustomFont', -apple-system, BlinkMacSystemFont, sans-serif;
 }
+.budget-circle-amount-row  {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 3px;
+}
+.budget-circle-amount  {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--primary);
+}
+.budget-circle-edit  {
+    font-size: 14px;
+    color: var(--text-light);
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+.budget-circle-edit:active  {
+    color: var(--primary);
+}
+
 
 
 .budget-circle-title  {
@@ -5298,7 +5534,7 @@ position: relative;
     background: var(--expense);
     color: #fff;
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 500;
     padding: 4px 8px;
     border-radius: var(--radius) var(--radius) var(--radius) 0;
     white-space: nowrap;
@@ -5504,10 +5740,11 @@ position: relative;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 3;
+    z-index: 10;
     background: var(--bg-main);
-    transform: translateX(100vw);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateX(100%);
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1), opacity 0.44s cubic-bezier(.32,.72,0,1);
+    will-change: transform, opacity;
     padding: 0;
     display: flex !important;
     flex-direction: column;
@@ -5733,28 +5970,38 @@ position: relative;
     background: rgba(0, 0, 0, 0.4);
     z-index: 1000;
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
+    overflow: hidden;
     opacity: 0;
+    visibility: hidden;
     pointer-events: none;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
 }
 .profile-edit-overlay.show  {
     opacity: 1;
+    visibility: visible;
     pointer-events: auto;
+    transition: opacity 0.3s ease, visibility 0s;
 }
 
 .profile-edit-modal  {
     background: var(--bg-card);
-    border-radius: var(--radius);
-    width: 90%;
-    max-width: 360px;
-    padding: 24px 20px 20px;
-    transform: scale(0.92);
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border-radius: var(--radius) var(--radius) 0 0;
+    width: 100%;
+    max-width: 480px;
+    max-height: 100%;
+    overflow-y: auto;
+    padding: 24px 20px calc(20px + var(--safe-bottom, 0px));
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
+    will-change: transform;
+    visibility: hidden;
 }
 .profile-edit-overlay.show .profile-edit-modal  {
-    transform: scale(1);
+    transform: translateY(0);
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    visibility: visible;
 }
 
 .profile-edit-header  {
@@ -5764,7 +6011,7 @@ position: relative;
     margin-bottom: 16px;
 }
 .profile-edit-title  {
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
 }
@@ -5829,11 +6076,11 @@ position: relative;
     width: 100%;
     padding: 14px;
     border: none;
-    border-radius: var(--radius-sm);
+    border-radius: 12px;
     background: var(--primary);
     color: #fff;
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 500;
     transition: all 0.2s;
     touch-action: manipulation;
     margin-top: 4px;
@@ -5846,10 +6093,11 @@ position: relative;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 3;
+    z-index: 10;
     background: var(--bg-main);
-    transform: translateX(100vw);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateX(100%);
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1), opacity 0.44s cubic-bezier(.32,.72,0,1);
+    will-change: transform, opacity;
     padding: 0;
     display: flex !important;
     flex-direction: column;
@@ -5952,10 +6200,11 @@ position: relative;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 3;
+    z-index: 10;
     background: var(--bg-card);
-    transform: translateX(100vw);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateX(100%);
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1), opacity 0.44s cubic-bezier(.32,.72,0,1);
+    will-change: transform, opacity;
     padding: 0;
     display: flex !important;
     flex-direction: column;
@@ -5974,10 +6223,11 @@ position: relative;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 3;
+    z-index: 10;
     background: var(--bg-card);
-    transform: translateX(100vw);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateX(100%);
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1), opacity 0.44s cubic-bezier(.32,.72,0,1);
+    will-change: transform, opacity;
     padding: 0;
     display: flex !important;
     flex-direction: column;
@@ -6010,7 +6260,6 @@ position: relative;
     align-items: center;
     justify-content: center;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    transition: transform 0.2s;
 }
 
 .delete-account-title  {
@@ -6039,7 +6288,7 @@ position: relative;
 
 
 .delete-account-warning-title  {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
     padding: 16px 0 12px;
@@ -6113,10 +6362,10 @@ position: relative;
     width: 100%;
     padding: 14px;
     border: none;
-    border-radius: 360px;
+    border-radius: 12px;
     background: var(--bg-btn);
     color: var(--text-primary);
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 500;
     transition: all 0.2s;
     cursor: not-allowed;
@@ -6136,10 +6385,11 @@ position: relative;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 3;
+    z-index: 10;
     background: var(--bg-main);
-    transform: translateX(100vw);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateX(100%);
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1), opacity 0.44s cubic-bezier(.32,.72,0,1);
+    will-change: transform, opacity;
     padding: 0;
     display: flex !important;
     flex-direction: column;
@@ -6264,45 +6514,27 @@ position: relative;
 .cpw-form-group  {
     margin-bottom: 18px;
 }
-.cpw-label  {
-    display: block;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-primary);
-    margin-bottom: 8px;
-}
+
 .cpw-input-wrap  {
     position: relative;
     display: flex;
     align-items: center;
 }
-.cpw-input-icon  {
-    position: absolute;
-    left: 14px;
-    color: #B3BFD0;
-    font-size: 18px;
-    transition: color 0.2s;
-    pointer-events: none;
-}
 .cpw-input-wrap input  {
     width: 100%;
-    padding: 15px 14px 15px 44px;
+    padding: 15px 14px;
     border: none;
     border-radius: var(--radius-sm);
-    font-size: 15px;
+    font-size: 14px;
     background: var(--bg-input);
     color: var(--text-primary);
     outline: none;
     transition: background 0.2s;
 }
 .cpw-input-wrap input::placeholder  {
-    color: var(--text-fix);
+    color: #a3a3a3;
 }
 
-.cpw-input-wrap input:focus ~ .cpw-input-icon,
-.cpw-input-wrap:focus-within .cpw-input-icon  {
-    color: var(--primary);
-}
 
 
 .cpw-input-code-wrap input  {
@@ -6350,10 +6582,10 @@ position: relative;
     width: 100%;
     padding: 14px;
     border: none;
-    border-radius: 360px;
+    border-radius: 12px;
     background: var(--primary);
     color: #fff;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 500;
     touch-action: manipulation;
     transition: all 0.2s;
@@ -6416,10 +6648,11 @@ position: relative;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 6;
+    z-index: 10;
     background: var(--bg-main);
-    transform: translateX(100vw);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateX(100%);
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1), opacity 0.44s cubic-bezier(.32,.72,0,1);
+    will-change: transform, opacity;
     padding: 0;
     display: flex !important;
     flex-direction: column;
@@ -6480,18 +6713,7 @@ position: relative;
     text-align: center;
     padding: 14px 0 20px;
 }
-.fp-intro-icon  {
-    width: 64px;
-    height: 64px;
-    border-radius: var(--radius-sm);
-    background: var(--primary);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-size: 30px;
-    margin-bottom: 14px;
-}
+
 .fp-intro-title  {
     font-size: 19px;
     font-weight: 600;
@@ -6562,58 +6784,30 @@ position: relative;
     border-radius: 2px;
 }
 
-
-.fp-panel  {
-    animation: fpFadeIn 0.3s ease;
-}
-@keyframes fpFadeIn  {
-    from  { opacity: 0; transform: translateY(8px); }
-    to  { opacity: 1; transform: translateY(0); }
-}
-
-
 .fp-form-group  {
     margin-bottom: 18px;
 }
-.fp-label  {
-    display: block;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-primary);
-    margin-bottom: 8px;
-}
+
 .fp-input-wrap  {
     position: relative;
     display: flex;
     align-items: center;
 }
-.fp-input-icon  {
-    position: absolute;
-    left: 14px;
-    color: #B3BFD0;
-    font-size: 18px;
-    transition: color 0.2s;
-    pointer-events: none;
-}
 .fp-input-wrap input  {
     width: 100%;
-    padding: 15px 14px 15px 44px;
+    padding: 15px 14px;
     border: none;
     border-radius: var(--radius-sm);
-    font-size: 15px;
+    font-size: 14px;
     background: var(--bg-input);
     color: var(--text-primary);
     outline: none;
     transition: background 0.2s;
 }
 .fp-input-wrap input::placeholder  {
-    color: var(--text-fix);
+    color: #a3a3a3;
 }
 
-.fp-input-wrap input:focus ~ .fp-input-icon,
-.fp-input-wrap:focus-within .fp-input-icon  {
-    color: var(--primary);
-}
 
 
 .fp-input-code-wrap input  {
@@ -6645,10 +6839,10 @@ position: relative;
     width: 100%;
     padding: 14px;
     border: none;
-    border-radius: 360px;
+    border-radius: 12px;
     background: var(--primary);
     color: #fff;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 500;
     touch-action: manipulation;
     transition: all 0.2s;
@@ -6689,33 +6883,40 @@ position: relative;
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.4);
-    z-index: 5;
+    z-index: 1050;
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
     opacity: 0;
+    visibility: hidden;
     pointer-events: none;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
 }
 .theme-overlay.show  {
     opacity: 1;
+    visibility: visible;
     pointer-events: auto;
+    transition: opacity 0.3s ease, visibility 0s;
 }
 
 .theme-modal  {
     background: var(--bg-card);
-    border-radius: var(--radius);
-    width: 90%;
-    max-width: 380px;
-    padding: 20px 20px 18px;
-    transform: scale(0.92);
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border-radius: var(--radius) var(--radius) 0 0;
+    width: 100%;
+    max-width: 480px;
+    padding: 20px 20px calc(18px + var(--safe-bottom, 0px));
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
     max-height: 80vh;
     display: flex;
     flex-direction: column;
+    will-change: transform;
+    visibility: hidden;
 }
 .theme-overlay.show .theme-modal  {
-    transform: scale(1);
+    transform: translateY(0);
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    visibility: visible;
 }
 
 
@@ -6885,10 +7086,11 @@ position: relative;
     bottom: 0;
     max-width: 480px;
     margin: 0 auto;
-    z-index: 4;
+    z-index: 10;
     background: var(--bg-main);
-    transform: translateX(100vw);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateX(100%);
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1), opacity 0.44s cubic-bezier(.32,.72,0,1);
+    will-change: transform, opacity;
     padding: 0;
     display: flex !important;
     flex-direction: column;
@@ -6933,7 +7135,7 @@ position: relative;
 }
 
 .scheduled-add-btn  {
-    padding: 8px 16px;
+    padding: 6px 12px;
     border: none;
     border-radius: 360px;
     background: var(--primary);
@@ -7146,10 +7348,11 @@ position: relative;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 4;
+    z-index: 10;
     background: var(--bg-main);
-    transform: translateX(100vw);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateX(100%);
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1), opacity 0.44s cubic-bezier(.32,.72,0,1);
+    will-change: transform, opacity;
     padding: 0;
     display: flex !important;
     flex-direction: column;
@@ -7168,10 +7371,11 @@ position: relative;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 4;
+    z-index: 10;
     background: var(--bg-main);
-    transform: translateX(100vw);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateX(100%);
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1), opacity 0.44s cubic-bezier(.32,.72,0,1);
+    will-change: transform, opacity;
     padding: 0;
     display: flex !important;
     flex-direction: column;
@@ -7274,7 +7478,7 @@ position: relative;
 .time-row-value  {
     font-size: 14px;
     color: var(--text-primary);
-    font-family: 'MyCustomFont', -apple-system, sans-serif;
+    font-family: 'MyRegular', -apple-system, sans-serif;
 }
 .time-row-value.placeholder  {
     color: var(--text-fix);
@@ -7318,12 +7522,12 @@ position: relative;
     width: 100%;
     height: 48px;
     border: none;
-    border-radius: 360px;
+    border-radius: 12px;
     background: var(--bg-btn);
     color: var(--text-primary);
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 500;
-    transition: all 0.25s ease;
+    transition: background 0.25s ease, color 0.25s ease, opacity 0.25s ease;
     touch-action: manipulation;
 }
 .clear-bills-submit-btn.active  {
@@ -7345,8 +7549,9 @@ position: relative;
     margin: 0 auto;
     z-index: 5;
     background: var(--bg-main);
-    transform: translateX(100vw);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateX(100%);
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1), opacity 0.44s cubic-bezier(.32,.72,0,1);
+    will-change: transform, opacity;
     padding: 0;
     display: flex !important;
     flex-direction: column;
@@ -7597,7 +7802,7 @@ position: relative;
     width: 100%;
     height: 48px;
     border: none;
-    border-radius: 360px;
+    border-radius: 12px;
     background: var(--bg-btn);
     color: var(--text-fix);
     font-size: 14px;
@@ -7622,11 +7827,17 @@ position: relative;
     z-index: 998;
     opacity: 0;
     visibility: hidden;
+    pointer-events: none;
     transition: all 0.3s ease;
 }
 .sched-overlay.show  {
     opacity: 1;
     visibility: visible;
+    pointer-events: auto;
+}
+/* 遮罩淡出期间禁止接收点击，避免挡住刚显示的页面按钮 */
+.sched-overlay:not(.show)  {
+    pointer-events: none !important;
 }
 
 
@@ -7986,7 +8197,7 @@ position: relative;
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     transform: translateY(100%);
-    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s 0.35s;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
     max-height: 75vh;
     display: flex;
     flex-direction: column;
@@ -7995,7 +8206,7 @@ position: relative;
 }
 .sched-repeat-sheet.show  {
     transform: translateY(0);
-    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
     visibility: visible;
 }
 
@@ -8158,13 +8369,16 @@ position: relative;
     bottom: 0;
     background: rgba(0, 0, 0, 0.35);
     z-index: 998;
-    display: none;
-    transition: opacity 0.3s ease;
     opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
 }
 .sched-payment-overlay.show  {
-    display: block;
     opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 0.3s ease, visibility 0s;
 }
 .sched-payment-sheet  {
     position: fixed;
@@ -8176,7 +8390,7 @@ position: relative;
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.3s;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
     z-index: 999;
     padding: 16px;
     padding-bottom: calc(16px + var(--safe-bottom));
@@ -8185,7 +8399,7 @@ position: relative;
 }
 .sched-payment-sheet.show  {
     transform: translateY(0);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
     visibility: visible;
 }
 .sched-payment-header  {
@@ -8195,7 +8409,7 @@ position: relative;
     margin-bottom: 16px;
 }
 .sched-payment-title  {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
 }
@@ -8271,10 +8485,11 @@ position: relative;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 3;
+    z-index: 10;
     background: var(--bg-main);
-    transform: translateX(100vw);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateX(100%);
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1), opacity 0.44s cubic-bezier(.32,.72,0,1);
+    will-change: transform, opacity;
     padding: 0;
     display: flex !important;
     flex-direction: column;
@@ -8412,10 +8627,11 @@ position: relative;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 3;
+    z-index: 10;
     background: var(--bg-card);
-    transform: translateX(100vw);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateX(100%);
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1), opacity 0.44s cubic-bezier(.32,.72,0,1);
+    will-change: transform, opacity;
     padding: 0;
     display: flex !important;
     flex-direction: column;
@@ -8663,14 +8879,17 @@ position: relative;
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.35);
-    z-index: 4;
-    display: none;
+    z-index: 1100;
+    visibility: hidden;
+    pointer-events: none;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
 }
 .search-date-overlay.show  {
-    display: block;
+    visibility: visible;
     opacity: 1;
+    pointer-events: auto;
+    transition: opacity 0.3s ease, visibility 0s;
 }
 
 .search-date-modal  {
@@ -8683,8 +8902,8 @@ position: relative;
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.3s;
-    z-index: 4;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
+    z-index: 1101;
     padding: 16px 20px 20px;
     max-height: 75vh;
     display: flex;
@@ -8693,7 +8912,7 @@ position: relative;
 }
 .search-date-modal.show  {
     transform: translateY(0);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
     visibility: visible;
 }
 
@@ -8811,14 +9030,17 @@ position: relative;
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.35);
-    z-index: 4;
-    display: none;
+    z-index: 1100;
+    visibility: hidden;
+    pointer-events: none;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
 }
 .search-more-overlay.show  {
-    display: block;
+    visibility: visible;
     opacity: 1;
+    pointer-events: auto;
+    transition: opacity 0.3s ease, visibility 0s;
 }
 
 .search-more-modal  {
@@ -8831,8 +9053,8 @@ position: relative;
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.3s;
-    z-index: 4;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
+    z-index: 1101;
     padding: 16px 20px 16px;
     max-height: 80vh;
     display: flex;
@@ -8841,7 +9063,7 @@ position: relative;
 }
 .search-more-modal.show  {
     transform: translateY(0);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
     visibility: visible;
 }
 
@@ -8971,37 +9193,6 @@ position: relative;
 }
 
 
-.input-wrap .code-send-btn  {
-    position: absolute;
-    right: 6px;
-    top: 50%;
-    transform: translateY(-50%);
-    padding: 6px 14px;
-    border: none;
-    border-radius: var(--radius-sm);
-    background: var(--primary);
-    color: #fff;
-    font-size: 12px;
-    font-weight: 500;
-    touch-action: manipulation;
-    white-space: nowrap;
-    transition: all 0.2s ease;
-}
-
-.input-wrap .code-send-btn:disabled  {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-
-@media (max-width: 380px)  {
-    .input-wrap .code-send-btn  {
-        font-size: 10px;
-        padding: 4px 10px;
-    }
-}
-
-
 .email-check-hint  {
     font-size: 12px;
     margin-top: 4px;
@@ -9059,13 +9250,16 @@ position: relative;
     inset: 0;
     background: rgba(0, 0, 0, 0.35);
     z-index: 1000;
-    display: none;
+    visibility: hidden;
+    pointer-events: none;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
 }
 .gender-overlay.show  {
-    display: block;
+    visibility: visible;
     opacity: 1;
+    pointer-events: auto;
+    transition: opacity 0.3s ease, visibility 0s;
 }
 
 .gender-modal  {
@@ -9078,7 +9272,7 @@ position: relative;
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     transform: translate(-50%, 100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
     z-index: 1001;
     padding: 16px 20px 20px;
     will-change: transform;
@@ -9140,21 +9334,14 @@ position: relative;
 .detail-amount,
 .detail-record-amount,
 .bill-amount,
-.day-amount,
-.day-number,
 .month-total,
 .date-total,
 .cat-amount,
 .cat-count,
 .scheduled-item-amount,
-.wheel-item,
 #detailAmount,
 .bills-summary-btn .amount,
 .bills-stat-value,
-.bills-calendar-day .day-number,
-.bills-calendar-day .day-amount,
-.week-day-item .day-number,
-.week-day-item .day-amount,
 .stats-grid-item .item-value,
 .stats-trend .trend-value,
 .stats-pie-center .total-value,
@@ -9163,8 +9350,21 @@ position: relative;
 .bills-total-expense,
 .bills-total-income,
 .stats-month-total,
-.stats-pie-total  {
+.stats-pie-total,
+.budget-total-amount,
+.budget-stats-value,
+.budget-stats-sub-value  {
     font-family: 'MyCustomFont', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.day-amount,
+.day-number,
+.bills-calendar-day .day-number,
+.bills-calendar-day .day-amount,
+.week-day-item .day-number,
+.week-day-item .day-amount,
+.wheel-item  {
+    font-family: 'MyRegular', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 
@@ -9174,14 +9374,24 @@ position: relative;
 #page-detail,
 #page-profile-info,
 #page-account-security,
+#page-currency,
 #page-delete-account,
 #page-unbind-account,
 #page-change-password,
-#page-forgot-password,
 #page-scheduled,
 #page-partner-profile,
 #page-about,
-#page-changelog,
+#page-changelog  {
+    width: 480px;
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    transform: translateX(100%);
+    will-change: transform, opacity;
+}
+
+/* 宠物展示页：保持原有 100vw 位移，不参与本次转场统一
+   （从上面的通用块摘出，故补齐原通用块的宽高与居中样式） */
 #page-pet  {
     width: 480px;
     max-width: 100%;
@@ -9411,9 +9621,11 @@ position: relative;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 3;
+    z-index: 10;
     background: var(--bg-main);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateX(100%);
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1), opacity 0.44s cubic-bezier(.32,.72,0,1);
+    will-change: transform, opacity;
     padding: 0;
     display: flex !important;
     flex-direction: column;
@@ -9513,11 +9725,12 @@ position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+	text-align: center;
     width: 68px;
     height: 68px;
     background: var(--primary);
     border-radius: var(--radius);
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 500;
     color: #fff;
     letter-spacing: 1px;
@@ -9541,16 +9754,15 @@ position: relative;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 12px 32px;
+    padding: 8px 16px;
     border: none;
     border-radius: 360px;
     background: var(--primary);
     color: #fff;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
     transition: all 0.25s ease;
     touch-action: manipulation;
-    min-width: 160px;
 }
 .about-update-btn:disabled  {
     opacity: 0.6;
@@ -9641,10 +9853,11 @@ position: relative;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 3;
+    z-index: 10;
     background: var(--bg-main);
-    transform: translateX(100vw);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateX(100%);
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1), opacity 0.44s cubic-bezier(.32,.72,0,1);
+    will-change: transform, opacity;
     padding: 0;
     display: flex !important;
     flex-direction: column;
@@ -9726,7 +9939,7 @@ position: relative;
 }
 
 .feedback-card-title  {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
 }
@@ -9784,10 +9997,10 @@ position: relative;
     width: 100%;
     padding: 14px 0;
     border: none;
-    border-radius: 360px;
+    border-radius: 12px;
     background: var(--primary);
     color: #fff;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 500;
     display: flex;
     align-items: center;
@@ -9809,10 +10022,11 @@ position: relative;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 6;
+    z-index: 10;
     background: var(--bg-main);
-    transform: translateX(100vw);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateX(100%);
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1), opacity 0.44s cubic-bezier(.32,.72,0,1);
+    will-change: transform, opacity;
     padding: 0;
     display: flex !important;
     flex-direction: column;
@@ -9967,7 +10181,7 @@ position: relative;
     box-sizing: border-box;
 }
 
-.bugfb-textarea::placeholder  { color: #B0B0B0; }
+.bugfb-textarea::placeholder  { color: #a3a3a3; font-size: 14px; }
 .bugfb-counter  {
     text-align: right;
     font-size: 12px;
@@ -10030,10 +10244,10 @@ position: relative;
     margin-top: 8px;
     padding: 14px 0;
     border: none;
-    border-radius: 360px;
+    border-radius: 12px;
     background: var(--primary);
     color: #fff;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 500;
     transition: all 0.25s ease;
     touch-action: manipulation;
@@ -10046,11 +10260,12 @@ position: relative;
     inset: 0;
     background: rgba(0, 0, 0, 0.35);
     z-index: 200;
-    display: none;
+    visibility: hidden;
+    pointer-events: none;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
 }
-.bugfb-overlay.show  { display: block; opacity: 1; }
+.bugfb-overlay.show  { visibility: visible; opacity: 1; pointer-events: auto; transition: opacity 0.3s ease, visibility 0s; }
 .bugfb-sheet  {
     position: absolute;
     bottom: 0;
@@ -10059,14 +10274,14 @@ position: relative;
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.3s;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
     z-index: 201;
     padding: 16px 20px 20px;
     will-change: transform;
     max-height: 85vh;
     visibility: hidden;
 }
-.bugfb-sheet.show  { transform: translateY(0); transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s; visibility: visible; }
+.bugfb-sheet.show  { transform: translateY(0); transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s; visibility: visible; }
 .bugfb-sheet-header  {
     display: flex;
     justify-content: space-between;
@@ -10074,7 +10289,7 @@ position: relative;
     margin-bottom: 12px;
 }
 .bugfb-sheet-title  {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
 }
@@ -10180,6 +10395,7 @@ position: relative;
 #page-detail,
 #page-profile-info,
 #page-account-security,
+#page-currency,
 #page-delete-account,
 #page-unbind-account,
 #page-change-password,
@@ -10216,8 +10432,9 @@ position: relative;
     margin: 0 auto;
     z-index: 1000;
     background: var(--bg-main);
-    transform: translateX(100vw);
-    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: translateX(100%);
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1), opacity 0.44s cubic-bezier(.32,.72,0,1);
+    will-change: transform, opacity;
     padding: 0;
     display: flex !important;
     flex-direction: column;
@@ -10402,4 +10619,474 @@ position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+
+/* ==========================================================
+   币种设置（#page-currency）
+   —— 结构对齐 uni-app pages/settings/currency.vue
+   ========================================================== */
+#page-currency  {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    background: var(--bg-main);
+    transform: translateX(100%);
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1), opacity 0.44s cubic-bezier(.32,.72,0,1);
+    will-change: transform, opacity;
+    padding: 0;
+    display: flex !important;
+    flex-direction: column;
+    overflow: hidden;
+    pointer-events: none;
+}
+#page-currency.active  {
+    transform: translateX(0);
+    pointer-events: auto;
+}
+
+.currency-header  {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--bg-main);
+    flex-shrink: 0;
+}
+
+.currency-back,
+.currency-help  {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: var(--bg-card);
+    font-size: 22px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+}
+.currency-back:active,
+.currency-help:active  {
+    transform: scale(0.92);
+}
+
+.currency-title  {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+/* 当前币种 + 标题：固定区块，不被压缩、不滚动 */
+.currency-fixed  {
+    flex-shrink: 0;
+    padding: 8px 16px 0;
+}
+
+/* 币种选择列表：占据剩余高度，仅此区域可滚动；顶部内边距为 0，间距由标题下边距控制 */
+.currency-scroll  {
+    flex: 1;
+    min-height: 0;
+    padding: 0 16px 24px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.currency-scroll::-webkit-scrollbar  {
+    display: none;
+}
+
+.currency-section-title  {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 8px 0 12px;
+    padding-left: 4px;
+}
+
+.currency-card  {
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+/* 固定区：卡片与「币种选择」标题之间的间距收紧 */
+.currency-fixed .currency-card  {
+    margin-bottom: 16px;
+}
+.currency-scroll .currency-card  {
+    margin-bottom: 0;
+}
+
+.currency-item  {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid var(--border-color, #F0F1F5);
+    transition: background 0.2s ease;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+.currency-item:last-child  {
+    border-bottom: none;
+}
+.currency-item:active  {
+    background: var(--bg-btn, #F5F6F8);
+}
+
+.currency-flag  {
+    width: 30px;
+    height: 21px;
+    margin-right: 14px;
+    flex-shrink: 0;
+    border-radius: 3px;
+    background: var(--bg-btn, #F0F0F0);
+    object-fit: cover;
+}
+
+.currency-info  {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.currency-name  {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.currency-symbol  {
+    font-size: 13px;
+    color: var(--text-fix);
+    font-family: 'MyCustomFont', -apple-system, BlinkMacSystemFont, sans-serif;
+    flex-shrink: 0;
+}
+
+.currency-radio  {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid #D4D8DE;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-left: 10px;
+    color: transparent;
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+.currency-radio.checked  {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #FFFFFF;
+}
+
+/* ===== 币种说明弹窗 ===== */
+.currency-mask  {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px;
+    box-sizing: border-box;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
+}
+.currency-mask.show  {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 0.3s ease, visibility 0s;
+}
+
+.currency-modal  {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 360px;
+    padding: 24px 20px calc(20px + var(--safe-bottom, 0px));
+    box-sizing: border-box;
+    transform: scale(0.6);
+    opacity: 0;
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), opacity 0.3s ease, visibility 0s 0.35s;
+    will-change: transform, opacity;
+    visibility: hidden;
+}
+.currency-mask.show .currency-modal  {
+    transform: scale(1);
+    opacity: 1;
+    visibility: visible;
+    transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease, visibility 0s;
+}
+
+.currency-modal-header  {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.currency-modal-title  {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.currency-modal-close  {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    background: var(--bg-btn, #F0F0F0);
+    color: var(--text-fix);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.currency-modal-body  {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.currency-note-item  {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.currency-note-num  {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #FFFFFF;
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+}
+
+.currency-note-text  {
+    flex: 1;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-fix);
+}
+
+/* ===== 个人中心：币种设置入口右侧显示当前币种国旗 ===== */
+.profile-list-item .list-flag  {
+    width: 24px;
+    height: 17px;
+    border-radius: 3px;
+    object-fit: cover;
+    display: block;
+    flex-shrink: 0;
+}
+
+/* ===== 二级页转场：push.html 风格 iOS push（来源页被推走 28% + 缩小 .98 + 变暗） ===== */
+.page--pushed {
+    transform: translateX(-28%) !important;
+    transition: transform 0.44s cubic-bezier(.32,.72,0,1) !important;
+    will-change: transform;
+    backface-visibility: hidden;
+}
+
+
+.page.is-animating {
+    will-change: transform;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+}
+.page.is-animating * {
+    will-change: auto;
+    transition: none !important;
+    animation-play-state: paused !important;
+    filter: none !important;
+    box-shadow: none !important;
+}
+
+.page.is-animating .cpw-back,
+.page.is-animating .fp-back,
+.page.is-animating .annual-back-btn,
+.page.is-animating .changelog-back,
+.page.is-animating .detail-back,
+.page.is-animating .modal-back-btn,
+.page.is-animating .settings-back-btn,
+.page.is-animating .budget-back-btn,
+.page.is-animating .profile-info-back,
+.page.is-animating .account-security-back,
+.page.is-animating .delete-account-back,
+.page.is-animating .scheduled-back,
+.page.is-animating .sched-edit-back,
+.page.is-animating .clear-bills-back,
+.page.is-animating .legal-back,
+.page.is-animating .about-back,
+.page.is-animating .feedback-back,
+.page.is-animating .bugfb-back,
+.page.is-animating .webview-back,
+.page.is-animating .currency-back,
+.page.is-animating .cat-detail-back,
+.page.is-animating .pet-back {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+#main-app  {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    grid-auto-rows: minmax(0, 0px);
+    min-height: 0;
+}
+
+#main-app > .page  {
+    grid-area: 1 / 1;
+}
+
+@keyframes tabPageIn  {
+    from { opacity: 0; transform: scale(0.965); }
+    to   { opacity: 1; transform: none; }
+}
+@keyframes tabPageOut  {
+    from { opacity: 1; transform: none; }
+    to   { opacity: 0; transform: scale(0.965); }
+}
+
+/* 进入页：opacity 0→1 + scale .965→1（对应 push.html .page.is-active） */
+.page.tab-enter  {
+    position: relative;
+    z-index: 2;
+    will-change: opacity, transform;
+    animation: tabPageIn 0.38s cubic-bezier(.32,.72,0,1) both;
+}
+/* 离开页：脱离文档流覆盖在上层下方，淡出 + 轻微缩小（对应 push.html .page 非 active 态） */
+.page.tab-leave  {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    pointer-events: none;
+    will-change: opacity, transform;
+    animation: tabPageOut 0.3s ease both;
+}
+
+/* ==========================================================
+   一级页（底部导航 4 个主页面）转场
+   —— 对齐 push.html：常驻重叠 + opacity/scale 过渡，
+      不再用 display 直切（display 不可插值，必然瞬变）
+   ========================================================== */
+#page-home,
+#page-bills,
+#page-stats,
+#page-profile  {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+    min-height: 0;
+    max-height: 100%;
+    display: block !important;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: scale(0.965);
+    transition: opacity 0.3s ease,
+                transform 0.38s cubic-bezier(.32,.72,0,1),
+                visibility 0s 0.38s;
+    will-change: opacity, transform;
+}
+#page-home.active,
+#page-bills.active,
+#page-stats.active,
+#page-profile.active  {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+    transition: opacity 0.3s ease,
+                transform 0.38s cubic-bezier(.32,.72,0,1),
+                visibility 0s;
+}
+
+/* 二级页推入时，一级页被推走并压暗（push.html 的视差纵深） */
+#page-home.page--pushed,
+#page-bills.page--pushed,
+#page-stats.page--pushed,
+#page-profile.page--pushed  {
+    z-index: 1;
+}
+
+/* ==========================================================
+   二级/三级页：关闭态延迟隐藏
+   二级页是 fixed/absolute + translateX(100%)，不受 #app 的
+   overflow:hidden 裁剪，桌面端（视口 > 480px）会直接露在右侧。
+   这里让未激活的二级页 visibility:hidden；关闭动画播完（0.44s）
+   后再隐藏，所以滑出过程依然可见。
+   ========================================================== */
+/* 作用范围从 #main-app > .page 扩展到任意 .page：
+   原规则只覆盖 #main-app 的直接子页面，而 page-about / page-changelog /
+   page-profile-info 等二级/三级页位于 #main-app 之外，关闭时回退到 .page 的
+   display:none，导致 translateX(100%) 滑出动画作用在不可见元素上、关闭无动画。
+   统一给所有非一级页/非宠物页加「失活后延迟 0.44s 才隐藏」的 visibility 处理，
+   让滑出过程在关闭动画播完前保持可见（一级页与宠物页照旧排除）。 */
+.page:not(#page-home):not(#page-bills):not(#page-stats):not(#page-profile):not(#page-pet)  {
+    visibility: hidden;
+    transition: transform 0.44s cubic-bezier(0.32, 0.72, 0, 1),
+                opacity 0.44s cubic-bezier(0.32, 0.72, 0, 1),
+                visibility 0s 0.44s;
+}
+.page:not(#page-home):not(#page-bills):not(#page-stats):not(#page-profile):not(#page-pet).active  {
+    visibility: visible;
+    transition: transform 0.44s cubic-bezier(0.32, 0.72, 0, 1),
+                opacity 0.44s cubic-bezier(0.32, 0.72, 0, 1),
+                visibility 0s 0s;
+}
+
+/* 与登录注册页占位符保持一致：color #a3a3a3，font-size 14px */
+.note-modal-body input::placeholder  {
+    color: #a3a3a3;
+    font-size: 14px;
+}
+.profile-edit-modal input::placeholder  {
+    color: #a3a3a3;
+    font-size: 14px;
+}
+.filter-amount-range input::placeholder  {
+    color: #a3a3a3;
+    font-size: 14px;
+}
+.cat-form-group input::placeholder  {
+    color: #a3a3a3;
+    font-size: 14px;
 }

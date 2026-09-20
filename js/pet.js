@@ -68,53 +68,122 @@
     }
 
     
-    async function loadPetStatus() {
-        try {
-            const data = await petApi('/pet/status');
-            petState.hasPet = data.hasPet;
-            petState.reason = data.reason || null;
-            petState.coupleId = data.couple_id || null;
-            if (data.hasPet) {
-                petState.pet = data.pet;
-                
-                if (petState.pet) {
-                    if (!petState.pet.variant) petState.pet.variant = 'default';
-                    if (!Array.isArray(petState.pet.unlocked_variants) || petState.pet.unlocked_variants.length === 0) {
-                        petState.pet.unlocked_variants = [petState.pet.variant || 'default'];
-                    }
-                    // 与本地缓存取并集，确保“已确认解锁但后端未落库”的形象刷新后不丢
-                    const cached = loadUnlockedCache();
-                    if (cached.length) {
-                        const set = {};
-                        petState.pet.unlocked_variants.concat(cached).forEach(function (v) { set[v] = 1; });
-                        petState.pet.unlocked_variants = Object.keys(set);
-                    }
-                    cacheUnlockedVariants();
+    /* 宠物状态本地缓存：缓存优先 + 写后即缓存，规则同 js/cache.js */
+    function readPetStatusCache() {
+        return (window.WBCache && window.WBCache.read('pet')) || null;
+    }
+
+    function writePetStatusCache(data) {
+        if (window.WBCache && data) window.WBCache.write('pet', data);
+    }
+
+    /* 把 /pet/status 的返回铺到内存 + 界面。
+       fromCache=true 表示这份数据来自本地缓存：界面照铺，但跳过自动喂食这类
+       有副作用的动作，避免拿陈旧数据误触发。 */
+    function applyPetStatus(data, fromCache) {
+        petState.hasPet = data.hasPet;
+        petState.reason = data.reason || null;
+        petState.coupleId = data.couple_id || null;
+        if (data.hasPet) {
+            petState.pet = data.pet;
+            
+            if (petState.pet) {
+                if (!petState.pet.variant) petState.pet.variant = 'default';
+                if (!Array.isArray(petState.pet.unlocked_variants) || petState.pet.unlocked_variants.length === 0) {
+                    petState.pet.unlocked_variants = [petState.pet.variant || 'default'];
                 }
-                petState.adopter = data.adopter;
-                petState.myDailyStats = data.myDailyStats || { bill_count: 0, feed_count: 0, comment_count: 0, sign_done: false };
-                petState.signStatus = data.signStatus || null;
-                
-                if (data.pet && data.pet.variant) {
-                    localStorage.setItem('petCatVariant', data.pet.variant);
+                // 与本地缓存取并集，确保“已确认解锁但后端未落库”的形象刷新后不丢
+                const cached = loadUnlockedCache();
+                if (cached.length) {
+                    const set = {};
+                    petState.pet.unlocked_variants.concat(cached).forEach(function (v) { set[v] = 1; });
+                    petState.pet.unlocked_variants = Object.keys(set);
                 }
-                updateEntryCard();
-                checkAutoFeed();
-                showFloatingPet();
-            } else if (data.reason === 'not_adopted') {
-                petState.pet = null;
-                petState.adopter = null;
-                petState.myDailyStats = { bill_count: 0, feed_count: 0, comment_count: 0, sign_done: false };
-                petState.signStatus = null;
-                updateEntryCard();
-            } else {
-                resetEntryCard();
+                cacheUnlockedVariants();
             }
-            return data;
-        } catch (error) {
-            console.error('加载宠物状态失败:', error);
+            petState.adopter = data.adopter;
+            petState.myDailyStats = data.myDailyStats || { bill_count: 0, feed_count: 0, comment_count: 0, sign_done: false };
+            petState.signStatus = data.signStatus || null;
+            
+            if (data.pet && data.pet.variant) {
+                localStorage.setItem('petCatVariant', data.pet.variant);
+            }
+            updateEntryCard();
+            if (!fromCache) checkAutoFeed();
+            showFloatingPet();
+        } else if (data.reason === 'not_adopted') {
+            petState.pet = null;
+            petState.adopter = null;
+            petState.myDailyStats = { bill_count: 0, feed_count: 0, comment_count: 0, sign_done: false };
+            petState.signStatus = null;
+            updateEntryCard();
+        } else {
             resetEntryCard();
-            return null;
+        }
+    }
+
+    /* 缓存优先（纯同步，不发请求）：把上次的宠物状态直接铺到入口卡 / 桌面宠物上。
+       showMainApp 里第一时间调用 —— 宠物入口不必等 /match/status、/pet/status
+       这两个串行往返，切到「我的」页时卡片已经是画好的状态。
+       默认只在内存还没有宠物状态时铺（避免把刚喂过食的新状态回滚成旧缓存值），
+       force=true 时无条件用缓存覆盖。返回是否命中了缓存。 */
+    function hydrateFromCache(force) {
+        const cached = readPetStatusCache();
+        if (!cached) return false;
+        if (!force && (petState.pet || petState.reason)) return false;
+        try {
+            applyPetStatus(cached, true);
+        } catch (e) {
+            console.warn('宠物状态缓存渲染失败', e);
+            return false;
+        }
+        return true;
+    }
+
+    /* 退出登录 / 换账号时清空宠物内存状态：
+       否则 /pet/status 回来之前，入口卡与桌面宠物会先显示上一个账号的宠物。 */
+    function resetPetState() {
+        // 作废还在飞的请求：退出瞬间到达的响应属于上一个账号，不能再铺到界面上
+        petStatusEpoch++;
+        petStatusRequest = null;
+        resetEntryCard();
+        removeFloatingPet();
+    }
+
+    // 同一时刻只允许一个 /pet/status 在飞：初始化时 loadAllData 与 fetchPartnerStatus
+    // 会几乎同时触发刷新，去重后只发一次请求
+    let petStatusRequest = null;
+    // 账号代次：resetPetState 里自增，用来丢弃「退出前发出、退出后才回来」的响应
+    let petStatusEpoch = 0;
+
+    async function loadPetStatus() {
+        // 缓存优先：先把上次的宠物状态铺出来（猫形象 / 等级 / 饥饿度 / 入口卡 / 桌面宠物），
+        // 不用等 /pet/status 往返；接口回来后 applyPetStatus 再整体覆盖
+        hydrateFromCache();
+
+        if (petStatusRequest) return petStatusRequest;
+
+        const epoch = petStatusEpoch;
+        petStatusRequest = (async function () {
+            try {
+                const data = await petApi('/pet/status');
+                if (epoch !== petStatusEpoch) return null;   // 已经退出/换账号，丢弃
+                writePetStatusCache(data);   // 写后即缓存：服务端返回即最新真相
+                applyPetStatus(data, false);
+                return data;
+            } catch (error) {
+                console.error('加载宠物状态失败:', error);
+                if (epoch !== petStatusEpoch) return null;
+                // 有缓存兜底（或已由缓存渲染过）时不要清空界面，否则宠物会"消失"一下
+                if (!petState.pet && !petState.reason) resetEntryCard();
+                return null;
+            }
+        })();
+
+        try {
+            return await petStatusRequest;
+        } finally {
+            petStatusRequest = null;
         }
     }
 
@@ -204,6 +273,23 @@
     }
 
     
+    // 统一关闭宠物弹窗：加 .closing 播放关闭动画，结束后再移除元素
+    // catSkinOverlay 为常驻弹窗（index.html 内），仅去 .active/.closing，保留 DOM
+    function closePetOverlay(overlay) {
+        if (!overlay || !overlay.parentNode) return;
+        if (overlay.classList.contains('closing')) return;
+        if (overlay._petCloseTimer) { clearTimeout(overlay._petCloseTimer); overlay._petCloseTimer = null; }
+        overlay.classList.add('closing');
+        overlay._petCloseTimer = setTimeout(function () {
+            overlay._petCloseTimer = null;
+            if (overlay.id === 'catSkinOverlay') {
+                overlay.classList.remove('active', 'closing');
+            } else if (overlay.parentNode) {
+                overlay.remove();
+            }
+        }, 340);
+    }
+
     function showPetInfoPopup() {
         const pet = petState.pet;
         if (!pet) return;
@@ -249,8 +335,7 @@
         document.body.appendChild(overlay);
 
         const closePopup = () => {
-            overlay.classList.remove('active');
-            setTimeout(() => overlay.remove(), 200);
+            closePetOverlay(overlay);
         };
 
         overlay.querySelector('#petInfoPopupClose').onclick = closePopup;
@@ -885,8 +970,7 @@
             requestAnimationFrame(() => overlay.classList.add('active'));
             
             const cleanup = () => {
-                overlay.classList.remove('active');
-                setTimeout(() => overlay.remove(), 200);
+                closePetOverlay(overlay);
             };
             overlay.querySelector('.pet-confirm-btn.cancel').addEventListener('click', () => {
                 cleanup();
@@ -948,10 +1032,7 @@
 
     function closeShopModal() {
         const overlay = document.querySelector('.pet-shop-overlay');
-        if (overlay) {
-            overlay.classList.remove('active');
-            setTimeout(() => overlay.remove(), 250);
-        }
+        if (overlay) closePetOverlay(overlay);
         shopModalOpen = false;
     }
 
@@ -1120,10 +1201,7 @@
 
     function closeBagModal() {
         const overlay = document.querySelector('.pet-bag-overlay');
-        if (overlay) {
-            overlay.classList.remove('active');
-            setTimeout(() => overlay.remove(), 250);
-        }
+        if (overlay) closePetOverlay(overlay);
         bagModalOpen = false;
     }
 
@@ -1230,15 +1308,17 @@
         changeBtn.addEventListener('click', function (e) {
             e.stopPropagation();
             refreshSkinCardStates();
+            if (overlay._petCloseTimer) { clearTimeout(overlay._petCloseTimer); overlay._petCloseTimer = null; }
+            overlay.classList.remove('closing');
             overlay.classList.add('active');
         });
 
         
         if (closeBtn) closeBtn.addEventListener('click', function () {
-            overlay.classList.remove('active');
+            closePetOverlay(overlay);
         });
         overlay.addEventListener('click', function (e) {
-            if (e.target === overlay) overlay.classList.remove('active');
+            if (e.target === overlay) closePetOverlay(overlay);
         });
 
         
@@ -1254,13 +1334,13 @@
 
                 
                 if (variant === currentVariant) {
-                    overlay.classList.remove('active');
+                    closePetOverlay(overlay);
                     return;
                 }
                 try {
                     await switchCatVariantWithBackend(variant);
                     refreshSkinCardStates();
-                    overlay.classList.remove('active');
+                    closePetOverlay(overlay);
                 } catch (err) {
                     showGameTip(err.message || '切换失败', 'warn');
                 }
@@ -1299,7 +1379,7 @@
                 updateEntryCard();
                 refreshSkinCardStates();
                 try { await switchCatVariantWithBackend(variant); } catch (e) { console.warn('切换形象失败', e); }
-                overlay.classList.remove('active');
+                closePetOverlay(overlay);
             } catch (err) {
                 if (err && err.message && err.message.indexOf('已解锁') >= 0) {
                     const ul = getUnlockedVariants();
@@ -1488,7 +1568,7 @@
             previewEl.innerHTML = window.CatSVG('pet-adopt-preview-svg', 'default');
         }
 
-        modal.querySelector('#adoptCancel').onclick = () => { modal.remove(); if (typeof refreshStatusBar === 'function') refreshStatusBar(); };
+        modal.querySelector('#adoptCancel').onclick = () => { closePetOverlay(modal); if (typeof refreshStatusBar === 'function') refreshStatusBar(); };
         modal.querySelector('#adoptConfirm').onclick = async () => {
             const name = modal.querySelector('#adoptNameInput').value.trim();
             if (!name) { showGameTip('请输入宠物名字', 'warn'); return; }
@@ -1501,7 +1581,7 @@
                     petState.pet.unlocked_variants = res.unlocked_variants;
                 }
                 showGameTip('领养成功！');
-                modal.remove();
+                closePetOverlay(modal);
                 if (typeof refreshStatusBar === 'function') refreshStatusBar();
                 await loadPetStatus();
                 
@@ -1584,18 +1664,18 @@
             };
         });
 
-        modal.querySelector('#infoCancel').onclick = () => { modal.remove(); if (typeof refreshStatusBar === 'function') refreshStatusBar(); };
+        modal.querySelector('#infoCancel').onclick = () => { closePetOverlay(modal); if (typeof refreshStatusBar === 'function') refreshStatusBar(); };
         modal.querySelector('#infoConfirm').onclick = async () => {
             const payload = {};
             if (!hasBirthday && tempBirthday) payload.birthday = tempBirthday;
             if (!hasGender && selectedGender) payload.gender = selectedGender;
 
-            if (Object.keys(payload).length === 0) { modal.remove(); if (typeof refreshStatusBar === 'function') refreshStatusBar(); return; }
+            if (Object.keys(payload).length === 0) { closePetOverlay(modal); if (typeof refreshStatusBar === 'function') refreshStatusBar(); return; }
 
             try {
                 await petApi('/pet/info', 'POST', payload);
                 showGameTip('保存成功');
-                modal.remove();
+                closePetOverlay(modal);
                 if (typeof refreshStatusBar === 'function') refreshStatusBar();
                 await loadPetStatus();
                 renderPetPage();
@@ -1634,9 +1714,7 @@
                     <div class="wheel-picker" data-type="year" id="petWheelYear"></div>
                     <div class="wheel-picker" data-type="month" id="petWheelMonth"></div>
                     <div class="wheel-picker" data-type="day" id="petWheelDay"></div>
-                    <div class="wheel-picker-label">
-                        <span>年</span><span>月</span><span>日</span>
-                    </div>
+                    <div class="wheel-picker-label"></div>
                 </div>
             </div>
         `;
@@ -1690,8 +1768,7 @@
 
         
         overlay.querySelector('#birthdayCancel').onclick = () => {
-            overlay.classList.remove('active');
-            setTimeout(() => overlay.remove(), 200);
+            closePetOverlay(overlay);
         };
 
         
@@ -1718,15 +1795,13 @@
                 }
             }
 
-            overlay.classList.remove('active');
-            setTimeout(() => overlay.remove(), 200);
+            closePetOverlay(overlay);
         };
 
         
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) {
-                overlay.classList.remove('active');
-                setTimeout(() => overlay.remove(), 200);
+                closePetOverlay(overlay);
             }
         });
     }
@@ -1897,8 +1972,7 @@
         const close = () => {
             signModalOpen = false;
             signModalData = null;
-            overlay.classList.remove('active');
-            setTimeout(() => overlay.remove(), 250);
+            closePetOverlay(overlay);
             
             if (!petState.myDailyStats || !petState.myDailyStats.sign_done) {
                 const dismissKey = 'signModalDismissed_' + getBeijingDateStr();
@@ -2100,8 +2174,7 @@
                 const close = () => {
                     signModalOpen = false;
                     signModalData = null;
-                    overlay.classList.remove('active');
-                    setTimeout(() => overlay.remove(), 250);
+                    closePetOverlay(overlay);
                     
                     if (!petState.myDailyStats || !petState.myDailyStats.sign_done) {
                         const dismissKey = 'signModalDismissed_' + getBeijingDateStr();
@@ -2122,8 +2195,7 @@
             const close = () => {
                 signModalOpen = false;
                 signModalData = null;
-                overlay.classList.remove('active');
-                setTimeout(() => overlay.remove(), 250);
+                closePetOverlay(overlay);
                 
                 if (!petState.myDailyStats || !petState.myDailyStats.sign_done) {
                     const dismissKey = 'signModalDismissed_' + getBeijingDateStr();
@@ -2232,10 +2304,7 @@
 
     function closeTaskModal() {
         const overlay = document.querySelector('.pet-task-overlay');
-        if (overlay) {
-            overlay.classList.remove('active');
-            setTimeout(() => overlay.remove(), 250);
-        }
+        if (overlay) closePetOverlay(overlay);
         taskModalOpen = false;
     }
 
@@ -2644,8 +2713,7 @@
         document.body.appendChild(overlay);
 
         const close = () => {
-            overlay.classList.remove('active');
-            setTimeout(() => overlay.remove(), 250);
+            closePetOverlay(overlay);
         };
         overlay.querySelector('#recordsClose').onclick = close;
         overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
@@ -2807,8 +2875,7 @@
     function closePetSettings() {
         const overlay = document.querySelector('.pet-settings-overlay');
         if (!overlay) return;
-        overlay.classList.remove('active');
-        setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 200);
+        closePetOverlay(overlay);
     }
 
     function checkAutoFeed() {
@@ -3167,8 +3234,7 @@
         // 1) 生日选择器
         var birthdayPicker = document.querySelector('.pet-birthday-picker-overlay.active');
         if (birthdayPicker) {
-            birthdayPicker.classList.remove('active');
-            setTimeout(function () { if (birthdayPicker.parentNode) birthdayPicker.remove(); }, 200);
+            closePetOverlay(birthdayPicker);
             return true;
         }
         
@@ -3181,8 +3247,7 @@
         
         var infoPopup = document.querySelector('.pet-info-popup-overlay.active');
         if (infoPopup) {
-            infoPopup.classList.remove('active');
-            setTimeout(function () { if (infoPopup.parentNode) infoPopup.remove(); }, 200);
+            closePetOverlay(infoPopup);
             return true;
         }
         
@@ -3190,13 +3255,13 @@
         if (confirmOverlay && confirmOverlay.classList.contains('active')) {
             var cancelBtn = confirmOverlay.querySelector('.pet-confirm-btn.cancel');
             if (cancelBtn) cancelBtn.click();
-            else { confirmOverlay.classList.remove('active'); setTimeout(function () { confirmOverlay.remove(); }, 200); }
+            else { closePetOverlay(confirmOverlay); }
             return true;
         }
         
         var catSkinOverlay = document.getElementById('catSkinOverlay');
         if (catSkinOverlay && catSkinOverlay.classList.contains('active')) {
-            catSkinOverlay.classList.remove('active');
+            closePetOverlay(catSkinOverlay);
             return true;
         }
         
@@ -3204,7 +3269,7 @@
         if (signOverlay) {
             var signCloseBtn = document.getElementById('petSignClose');
             if (signCloseBtn) signCloseBtn.click();
-            else { signOverlay.classList.remove('active'); setTimeout(function () { signOverlay.remove(); }, 250); }
+            else { closePetOverlay(signOverlay); }
             return true;
         }
         
@@ -3212,7 +3277,7 @@
         if (recordsOverlay) {
             var recordsCloseBtn = document.getElementById('recordsClose');
             if (recordsCloseBtn) recordsCloseBtn.click();
-            else { recordsOverlay.classList.remove('active'); setTimeout(function () { recordsOverlay.remove(); }, 250); }
+            else { closePetOverlay(recordsOverlay); }
             return true;
         }
         
@@ -3237,6 +3302,8 @@
     window.PetSystem = {
         init: initPet,
         loadStatus: loadPetStatus,
+        hydrate: hydrateFromCache,
+        reset: resetPetState,
         renderPage: renderPetPage,
         openPage: openPetPage,
         closePage: closePetPage,

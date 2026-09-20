@@ -54,8 +54,7 @@
     background:
         radial-gradient(160% 120% at 30% 0%, var(--primary-bg) 0%, rgba(255,255,255,0) 55%),
         linear-gradient(135deg, #FFFFFF 0%, #FAFAFA 100%);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    border-radius: var(--radius);
+    border-radius: 12px;
     padding: 14px 16px;
     margin: 0 16px 16px 16px;
     display: flex;
@@ -65,16 +64,6 @@
     overflow: hidden;
     cursor: default;
     transition: transform 0.2s ease;
-}
-.pet-entry-card::after  {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--primary), transparent);
-    opacity: 0.35;
 }
 
 .pet-avatar  {
@@ -228,7 +217,6 @@
     background: var(--primary);
     padding: 2px 10px;
     border-radius: 360px;
-    border: 1px solid rgba(255,255,255,0.8);
     line-height: 1;
 }
 
@@ -642,6 +630,43 @@
     animation: none;
 }
 .pet-cat-svg .cat-eye-blink  {
+    opacity: 0;
+    animation: none;
+}
+
+/* 领养弹窗预览猫（灰白英短，variant=default）：复用宠物主页同款待机动作 */
+.pet-adopt-preview-svg .cat-tail  {
+    transform-box: view-box;
+    transform-origin: 118px 288px;
+    animation: catTailWag 3s ease-in-out infinite;
+}
+.pet-adopt-preview-svg .cat-head  {
+    transform-box: view-box;
+    transform-origin: var(--head-origin-x, 340px) var(--head-origin-y, 295px);
+    animation: catHeadSway 4s ease-in-out infinite;
+}
+.pet-adopt-preview-svg .cat-ear-left,
+.pet-adopt-preview-svg .cat-ear-right  {
+    transform-box: fill-box;
+    transform-origin: bottom center;
+}
+.pet-adopt-preview-svg .cat-ear-left  {
+    animation: catEarWiggleL 6s ease-in-out infinite;
+}
+.pet-adopt-preview-svg .cat-ear-right  {
+    animation: catEarWiggleR 6s ease-in-out 0.5s infinite;
+}
+.pet-adopt-preview-svg .cat-eye-left,
+.pet-adopt-preview-svg .cat-eye-right  {
+    animation: none;
+}
+.pet-adopt-preview-svg .cat-eye-open  {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: milkEyeOpen 5.2s infinite;
+}
+.pet-adopt-preview-svg .cat-eye-closed,
+.pet-adopt-preview-svg .cat-eye-blink  {
     opacity: 0;
     animation: none;
 }
@@ -3120,6 +3145,133 @@
     font-weight: 700;
     color: #FF6B35;
     flex-shrink: 0;
+}
+
+
+/* ============================================================
+   宠物弹窗打开动画
+   说明：多数宠物弹窗是用 class="... active" 直接创建插入 DOM，
+        此时 CSS transition 不触发（无「初始态→终态」两帧），
+        弹窗会瞬间出现、没有动画。改用 @keyframes，元素插入或
+        加上 .active 时自动播放，覆盖「内联 active」与「rAF 加 active」
+        两种情况，两种主题（原版 / 手绘）均生效。
+   ============================================================ */
+
+/* 居中弹窗：缩放 + 轻微回弹 + 淡入 */
+@keyframes petModalPop {
+    0%   { opacity: 0; transform: scale(0.86); }
+    60%  { opacity: 1; transform: scale(1.03); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+/* 底部抽屉弹窗：从下滑入 + 淡入（与原有 translateY(100%)→0 行为一致） */
+@keyframes petSheetUp {
+    0%   { opacity: 0; transform: translateY(100%); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+/* 遮罩淡入（让内联 active 创建的弹窗也能淡入，而非瞬间出现） */
+@keyframes petOverlayFade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* —— 居中弹窗：缩放回弹 —— */
+.pet-info-popup-overlay.active .pet-info-popup,
+.pet-setup-overlay.active .pet-setup-modal,
+.pet-cat-skin-overlay.active .pet-cat-skin-modal,
+.pet-sign-overlay.active .pet-sign-modal,
+.pet-confirm-overlay.active .pet-confirm-modal,
+.pet-settings-overlay.active .pet-settings-modal,
+.pet-interaction-overlay.active .pet-interaction-modal {
+    animation: petModalPop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* —— 底部抽屉弹窗：从下滑入 —— */
+.pet-shop-overlay.active .pet-shop-modal,
+.pet-bag-overlay.active .pet-bag-modal,
+.pet-task-overlay.active .pet-task-modal,
+.pet-records-overlay.active .pet-task-modal,
+.pet-birthday-picker-overlay.active .pet-birthday-picker-modal {
+    animation: petSheetUp 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* —— 遮罩淡入（所有宠物弹窗） —— */
+.pet-info-popup-overlay.active,
+.pet-records-overlay.active,
+.pet-task-overlay.active,
+.pet-setup-overlay.active,
+.pet-birthday-picker-overlay.active,
+.pet-cat-skin-overlay.active,
+.pet-sign-overlay.active,
+.pet-confirm-overlay.active,
+.pet-shop-overlay.active,
+.pet-bag-overlay.active,
+.pet-interaction-overlay.active,
+.pet-settings-overlay.active {
+    animation: petOverlayFade 0.22s ease both;
+}
+
+
+/* ============================================================
+   宠物弹窗关闭动画（与上方打开动画对应，反向播放）
+   关闭时由 pet.js 给 overlay 加 .closing 触发；动画结束后 JS 再移除元素
+   （catSkinOverlay 为常驻弹窗，仅去 .active/.closing，保留 DOM）。
+   放在打开动画之后：特异性相同，.closing 规则覆盖 .active 规则。
+   ============================================================ */
+
+/* 居中弹窗：缩放 + 淡出（反向 petModalPop） */
+@keyframes petModalClose {
+    0%   { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0.86); }
+}
+
+/* 底部抽屉弹窗：下滑 + 淡出（反向 petSheetUp） */
+@keyframes petSheetDown {
+    0%   { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(100%); }
+}
+
+/* 遮罩淡出（反向 petOverlayFade） */
+@keyframes petOverlayFadeOut {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}
+
+/* —— 居中弹窗：缩放淡出 —— */
+.pet-info-popup-overlay.closing .pet-info-popup,
+.pet-setup-overlay.closing .pet-setup-modal,
+.pet-cat-skin-overlay.closing .pet-cat-skin-modal,
+.pet-sign-overlay.closing .pet-sign-modal,
+.pet-confirm-overlay.closing .pet-confirm-modal,
+.pet-settings-overlay.closing .pet-settings-modal,
+.pet-interaction-overlay.closing .pet-interaction-modal {
+    animation: petModalClose 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* —— 底部抽屉弹窗：下滑淡出 —— */
+.pet-shop-overlay.closing .pet-shop-modal,
+.pet-bag-overlay.closing .pet-bag-modal,
+.pet-task-overlay.closing .pet-task-modal,
+.pet-records-overlay.closing .pet-task-modal,
+.pet-birthday-picker-overlay.closing .pet-birthday-picker-modal {
+    animation: petSheetDown 0.32s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* —— 遮罩淡出（所有宠物弹窗） —— */
+.pet-info-popup-overlay.closing,
+.pet-records-overlay.closing,
+.pet-task-overlay.closing,
+.pet-setup-overlay.closing,
+.pet-birthday-picker-overlay.closing,
+.pet-cat-skin-overlay.closing,
+.pet-sign-overlay.closing,
+.pet-confirm-overlay.closing,
+.pet-shop-overlay.closing,
+.pet-bag-overlay.closing,
+.pet-interaction-overlay.closing,
+.pet-settings-overlay.closing {
+    animation: petOverlayFadeOut 0.24s ease both;
 }
 
 

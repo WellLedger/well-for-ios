@@ -584,15 +584,19 @@
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.35);
-    z-index: 50;
-    display: none;
+    z-index: 1150;
+    display: block;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
 }
 
 .week-overlay.show  {
-    display: block;
     opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 0.3s ease, visibility 0s;
 }
 
 .week-modal  {
@@ -605,18 +609,20 @@
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.3s;
-    z-index: 51;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
+    z-index: 1151;
     padding: 16px 20px 20px;
     will-change: transform;
     max-height: 85vh;
     visibility: hidden;
+    pointer-events: none;
 }
 
 .week-modal.show  {
     transform: translateY(0);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
     visibility: visible;
+    pointer-events: auto;
 }
 
 .week-modal-header  {
@@ -766,15 +772,19 @@
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.35);
-    z-index: 50;
-    display: none;
+    z-index: 1150;
+    display: block;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0s 0.35s;
 }
 
 .year-overlay.show  {
-    display: block;
     opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 0.3s ease, visibility 0s;
 }
 
 .year-modal  {
@@ -787,18 +797,20 @@
     background: var(--bg-card);
     border-radius: var(--radius) var(--radius) 0 0;
     transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.3s;
-    z-index: 51;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s 0.35s;
+    z-index: 1151;
     padding: 16px 20px 20px;
     will-change: transform;
     max-height: 85vh;
     visibility: hidden;
+    pointer-events: none;
 }
 
 .year-modal.show  {
     transform: translateY(0);
-    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
+    transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), visibility 0s;
     visibility: visible;
+    pointer-events: auto;
 }
 
 .year-modal-header  {
