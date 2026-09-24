@@ -1,0 +1,800 @@
+/* =============================================================
+   pet-handdrawn.css  —  宠物模块「手账涂鸦风」手绘主题
+   奶油暖黄配色 / 抖动描边 / 纸张纹理 / 手写体
+   说明：本文件在 pet.css 之后引入，仅覆盖宠物模块的视觉表现，
+        不改动布局与交互逻辑；删除本文件的 <link> 即可恢复原样。
+   ============================================================= */
+
+/* 手写体（站酷快乐体用于界面，马善政毛笔体用于气泡/标题点缀） */
+@import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=ZCOOL+QingKe+HuangYou&family=Ma+Shan+Zheng&display=swap');
+
+/* ---------- 1. 宠物作用域内重声明主题变量（奶油暖黄手绘色板） ---------- */
+#page-pet,
+.pet-info-popup-overlay,
+.pet-records-overlay,
+.pet-task-overlay,
+.pet-setup-overlay,
+.pet-birthday-picker-overlay,
+.pet-cat-skin-overlay,
+.pet-sign-overlay,
+.pet-confirm-overlay,
+.pet-shop-overlay,
+.pet-bag-overlay,
+.pet-interaction-overlay,
+.pet-info-popup,
+.pet-task-modal,
+.pet-setup-modal,
+.pet-birthday-picker-modal,
+.pet-cat-skin-modal,
+.pet-sign-modal,
+.pet-confirm-modal,
+.pet-shop-modal,
+.pet-bag-modal,
+.pet-interaction-modal,
+.pet-records-modal,
+.pet-game-tip,
+.pet-score-popup,
+.pet-levelup,
+.pet-levelup-content {
+  --primary: #EFA94A;
+  --primary-light: #FBE6BE;
+  --primary-bg: #FBEFD6;
+  --primary-shadow: rgba(196,128,40,0.28);
+  --bg-main: #FBF3E0;
+  --bg-card: #FFFDF6;
+  --bg-input: #FFFDF6;
+  --text-primary: #4A3B30;
+  --text-secondary: #8C7B66;
+  --text-fix: #4A3B30;
+  --radius: 18px;
+  --radius-sm: 12px;
+
+  /* 手绘专用令牌 */
+  --hd-line: #5B4A3A;
+  --hd-line-soft: rgba(91,74,58,0.45);
+  --hd-shadow: rgba(91,74,58,0.20);
+  --hd-r1: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  --hd-r2: 15px 225px 15px 255px / 255px 15px 225px 15px;
+  --hd-paper-page:
+    radial-gradient(circle at 15% 12%, rgba(242,162,60,0.10), transparent 38%),
+    radial-gradient(circle at 85% 16%, rgba(244,180,188,0.12), transparent 40%),
+    radial-gradient(circle at 50% 96%, rgba(167,198,134,0.16), transparent 46%),
+    linear-gradient(160deg, #FDF7E9, #F6ECD6);
+  --hd-paper-card:
+    radial-gradient(rgba(120,90,60,0.05) 1px, transparent 1px) 0 0 / 7px 7px,
+    radial-gradient(circle at 16% 10%, rgba(242,162,60,0.10), transparent 42%),
+    radial-gradient(circle at 86% 90%, rgba(244,180,188,0.12), transparent 45%),
+    linear-gradient(160deg, #FDF7E9, #F8EDD6);
+}
+
+/* ---------- 2. 全局手写体（宠物模块内，统一可爱圆体 ZCOOL KuaiLe） ---------- */
+#page-pet,
+.pet-info-popup-overlay, .pet-records-overlay, .pet-task-overlay,
+.pet-setup-overlay, .pet-settings-overlay, .pet-birthday-picker-overlay, .pet-cat-skin-overlay,
+#catSkinOverlay,
+.pet-sign-overlay, .pet-confirm-overlay, .pet-shop-overlay,
+.pet-bag-overlay, .pet-interaction-overlay,
+.pet-info-popup, .pet-task-modal, .pet-setup-modal,
+.pet-birthday-picker-modal, .pet-cat-skin-modal, .pet-sign-modal,
+.pet-confirm-modal, .pet-shop-modal, .pet-bag-modal,
+.pet-interaction-modal, .pet-records-modal,
+.pet-game-tip, .pet-score-popup, .pet-levelup, .pet-levelup-content,
+.pet-floating {
+  font-family: 'ZCOOL KuaiLe', 'ZCOOL QingKe HuangYou', 'PingFang SC', 'Microsoft YaHei', sans-serif !important;
+}
+/* 强制覆盖所有后代文字（图标字形除外，避免破坏 remixicon / fontawesome 字形）。
+   注：宠物弹窗均 appendChild 到 body、不在 #page-pet 内，必须逐一列出根类才覆盖得到 */
+#page-pet *:not(i[class^="ri-"]):not(i[class*="fa"]),
+.pet-floating *:not(i[class^="ri-"]):not(i[class*="fa"]),
+.pet-info-popup-overlay *:not(i[class^="ri-"]):not(i[class*="fa"]),
+.pet-records-overlay *:not(i[class^="ri-"]):not(i[class*="fa"]),
+.pet-task-overlay *:not(i[class^="ri-"]):not(i[class*="fa"]),
+.pet-setup-overlay *:not(i[class^="ri-"]):not(i[class*="fa"]),
+.pet-settings-overlay *:not(i[class^="ri-"]):not(i[class*="fa"]),
+.pet-birthday-picker-overlay *:not(i[class^="ri-"]):not(i[class*="fa"]),
+.pet-cat-skin-overlay *:not(i[class^="ri-"]):not(i[class*="fa"]),
+#catSkinOverlay *:not(i[class^="ri-"]):not(i[class*="fa"]),
+.pet-sign-overlay *:not(i[class^="ri-"]):not(i[class*="fa"]),
+.pet-confirm-overlay *:not(i[class^="ri-"]):not(i[class*="fa"]),
+.pet-shop-overlay *:not(i[class^="ri-"]):not(i[class*="fa"]),
+.pet-bag-overlay *:not(i[class^="ri-"]):not(i[class*="fa"]),
+.pet-interaction-overlay *:not(i[class^="ri-"]):not(i[class*="fa"]),
+.pet-game-tip *:not(i[class^="ri-"]):not(i[class*="fa"]) {
+  font-family: 'ZCOOL KuaiLe', 'ZCOOL QingKe HuangYou', 'PingFang SC', 'Microsoft YaHei', sans-serif !important;
+}
+
+/* ---------- 3. 页面与卡片纸感背景 ---------- */
+#page-pet {
+  background: var(--hd-paper-page) !important;
+}
+#page-pet .pet-scroll { background: transparent !important; }
+
+/* ---------- 4. 遮罩层：暖棕半透明 + 轻微模糊 ---------- */
+.pet-info-popup-overlay,
+.pet-records-overlay,
+.pet-task-overlay,
+.pet-setup-overlay,
+.pet-birthday-picker-overlay,
+.pet-cat-skin-overlay,
+.pet-sign-overlay,
+.pet-confirm-overlay,
+.pet-shop-overlay,
+.pet-bag-overlay,
+.pet-interaction-overlay,
+.pet-settings-overlay {
+  background: rgba(74,59,48,0.42) !important;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+/* ---------- 5. 弹层容器：手绘抖动描边 + 硬阴影 + 胶带 ---------- */
+.pet-info-popup,
+.pet-task-modal,
+.pet-setup-modal,
+.pet-birthday-picker-modal,
+.pet-cat-skin-modal,
+.pet-sign-modal,
+.pet-confirm-modal,
+.pet-shop-modal,
+.pet-bag-modal,
+.pet-interaction-modal,
+.pet-settings-modal {
+  position: relative !important;
+  background: var(--hd-paper-card) !important;
+  border: 2.5px solid var(--hd-line) !important;
+  border-radius: var(--hd-r1) !important;
+  box-shadow: 5px 6px 0 var(--hd-shadow) !important;
+}
+/* 顶部胶带装饰 */
+.pet-info-popup::before,
+.pet-task-modal::before,
+.pet-setup-modal::before,
+.pet-birthday-picker-modal::before,
+.pet-cat-skin-modal::before,
+.pet-sign-modal::before,
+.pet-confirm-modal::before,
+.pet-shop-modal::before,
+.pet-bag-modal::before,
+.pet-settings-modal::before {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  width: 92px;
+  height: 22px;
+  transform: translateX(-50%) rotate(-3deg);
+  background: rgba(242,162,60,0.38);
+  border: 1px solid rgba(91,74,58,0.25);
+  border-radius: 3px;
+  z-index: 6;
+  pointer-events: none;
+}
+
+/* ---------- 6. 标题手写波浪下划线 ---------- */
+.pet-task-modal [class*="title"],
+.pet-setup-modal [class*="title"],
+.pet-shop-modal [class*="title"],
+.pet-sign-modal [class*="title"],
+.pet-info-popup [class*="title"],
+.pet-bag-modal [class*="title"],
+.pet-records-modal [class*="title"],
+.pet-settings-modal [class*="title"] {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='80'%20height='6'%3E%3Cpath%20d='M0%204%20Q10%201%2020%204%20T40%204%20T60%204%20T80%204'%20stroke='%235B4A3A'%20stroke-width='2'%20fill='none'%20stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left bottom;
+  background-size: 100% 6px;
+  padding-bottom: 9px;
+}
+
+/* ---------- 7. 主按钮（投喂/确认/完善信息） ---------- */
+.pet-adopt-btn,
+.pet-setup-btn.confirm,
+.pet-info-popup-btn.setup {
+  background: var(--primary) !important;
+  color: #fff !important;
+  border: 2.5px solid var(--hd-line) !important;
+  border-radius: var(--hd-r1) !important;
+  box-shadow: 3px 4px 0 var(--hd-shadow) !important;
+  letter-spacing: 1.5px;
+  font-family: inherit;
+}
+.pet-adopt-btn:active,
+.pet-setup-btn.confirm:active,
+.pet-info-popup-btn.setup:active {
+  transform: translate(2px,3px) !important;
+  box-shadow: 1px 1px 0 var(--hd-shadow) !important;
+}
+
+/* 次要按钮（取消/关闭） */
+.pet-setup-btn.cancel,
+.pet-info-popup-btn.close {
+  background: #FFFDF6 !important;
+  color: var(--text-primary) !important;
+  border: 2.5px solid var(--hd-line) !important;
+  border-radius: var(--hd-r1) !important;
+  box-shadow: 3px 4px 0 var(--hd-shadow) !important;
+  font-family: inherit;
+}
+.pet-setup-btn.cancel:active,
+.pet-info-popup-btn.close:active {
+  transform: translate(2px,3px) !important;
+  box-shadow: 1px 1px 0 var(--hd-shadow) !important;
+}
+
+/* ---------- 设置弹窗：补回手绘作用域变量（原 1/2 节选择器漏掉，导致无背景、描边丢失） ---------- */
+.pet-settings-overlay,
+.pet-settings-modal {
+  --primary: #EFA94A;
+  --primary-light: #FBE6BE;
+  --primary-bg: #FBEFD6;
+  --primary-shadow: rgba(196,128,40,0.28);
+  --bg-main: #FBF3E0;
+  --bg-card: #FFFDF6;
+  --bg-input: #FFFDF6;
+  --text-primary: #4A3B30;
+  --text-secondary: #8C7B66;
+  --text-fix: #4A3B30;
+  --radius: 18px;
+  --radius-sm: 12px;
+
+  /* 手绘专用令牌 */
+  --hd-line: #5B4A3A;
+  --hd-line-soft: rgba(91,74,58,0.45);
+  --hd-shadow: rgba(91,74,58,0.20);
+  --hd-r1: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  --hd-r2: 15px 225px 15px 255px / 255px 15px 225px 15px;
+  --hd-paper-page:
+    radial-gradient(circle at 15% 12%, rgba(242,162,60,0.10), transparent 38%),
+    radial-gradient(circle at 85% 16%, rgba(244,180,188,0.12), transparent 40%),
+    radial-gradient(circle at 50% 96%, rgba(167,198,134,0.16), transparent 46%),
+    linear-gradient(160deg, #FDF7E9, #F6ECD6);
+  --hd-paper-card:
+    radial-gradient(rgba(120,90,60,0.05) 1px, transparent 1px) 0 0 / 7px 7px,
+    radial-gradient(circle at 16% 10%, rgba(242,162,60,0.10), transparent 42%),
+    radial-gradient(circle at 86% 90%, rgba(244,180,188,0.12), transparent 45%),
+    linear-gradient(160deg, #FDF7E9, #F8EDD6);
+}
+.pet-settings-overlay,
+.pet-settings-modal {
+  font-family: 'ZCOOL QingKe HuangYou', 'ZCOOL KuaiLe', 'PingFang SC', 'Microsoft YaHei', sans-serif !important;
+}
+
+/* ---------- 设置弹窗 ---------- */
+.pet-settings-item {
+  border-bottom-color: var(--hd-line) !important;
+  border-bottom-style: dashed !important;
+  border-bottom-width: 1.5px !important;
+}
+.pet-settings-item-label {
+  font-family: inherit !important;
+}
+.pet-settings-item-desc {
+  color: var(--hd-line) !important;
+  opacity: 0.7;
+}
+.pet-settings-toggle {
+  border: 2px solid var(--hd-line) !important;
+  border-radius: var(--hd-r1) !important;
+  background: #FFFDF6 !important;
+  box-shadow: 2px 2px 0 var(--hd-shadow) !important;
+  transition: none !important;
+}
+.pet-settings-toggle.on {
+  background: var(--primary) !important;
+}
+.pet-settings-toggle::after {
+  border-radius: 50% !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15) !important;
+}
+.pet-settings-close-btn {
+  background: var(--primary) !important;
+  border: 2.5px solid var(--hd-line) !important;
+  border-radius: var(--hd-r1) !important;
+  box-shadow: 3px 4px 0 var(--hd-shadow) !important;
+  font-family: inherit !important;
+  letter-spacing: 1.5px;
+}
+.pet-settings-close-btn:active {
+  transform: translate(2px,3px) !important;
+  box-shadow: 1px 1px 0 var(--hd-shadow) !important;
+}
+
+/* ---------- 8. 状态条（饥饿/心情）：手绘描边轨道 + 偏移投影 + 蜡笔填充 ---------- */
+.pet-status-bar {
+  height: 12px !important;
+  background: #FFFDF6 !important;
+  border: 1.8px solid var(--hd-line) !important;
+  border-radius: 9px 8px 9px 8px !important;
+  box-shadow: 1.5px 2px 0 var(--hd-shadow) !important;
+}
+.pet-status-fill {
+  border-radius: 8px 7px 8px 7px !important;
+}
+.pet-status-fill.hunger {
+  background: linear-gradient(90deg, #FBC17A, #F2913F) !important;
+  border-radius: 8px 7px 8px 7px !important;
+}
+.pet-status-fill.mood {
+  background: linear-gradient(90deg, #F8C0CB, #EE9AAE) !important;
+  border-radius: 8px 7px 8px 7px !important;
+}
+/* ---------- 8b. 顶栏经验进度条：手绘风 ---------- */
+.pet-topbar-level-track {
+  width: 54px !important;
+  height: 9px !important;
+  background: #FFFDF6 !important;
+  border: 1.6px solid var(--hd-line) !important;
+  border-radius: 7px 6px 7px 6px !important;
+  box-shadow: 1.5px 2px 0 var(--hd-shadow) !important;
+}
+.pet-topbar-level-fill {
+  border-radius: 6px 5px 6px 5px !important;
+  background: linear-gradient(90deg, var(--primary-light), var(--primary)) !important;
+}
+
+/* ---------- 9. 顶层小图标按钮（返回/菜单） ---------- */
+.pet-back,
+.pet-menu-btn {
+  background: #FFFDF6 !important;
+  border: 2px solid var(--hd-line) !important;
+  box-shadow: 2px 2px 0 var(--hd-shadow) !important;
+  color: var(--text-primary) !important;
+  border-radius: 50% !important;
+}
+
+/* 顶栏 */
+
+.pet-topbar-score,
+.pet-topbar-level {
+  background: #FFFDF6 !important;
+  color: var(--text-primary) !important;
+  border: 2px solid var(--hd-line) !important;
+  box-shadow: 2px 2px 0 var(--hd-shadow) !important;
+  border-radius: 999px !important;
+  font-weight: 700 !important;
+}
+.pet-topbar-score i,
+.pet-topbar-level i { color: #EFA03A !important; font-weight: 400 !important; }
+
+
+/* ---------- 11. 展示区 / 草坪 / 猫咪舞台 ---------- */
+.pet-showcase { z-index: 0; }
+.pet-cat-stage {
+  border: 2.5px dashed var(--hd-line-soft) !important;
+  border-radius: var(--hd-r1) !important;
+  background: rgba(255,253,246,0.55) !important;
+  padding: 10px;
+}
+.pet-lawn {
+  background: radial-gradient(ellipse at 50% 25%, #C4E6A8 0%, #A3D386 65%, #8FC277 100%) !important;
+  border: 2.5px solid #5E8C46 !important;
+  border-radius: 50% 50% 45% 45% / 62% 62% 38% 38% !important;
+  box-shadow: inset 0 -8px 0 rgba(94,140,70,0.30), 4px 5px 0 var(--hd-shadow) !important;
+}
+
+/* ---------- 12. 状态卡片 / 记录项 / 任务项（内卡片） ---------- */
+.pet-record-item,
+.pet-task-item,
+.pet-adopt-variant-card,
+.pet-cat-skin-card {
+  background: #FFFDF6 !important;
+  border: 2.5px solid var(--hd-line) !important;
+  box-shadow: 3px 4px 0 var(--hd-shadow) !important;
+  border-radius: var(--hd-r1) !important;
+}
+.pet-status-card {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 4px 2px !important;
+}
+
+/* ---------- 13. 角落动作按钮（签到/任务/商城/记录） ---------- */
+.pet-corner-btn {
+  background: #FFFDF6 !important;
+  border: 2.5px solid var(--hd-line) !important;
+  box-shadow: 3px 3px 0 var(--hd-shadow) !important;
+  color: var(--hd-line) !important;
+}
+.pet-corner-btn:active {
+  transform: scale(0.92) translate(1px,1px) !important;
+  box-shadow: 1px 1px 0 var(--hd-shadow) !important;
+}
+.pet-corner-btn.sign    { color: #5BA34B !important; }
+.pet-corner-btn.task    { color: #EFA03A !important; }
+.pet-corner-btn.shop    { color: #DD7B4E !important; }
+.pet-corner-btn.records { color: #BD7FB0 !important; }
+.pet-corner-btn.info   { color: #5B8FB9 !important; }
+
+/* 提示红点（签到 / 任务）改为手绘风 */
+.pet-task-dot {
+  width: 9px !important;
+  height: 9px !important;
+  background: #FF5A5F !important;
+  border: 1.6px solid #B23A3F !important;
+  border-radius: 52% 48% 50% 50% !important;
+  box-shadow: 1px 1px 0 var(--hd-shadow) !important;
+  top: 7px !important;
+  right: 9px !important;
+}
+
+/* 投喂 / 背包 悬浮按钮 */
+.pet-feed-fab,
+.pet-bag-fab {
+  background: #FFFDF6 !important;
+  border: 2.5px solid var(--hd-line) !important;
+  box-shadow: 3px 3px 0 var(--hd-shadow) !important;
+}
+.pet-feed-fab:active,
+.pet-bag-fab:active {
+  transform: scale(0.92) translate(1px,1px) !important;
+  box-shadow: 1px 1px 0 var(--hd-shadow) !important;
+}
+.pet-feed-fab-badge {
+  background: var(--primary) !important;
+  color: #fff !important;
+  border: 2px solid var(--hd-line) !important;
+}
+
+/* ---------- 14. 动作菜单项（投喂/玩耍/洗澡…） ---------- */
+.pet-action-item {
+  background: #FFFDF6 !important;
+  border: 2.5px solid var(--hd-line) !important;
+  box-shadow: 3px 4px 0 var(--hd-shadow) !important;
+  border-radius: var(--hd-r1) !important;
+}
+.pet-action-item::before {
+  background: var(--primary-light) !important;
+  border-bottom: 2px dashed var(--hd-line-soft) !important;
+  border-radius: var(--hd-r1) var(--hd-r1) 0 0 !important;
+}
+.pet-action-item.disabled {
+  opacity: 0.55 !important;
+  filter: grayscale(0.3);
+}
+.pet-action-text,
+.pet-action-label { color: var(--text-primary) !important; }
+
+/* 通用动作按钮（投喂/签到/任务 大按钮） */
+.pet-action-btn {
+  border: 2.5px solid var(--hd-line) !important;
+  box-shadow: 3px 4px 0 var(--hd-shadow) !important;
+  border-radius: var(--hd-r1) !important;
+}
+.pet-action-btn.task .pet-action-icon,
+.pet-action-btn.sign .pet-action-icon { color: var(--text-primary) !important; }
+
+/* ---------- 15. 输入与性别选择 ---------- */
+.pet-setup-input {
+  background: #FFFDF6 !important;
+  border: 2.5px solid var(--hd-line) !important;
+  border-radius: var(--hd-r1) !important;
+  color: var(--text-primary) !important;
+  box-shadow: inset 0 1px 3px rgba(91,74,58,0.12);
+}
+.pet-setup-input:focus {
+  border-color: var(--primary) !important;
+  background: #FFFDF6 !important;
+}
+.pet-setup-gender-btn {
+  background: #FFFDF6 !important;
+  border: 2.5px solid var(--hd-line) !important;
+  border-radius: var(--hd-r1) !important;
+  color: var(--text-secondary) !important;
+  box-shadow: 2px 3px 0 var(--hd-shadow) !important;
+}
+.pet-setup-gender-btn.active {
+  border-color: var(--primary) !important;
+  background: var(--primary-light) !important;
+  color: #8a5a12 !important;
+}
+
+/* ---------- 16. 签到进度 / 优惠券 / 徽标 ---------- */
+.pet-sign-progress,
+.pet-sign-progress-bar,
+.pet-sign-voucher,
+.pet-sign-bonus-tag,
+.pet-task-icon {
+  border-radius: var(--hd-r1) !important;
+}
+.pet-sign-progress {
+  background: rgba(91,74,58,0.10) !important;
+  border: 1.5px solid var(--hd-line-soft) !important;
+}
+.pet-sign-progress-bar {
+  background: linear-gradient(90deg, #FBC17A, #F2913F) !important;
+}
+.pet-sign-voucher,
+.pet-sign-bonus-tag {
+  background: var(--primary-light) !important;
+  border: 2px solid var(--hd-line) !important;
+  color: #8a5a12 !important;
+}
+.pet-task-icon {
+  background: var(--primary-light) !important;
+  border: 2px solid var(--hd-line) !important;
+  color: #8a5a12 !important;
+}
+.pet-record-score { color: #EFA03A !important; }
+.pet-cat-skin-exchange-btn {
+  background: var(--primary) !important;
+  color: #fff !important;
+  border: 2.5px solid var(--hd-line) !important;
+  border-radius: var(--hd-r1) !important;
+  box-shadow: 3px 4px 0 var(--hd-shadow) !important;
+}
+
+/* 选中勾 */
+.pet-adopt-variant-check,
+.pet-cat-skin-check {
+  background: var(--primary) !important;
+  border: 2px solid var(--hd-line) !important;
+}
+
+/* ---------- 16b. 签到弹窗：卡片线框 + 签到/补签按钮 手绘风 ---------- */
+/* 卡片基础线框：手绘蜡笔细描边（取代原浅灰实线，整张网格统一手绘感） */
+.pet-sign-card {
+  border: 1.5px solid var(--hd-line-soft) !important;
+  box-shadow: 2px 3px 0 var(--hd-shadow) !important;
+}
+/* 今天（激活）卡片：加粗蜡笔描边线框，取代原纯橙实线，并取消橙色脉冲 */
+.pet-sign-card.today {
+  border: 2.5px solid var(--hd-line) !important;
+  background: var(--primary-light) !important;
+  box-shadow: 3px 4px 0 var(--hd-shadow) !important;
+  animation: none !important;
+}
+/* 签到 / 补签 按钮：手绘风（蜡笔描边 + 偏移投影） */
+.pet-sign-card-btn {
+  border: 2.5px solid var(--hd-line) !important;
+  border-radius: 14px !important;
+  box-shadow: 3px 3px 0 var(--hd-shadow) !important;
+  font-family: inherit !important;
+  letter-spacing: 0.5px !important;
+}
+.pet-sign-card-btn.primary {
+  background: var(--primary) !important;
+  color: #fff !important;
+}
+.pet-sign-card-btn.makeup.free {
+  background: #FFFDF6 !important;
+  color: #2E7D32 !important;
+}
+.pet-sign-card-btn.makeup.paid {
+  background: #FFFDF6 !important;
+  color: #E26956 !important;
+}
+.pet-sign-card-btn:active {
+  transform: translate(1px,2px) scale(0.97) !important;
+  box-shadow: 1px 1px 0 var(--hd-shadow) !important;
+}
+
+/* ---------- 17. 气泡 / 提示 / 飘字 ---------- */
+.pet-speech {
+  background: #FFFDF6 !important;
+  color: var(--text-primary) !important;
+  border: 2.5px solid var(--hd-line) !important;
+  box-shadow: 3px 3px 0 var(--hd-shadow) !important;
+  font-family: 'Ma Shan Zheng', 'ZCOOL KuaiLe', sans-serif !important;
+}
+.pet-game-tip {
+  background: #FFFDF6 !important;
+  color: var(--text-primary) !important;
+  border: 2.5px solid var(--hd-line) !important;
+  box-shadow: 3px 3px 0 var(--hd-shadow) !important;
+}
+.pet-game-tip.warn {
+  background: #FCE9C9 !important;
+  border-color: #D98B2B !important;
+}
+.pet-score-popup-content,
+.pet-levelup-content {
+  background: var(--primary) !important;
+  color: #fff !important;
+  border: 2.5px solid var(--hd-line) !important;
+  box-shadow: 3px 3px 0 var(--hd-shadow) !important;
+  font-family: 'ZCOOL QingKe HuangYou', 'ZCOOL KuaiLe', sans-serif !important;
+}
+
+/* ---------- 19. 双线蜡笔描边：给卡片/弹层/按钮加内嵌细线，更像手绘轮廓 ---------- */
+.pet-info-popup,
+.pet-task-modal,
+.pet-setup-modal,
+.pet-birthday-picker-modal,
+.pet-cat-skin-modal,
+.pet-sign-modal,
+.pet-confirm-modal,
+.pet-shop-modal,
+.pet-bag-modal,
+.pet-interaction-modal,
+.pet-record-item,
+.pet-task-item,
+.pet-adopt-variant-card,
+.pet-cat-skin-card,
+.pet-action-item,
+.pet-corner-btn,
+.pet-feed-fab,
+.pet-bag-fab {
+  box-shadow:
+    4px 5px 0 var(--hd-shadow),
+    inset 0 0 0 1.5px rgba(91,74,58,0.18) !important;
+}
+
+/* ---------- 20. 猫咪舞台交互层级（星星/爱心/云朵/爪印四枚涂鸦已按需求移除） ---------- */
+.pet-cat-stage {
+  position: relative;
+  overflow: visible;
+}
+/* 确保舞台上交互元素在场景背景层之上（角落按钮保持 absolute，不在此列） */
+.pet-status-cards,
+.pet-cat-container {
+  position: relative;
+  z-index: 2;
+}
+
+/* ---------- 21. 手绘图标：宠物模块内 RemixIcon 统一为手账涂鸦风 ----------
+   宠物模块仍有大量 RemixIcon 线性图标，与手绘风格不搭。
+   此处不动 DOM，仅用「墨色 + 轻微抖动滤镜 + 描边」把全部 ri-* 图标
+   统一成手绘线条质感（滤镜 #hd-wobble 定义在 index.html 内）。
+   想恢复干净线稿，删掉本段即可；范围严格限定在宠物模块，不影响底部菜单栏等全局图标。 */
+:is(#page-pet,
+    .pet-info-popup-overlay, .pet-records-overlay, .pet-task-overlay,
+    .pet-setup-overlay, .pet-birthday-picker-overlay, .pet-cat-skin-overlay,
+    .pet-sign-overlay, .pet-confirm-overlay, .pet-shop-overlay,
+    .pet-bag-overlay, .pet-interaction-overlay,
+    .pet-info-popup, .pet-task-modal, .pet-setup-modal,
+    .pet-birthday-picker-modal, .pet-cat-skin-modal, .pet-sign-modal,
+    .pet-confirm-modal, .pet-shop-modal, .pet-bag-modal,
+    .pet-interaction-modal, .pet-records-modal,
+    .pet-game-tip, .pet-score-popup, .pet-levelup, .pet-levelup-content
+) i[class^="ri-"] {
+    color: var(--hd-line) !important;
+    -webkit-text-stroke: 0.5px var(--hd-line);
+    filter: url(#hd-wobble);
+    overflow: visible;
+}
+
+/* ---------- 22. 兑换 / 确认弹窗按钮：手绘风 ---------- */
+.pet-confirm-btn {
+  border: 2.5px solid var(--hd-line) !important;
+  border-radius: 14px !important;
+  background: #FFFDF6 !important;
+  color: var(--text-primary) !important;
+  box-shadow: 3px 3px 0 var(--hd-shadow) !important;
+  font-family: 'ZCOOL QingKe HuangYou', 'ZCOOL KuaiLe', 'PingFang SC', 'Microsoft YaHei', sans-serif !important;
+}
+.pet-confirm-btn.cancel {
+  background: #FFFDF6 !important;
+  color: var(--text-secondary) !important;
+}
+.pet-confirm-btn.confirm {
+  background: var(--primary) !important;
+  color: #fff !important;
+}
+.pet-confirm-btn:active {
+  transform: scale(0.96) translate(1px,1px) !important;
+  box-shadow: 1px 1px 0 var(--hd-shadow) !important;
+}
+
+/* ---------- 23. 商城 / 背包 导航 Tab：手绘风 ---------- */
+.pet-shop-tabs,
+.pet-bag-tabs {
+  border-bottom: 2px dashed var(--hd-line-soft) !important;
+  gap: 6px !important;
+  padding: 0 12px !important;
+}
+.pet-shop-tab,
+.pet-bag-tab {
+  position: relative;
+  color: var(--text-secondary) !important;
+  font-family: inherit;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 12px 12px 0 0 !important;
+  padding: 12px 8px !important;
+}
+.pet-shop-tab.active,
+.pet-bag-tab.active {
+  color: var(--primary) !important;
+}
+/* 当前选中 Tab：手绘短下划线 */
+.pet-shop-tab.active::after,
+.pet-bag-tab.active::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 4px;
+  border-radius: 3px;
+  background: var(--primary);
+  box-shadow: 0 1px 0 var(--hd-shadow);
+}
+
+/* ---------- 24. 任务中心：领取 / 签到 / 券兑换 按钮：手绘风 ---------- */
+.pet-task-btn {
+  border: 2.5px solid var(--hd-line) !important;
+  border-radius: 14px !important;
+  box-shadow: 3px 3px 0 var(--hd-shadow) !important;
+  font-family: inherit;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.pet-task-btn.go {
+  background: #FFFDF6 !important;
+  color: var(--text-secondary) !important;
+}
+.pet-task-btn.claim {
+  background: var(--primary) !important;
+  color: #fff !important;
+}
+.pet-task-btn.done {
+  background: rgba(91,74,58,0.08) !important;
+  color: var(--text-secondary) !important;
+  border-color: var(--hd-line-soft) !important;
+  box-shadow: none !important;
+}
+.pet-task-btn:active {
+  transform: translate(1px,2px) scale(0.97) !important;
+  box-shadow: 1px 1px 0 var(--hd-shadow) !important;
+}
+
+/* ---------- 25. 背包「当前」标签 / 锁标：手绘风 ---------- */
+.pet-bag-skin-tag {
+  background: var(--primary) !important;
+  color: #fff !important;
+  border: 1.5px solid var(--hd-line) !important;
+  box-shadow: 1px 2px 0 var(--hd-shadow) !important;
+  font-family: inherit;
+  letter-spacing: 0.5px;
+}
+.pet-bag-skin-lock {
+  border: 1.5px solid var(--hd-line) !important;
+  box-shadow: 1px 2px 0 var(--hd-shadow) !important;
+}
+
+/* ---------- 26. 生日选择器：恢复从底部弹出（覆盖 Section 5 的 relative） ---------- */
+.pet-birthday-picker-overlay .pet-birthday-picker-modal {
+  position: absolute !important;
+  top: auto !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  transform: translateY(100%) !important;
+  max-width: 480px !important;
+  margin: 0 auto !important;
+  border-radius: 22px 22px 0 0 !important;
+  border: 2.5px solid var(--hd-line) !important;
+  box-shadow: 0 -6px 22px rgba(91,74,58,0.22) !important;
+}
+.pet-birthday-picker-overlay.active .pet-birthday-picker-modal {
+  transform: translateY(0) !important;
+}
+/* 底部弹层去掉顶部胶带装饰，保持干净 */
+.pet-birthday-picker-modal::before {
+  display: none !important;
+}
+
+/* ---------- 27. 游戏页面字体优化：数字用本地 DIN Pro，中文保持手写体 ---------- */
+@font-face {
+  font-family: 'DINPro';
+  src: url('../webfonts/DINPro-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-display: swap;
+}
+.pet-topbar-score,
+.pet-topbar-level,
+.pet-level {
+  font-family: 'DINPro', 'ZCOOL QingKe HuangYou', 'ZCOOL KuaiLe', sans-serif !important;
+  letter-spacing: 0.5px;
+}
+/* 整体字距微调，手写体更透气 */
+#page-pet,
+.pet-task-modal,
+.pet-shop-modal,
+.pet-bag-modal,
+.pet-sign-modal {
+  letter-spacing: 0.3px;
+}
